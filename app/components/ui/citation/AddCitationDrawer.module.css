@@ -1,0 +1,39 @@
+.citationPreview {
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-radius: var(--mantine-radius-xs);
+  padding: rem(6px);
+}
+
+.statement {
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-radius: var(--mantine-radius-sm);
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-8)
+  );
+  padding: var(--mantine-spacing-xs);
+}
+
+.addStatementButton {
+  border-radius: rem(9999px);
+}
+
+.accordionItem {
+  padding: 0;
+}
+
+.accordionControl {
+  padding: 0 var(--mantine-spacing-xs);
+}
+
+.accordionContent {
+  padding: 0 var(--mantine-spacing-xs);
+  padding-bottom: var(--mantine-spacing-xs);
+}
+
+.accordionChevron {
+  margin-inline-end: rem(10px);
+  margin-inline-start: rem(0px);
+}

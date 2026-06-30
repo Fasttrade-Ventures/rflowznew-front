@@ -1,0 +1,21 @@
+.textarea {
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-black)
+  );
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-7));
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+}
+
+.textarea[data-error] {
+  border-color: var(--mantine-color-red-8);
+}
+
+.textarea:focus {
+  border-color: var(--mantine-primary-color-5);
+}
+
+.textarea[data-error]:focus {
+  border-color: var(--mantine-color-red-8);
+}

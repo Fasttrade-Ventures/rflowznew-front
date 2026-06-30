@@ -1,0 +1,75 @@
+.box {
+  position: relative;
+  border: 5px solid
+    light-dark(var(--mantine-color-gray-4), var(--mantine-primary-color-4));
+  border-radius: var(--mantine-radius-md);
+  margin-bottom: var(--mantine-spacing-xl);
+  padding: var(--mantine-spacing-xl);
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-primary-color-2)
+  );
+  overflow: hidden;
+}
+
+.timerContainer {
+  text-align: center;
+}
+
+.timerName {
+  color: light-dark(
+    var(--mantine-color-dark-4),
+    var(--mantine-primary-color-9)
+  );
+}
+
+.timerDisplay {
+  display: flex;
+  justify-content: center;
+  gap: var(--mantine-spacing-md);
+}
+
+.timerValue {
+  background-color: light-dark(
+    var(--mantine-primary-color-5),
+    var(--mantine-primary-color-5)
+  );
+  border-radius: var(--mantine-radius-sm);
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+  min-width: rem(80);
+}
+
+.timerValueNumber {
+  font-size: rem(32);
+  font-weight: bold;
+  color: light-dark(var(--mantine-color-white), var(--mantine-color-white));
+}
+
+.timerValueLabel {
+  display: block;
+  font-size: var(--mantine-font-size-xs);
+  color: light-dark(
+    var(--mantine-primary-color-2),
+    var(--mantine-primary-color-2)
+  );
+}
+
+.drZLeft,
+.drZRight {
+  position: absolute;
+  bottom: 0;
+  width: 200px; /* Adjust as needed */
+  height: auto;
+}
+
+.drZLeft {
+  left: 0;
+  rotate: 45deg;
+  transform: translate(6px, 48px);
+}
+
+.drZRight {
+  right: 0;
+  rotate: -45deg;
+  transform: translate(6px, 58px);
+}

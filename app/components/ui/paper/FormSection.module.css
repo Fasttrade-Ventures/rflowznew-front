@@ -1,0 +1,12 @@
+.container {
+  padding: 0 var(--mantine-spacing-md);
+}
+
+.container:hover {
+  /* box-shadow: var(--mantine-shadow-lg); */
+}
+
+.saveButton {
+  display: flex;
+  justify-content: flex-end;
+}

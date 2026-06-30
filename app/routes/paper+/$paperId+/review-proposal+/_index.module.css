@@ -1,0 +1,7 @@
+.emptyState {
+  width: 100%;
+  padding: var(--mantine-spacing-md);
+  border: 1px dashed
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-7));
+  height: 100%;
+}

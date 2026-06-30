@@ -1,0 +1,73 @@
+.buttonContainer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--mantine-spacing-md);
+}
+
+.affiliation {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-8));
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-8)
+  );
+  border-radius: 0.5rem;
+}
+
+.affiliatedAuthors {
+  display: flex;
+  flex-direction: column;
+  padding: var(--mantine-spacing-md) 0;
+}
+.textInput {
+  position: relative;
+}
+
+.textInputError {
+  position: absolute;
+  bottom: rem(-20px);
+}
+
+.textInputWrapper {
+  margin-bottom: 0;
+}
+
+.emptyAffiliationsContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 2px dashed
+    light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-4));
+  border-radius: var(--mantine-radius-sm);
+  min-height: rem(200px);
+  padding: var(--mantine-spacing-md);
+  background: linear-gradient(
+    180deg,
+    light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6)) 0%,
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5)) 100%
+  );
+  gap: 1rem;
+}
+
+.icon {
+  color: light-dark(
+    alpha(var(--mantine-color-gray-8), 0.2),
+    alpha(var(--mantine-color-dark-1), 0.2)
+  );
+  width: rem(80px);
+  height: rem(80px);
+}
+
+.upIcon {
+  color: light-dark(
+    var(--mantine-color-gray-8),
+    alpha(var(--mantine-color-white), 0.8)
+  );
+  width: rem(16px);
+  height: rem(16px);
+}

@@ -1,0 +1,30 @@
+.buttonWrapper {
+  position: relative;
+  margin-top: rem(10px);
+  width: 100%;
+}
+
+.professorButton {
+  width: 100%;
+  padding-left: rem(70px); /* Increased padding to accommodate larger image */
+  transition: transform 0.2s ease-in-out; /* Add transition for smooth scaling */
+}
+
+.professorButton:hover {
+  transform: scale(1.05); /* Scale the button to 105% on hover */
+}
+
+.buttonText {
+  position: relative;
+  z-index: 1;
+}
+
+.professorIcon {
+  position: absolute;
+  left: -10px;
+  top: 10%;
+  transform: translateY(-50%);
+  width: rem(85px); /* Increased size */
+  height: rem(85px); /* Increased size */
+  z-index: 2;
+}

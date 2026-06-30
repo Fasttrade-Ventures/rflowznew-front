@@ -1,0 +1,13 @@
+.subResearchQuestionAndObjective {
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-8)
+  );
+
+  padding: var(--mantine-spacing-md);
+  border-radius: var(--mantine-radius-md);
+}
+
+.subResearchQuestionAndObjectiveContainer {
+  padding: 0 var(--mantine-spacing-md);
+}

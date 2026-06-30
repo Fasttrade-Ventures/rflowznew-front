@@ -1,0 +1,55 @@
+.citationCard {
+  position: relative;
+  padding: 12px;
+  border-radius: 4px;
+  background-color: light-dark(
+    var(--mantine-color-gray-1),
+    var(--mantine-color-dark-6)
+  );
+  transition: background-color 0.2s ease;
+  overflow: hidden; /* This ensures the overlay doesn't spill out */
+  border: 1px solid transparent;
+}
+
+.citationCard[data-selected] {
+  border: 1px solid var(--mantine-primary-color-4);
+}
+
+.citationCard:hover {
+  background-color: light-dark(
+    var(--mantine-color-gray-2),
+    var(--mantine-color-dark-5)
+  );
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: light-dark(
+    alpha(var(--mantine-color-gray-1), 0.7),
+    rgba(0, 0, 0, 0.6)
+  ); /* Semi-transparent black */
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.citationCard:hover .overlay {
+  opacity: 1;
+}
+
+.addButton {
+  position: relative; /* Changed from absolute */
+  z-index: 1; /* Ensures the button is above the overlay */
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.citationCard:hover .addButton {
+  opacity: 1;
+}

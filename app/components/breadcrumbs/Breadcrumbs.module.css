@@ -1,0 +1,20 @@
+.breadcrumbContainer {
+  width: 100%;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-xs);
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-6));
+  border-radius: var(--mantine-radius-md);
+  background-color: light-dark(
+    var(--mantine-color-gray-2),
+    var(--mantine-color-dark-8)
+  );
+}
+
+.breadcrumb[data-disabled] {
+  color: light-dark(
+    var(--mantine-color-dark-2),
+    alpha(var(--mantine-color-dark-1), 0.54)
+  );
+  text-decoration: none;
+  cursor: not-allowed;
+}

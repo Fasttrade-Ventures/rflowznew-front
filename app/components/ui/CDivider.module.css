@@ -1,0 +1,6 @@
+.divider {
+  border-color: light-dark(
+    var(--divider-color-light),
+    var(--divider-color-dark)
+  );
+}

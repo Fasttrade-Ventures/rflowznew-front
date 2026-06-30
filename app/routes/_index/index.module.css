@@ -1,0 +1,74 @@
+.box {
+  background-color: light-dark(
+    var(--mantine-color-white),
+    var(--mantine-color-dark-8)
+  );
+  border-radius: 8px;
+  padding: var(--mantine-spacing-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0px 0px 10px 0px
+    light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-6));
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-6));
+  height: 100%;
+}
+
+.borderBox {
+  border: 2px dashed
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-6));
+  border-radius: var(--mantine-radius-md);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--mantine-spacing-xl);
+}
+
+.iconBox {
+  background-color: var(--mantine-primary-color-5);
+  border-radius: 50%;
+  width: 40px; /* Set a fixed width */
+  height: 40px; /* Set the same value as width */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.icon {
+  color: var(--mantine-color-white);
+  width: 22px;
+  height: 22px;
+}
+
+.textBox {
+  width: 100%;
+}
+
+.boxLink {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  height: 100%;
+}
+
+.boxLink:hover {
+  text-decoration: none;
+}
+
+.hoverEffect {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hoverEffect:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.flexItem {
+  flex: 0 0 calc(33.333% - 16px);
+  min-width: 250px;
+}

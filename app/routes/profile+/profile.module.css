@@ -1,0 +1,31 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background-color: light-dark(
+    var(--mantine-color-gray-2),
+    var(--mantine-color-dark-8)
+  );
+  border-radius: var(--mantine-radius-sm);
+
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-6));
+}
+
+.themeButton {
+  &[data-selected] {
+    background-color: light-dark(
+      var(--mantine-color-gray-2),
+      var(--mantine-primary-color-light)
+    );
+    cursor: not-allowed;
+  }
+}
+
+.subscriptionInfo {
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-6));
+  border-radius: var(--mantine-radius-sm);
+  padding: 10px;
+}

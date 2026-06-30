@@ -1,0 +1,17 @@
+{
+  "$schema": "https://sly-cli.fly.dev/registry/config.json",
+  "libraries": [
+    {
+      "name": "@radix-ui/icons",
+      "directory": "./others/icons",
+      "postinstall": [],
+      "transformers": []
+    },
+    {
+      "name": "tabler-icons",
+      "directory": "./others/icons",
+      "postinstall": [],
+      "transformers": []
+    }
+  ]
+}

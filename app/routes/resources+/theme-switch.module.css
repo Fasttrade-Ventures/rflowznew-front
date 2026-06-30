@@ -1,0 +1,5 @@
+.themeSwitch {
+  display: flex;
+  align-items: center;
+  gap: rem(5px);
+}
