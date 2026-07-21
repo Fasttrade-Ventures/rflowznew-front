@@ -119,6 +119,7 @@ export interface UserSubscription {
   watermark_exports?: boolean;
   current_period_end: string | null;
   last_limit_reset: string;
+  can_manage_billing?: boolean;
 }
 
 export interface PlanFeatures {

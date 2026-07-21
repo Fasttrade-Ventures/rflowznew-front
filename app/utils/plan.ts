@@ -9,3 +9,15 @@ export function hasPlanAccess(
 export function isFreePlan(planKey: string | null | undefined): boolean {
   return planKey === "free";
 }
+
+export function canManageStripeBilling(
+  subscription:
+    | {
+        can_manage_billing?: boolean;
+        billing_provider?: string;
+      }
+    | null
+    | undefined
+): boolean {
+  return subscription?.can_manage_billing === true;
+}
