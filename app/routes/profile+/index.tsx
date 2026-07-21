@@ -228,9 +228,11 @@ export const ProfilePage = () => {
                   Subscribe now
                 </Button>
               </Group>
-            ) : (
-              <>
-                {user?.subscription_status === "inactive" ? (
+            ) : subscription?.plan_key === "free" ? (
+              <Button component={Link} to="/subscription">
+                Upgrade plan
+              </Button>
+            ) : user?.subscription_status === "inactive" ? (
                   <Button component={Link} to="/subscription">
                     Resubscribe
                   </Button>
@@ -252,8 +254,6 @@ export const ProfilePage = () => {
                     </Group>
                   </Form>
                 )}
-              </>
-            )}
           </Box>
         </Group>
       </div>
@@ -415,6 +415,18 @@ const SubscriptionInfo = ({
           </Text>
         </Group>
         <Group justify="space-between">
+          <Text size="xs">Proposal Limit Remaining</Text>
+          <Text size="sm" fw={700}>
+            {subscription?.proposal_limit_remaining ?? "—"}
+          </Text>
+        </Group>
+        <Group justify="space-between">
+          <Text size="xs">AI Limit Remaining</Text>
+          <Text size="sm" fw={700}>
+            {subscription?.ai_limit_remaining ?? "—"}
+          </Text>
+        </Group>
+        <Group justify="space-between">
           <Text size="xs">Export Limit Remaining</Text>
           {subscription?.unlimited_export ? (
             <Text size="sm" fw={700}>
@@ -426,12 +438,19 @@ const SubscriptionInfo = ({
             </Text>
           )}
         </Group>
-        <Group justify="space-between">
-          <Text size="xs">Subscription End</Text>
-          <Text size="sm" fw={700}>
-            {formatDate(subscription?.current_period_end!)}
+        {subscription?.watermark_exports ? (
+          <Text size="xs" c="dimmed">
+            Exports on the Free plan include a watermark.
           </Text>
-        </Group>
+        ) : null}
+        {subscription?.current_period_end ? (
+          <Group justify="space-between">
+            <Text size="xs">Subscription End</Text>
+            <Text size="sm" fw={700}>
+              {formatDate(subscription.current_period_end)}
+            </Text>
+          </Group>
+        ) : null}
       </Stack>
     </Box>
   );

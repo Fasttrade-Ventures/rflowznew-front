@@ -1097,8 +1097,10 @@ export interface GeneratedDocument {
   id: number;
   docx_url: string;
   pdf_url: string | null;
+  pptx_url: string | null;
   docx_generating_status: "completed" | "pending" | "failed";
   pdf_generating_status: "completed" | "pending" | "failed";
+  pptx_generating_status: "completed" | "pending" | "failed" | null;
   created_at: string;
 }
 

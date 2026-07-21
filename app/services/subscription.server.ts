@@ -12,8 +12,8 @@ interface Subscription {
     yearly: number;
   };
   stripePriceId: {
-    monthly: string;
-    yearly: string;
+    monthly: string | null;
+    yearly: string | null;
   };
   features: string[];
   notIncluded: string[];
@@ -22,6 +22,7 @@ interface Subscription {
     yearly: boolean;
   };
   original_export_monthly_limit: number;
+  isFree?: boolean;
 }
 
 interface SubscriptionResponse {
@@ -105,12 +106,33 @@ const createStripePortalSession = async ({ request }: { request: Request }) => {
 
 export interface UserSubscription {
   plan_name: string;
+  plan_key?: string;
+  billing_provider?: string;
   status: string;
   export_limit_remaining: number;
   original_export_monthly_limit: number;
+  proposal_limit_remaining?: number;
+  proposal_original_monthly_limit?: number;
+  ai_limit_remaining?: number;
+  ai_original_monthly_limit?: number;
   unlimited_export: boolean;
-  current_period_end: string;
+  watermark_exports?: boolean;
+  current_period_end: string | null;
   last_limit_reset: string;
+}
+
+export interface PlanFeatures {
+  plan_key: string;
+  export_docx: boolean;
+  export_pdf: boolean;
+  export_pptx: boolean;
+  watermark_exports: boolean;
+  proposal_limit_remaining?: number;
+  ai_limit_remaining?: number;
+  export_limit_remaining?: number;
+  unlimited_export: boolean;
+  unlimited_proposals?: boolean;
+  unlimited_ai?: boolean;
 }
 
 const getCurrentUserSubscription = async ({
@@ -121,6 +143,7 @@ const getCurrentUserSubscription = async ({
   const res = await customFetch<{
     success: boolean;
     subscription: UserSubscription | null;
+    features?: PlanFeatures;
   }>({
     request,
     url: "/api/subscription/current",

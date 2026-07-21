@@ -38,7 +38,7 @@ import {
   useNavigation,
 } from "@remix-run/react";
 import classes from "./_index.module.css";
-import { BreadcrumbHandle } from "../_index";
+import { isFreePlan } from "#app/utils/plan";
 import { Icon } from "#app/components/icon";
 
 export const handle: BreadcrumbHandle = {
@@ -90,7 +90,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     subscriptions: res.data?.subscriptions,
     message,
     subscription_status: user.subscription_status,
-    hasUsedTrial: subscriptionRes.data?.subscription?.status === "trialing" || subscriptionRes.data?.subscription?.status === "inactive",
+    currentPlanKey:
+      subscriptionRes.data?.subscription?.plan_key ??
+      subscriptionRes.data?.features?.plan_key ??
+      null,
+    hasUsedTrial:
+      subscriptionRes.data?.subscription?.status === "trialing" ||
+      subscriptionRes.data?.subscription?.status === "inactive",
   });
 };
 
@@ -129,11 +135,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export const SubscriptionPage = () => {
-  const { billingPeriod, subscriptions, message, subscription_status, hasUsedTrial } =
-    useLoaderData<typeof loader>();
+  const {
+    billingPeriod,
+    subscriptions,
+    message,
+    subscription_status,
+    currentPlanKey,
+    hasUsedTrial,
+  } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
   const plans = subscriptions || [];
+  const onFreePlan = isFreePlan(currentPlanKey);
+  const hasPaidAccess =
+    (subscription_status === "active" || subscription_status === "trialing") &&
+    !onFreePlan;
 
   const handleBillingPeriodChange = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -169,7 +185,7 @@ export const SubscriptionPage = () => {
 
       <Grid>
         {plans.map((plan) => (
-          <Grid.Col key={plan.title.label} span={4}>
+          <Grid.Col key={plan.title.label} span={{ base: 12, sm: 6, lg: 3 }}>
             <Card
               shadow="sm"
               p="lg"
@@ -199,12 +215,20 @@ export const SubscriptionPage = () => {
               <Text size="xs">{plan.description}</Text>
 
               <Group mt="md" wrap="nowrap" gap={5}>
-                <Text fz={30} fw={700}>
-                  ${plan.price[billingPeriod as "monthly" | "yearly"]}
-                </Text>
-                <Text size="sm" fz={10} c="dimmed">
-                  /month {billingPeriod === "yearly" && "(Billed Annually)"}
-                </Text>
+                {plan.isFree ? (
+                  <Text fz={30} fw={700}>
+                    Free
+                  </Text>
+                ) : (
+                  <>
+                    <Text fz={30} fw={700}>
+                      ${plan.price[billingPeriod as "monthly" | "yearly"]}
+                    </Text>
+                    <Text size="sm" fz={10} c="dimmed">
+                      /month {billingPeriod === "yearly" && "(Billed Annually)"}
+                    </Text>
+                  </>
+                )}
               </Group>
 
               <List spacing="sm" size="sm" center icon={<CheckIcon />} mt="md">
@@ -220,12 +244,23 @@ export const SubscriptionPage = () => {
                 ))}
               </List>
 
-              {subscription_status === null ||
-              subscription_status === "inactive" ? (
+              {plan.isFree ? (
+                onFreePlan ? (
+                  <Button fullWidth mt="xl" disabled>
+                    Current plan
+                  </Button>
+                ) : hasPaidAccess ? null : (
+                  <Text size="xs" c="dimmed" mt="xl" ta="center">
+                    Included for all new accounts
+                  </Text>
+                )
+              ) : subscription_status === null ||
+                subscription_status === "inactive" ||
+                onFreePlan ? (
                 <SubscribeButton
                   planName={plan.title[billingPeriod as "monthly" | "yearly"]}
                   stripePrice={
-                    plan.stripePriceId[billingPeriod as "monthly" | "yearly"]
+                    plan.stripePriceId[billingPeriod as "monthly" | "yearly"]!
                   }
                   originalExportMonthlyLimit={plan.original_export_monthly_limit.toString()}
                   hasUsedTrial={hasUsedTrial}

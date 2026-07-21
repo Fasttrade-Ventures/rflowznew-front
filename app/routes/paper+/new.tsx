@@ -19,6 +19,7 @@ import { aiGenerationSchema } from "#app/components/ui/modal/AIGenerationModal";
 import { generateAiTitle } from "#app/services/ai.server";
 import { useActionData } from "@remix-run/react";
 import { requireAuth } from "#app/services/authentication.server";
+import { APIValidationError } from "#app/utils/error/api-validation-error";
 
 export const handle: BreadcrumbHandle = {
   icon: (
@@ -32,14 +33,11 @@ export const handle: BreadcrumbHandle = {
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const user = await requireAuth({ request });
-  if (
-    user.subscription_status === "inactive" ||
-    user.subscription_status === null
-  ) {
+  if (user.subscription_status === "inactive") {
     return redirectWithToast("/subscription", {
       type: "error",
-      title: "Subscription required",
-      description: "You need an active subscription to create a new project.",
+      title: "Subscription inactive",
+      description: "Your subscription is inactive. Please choose a plan to continue.",
     });
   }
 
@@ -95,6 +93,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({
         serverError: error?.cause?.data?.message,
         lastResult: submission.reply(),
+      });
+    }
+
+    if (exception instanceof APIValidationError) {
+      const message =
+        exception.data?.message ||
+        "You have reached your plan limit. Please upgrade to continue.";
+      return json({
+        serverError: message,
+        lastResult: submission.reply({ formErrors: [message] }),
       });
     }
 
