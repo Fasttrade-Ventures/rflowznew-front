@@ -18,6 +18,8 @@ import {
   UserSubscription,
 } from "#app/services/subscription.server";
 import { getHints } from "#app/utils/client-hints";
+import { APIValidationError } from "#app/utils/error/api-validation-error";
+import { canManageStripeBilling } from "#app/utils/plan";
 import { redirectWithToast } from "#app/utils/toast.server";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -153,11 +155,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   if (actionType === "manageSubscription") {
-    const res = await createStripePortalSession({ request });
-    if (res.data?.url) {
-      return redirect(res.data.url);
+    try {
+      const res = await createStripePortalSession({ request });
+      if (res.data?.url) {
+        return redirect(res.data.url);
+      }
+    } catch (error) {
+      if (error instanceof APIValidationError) {
+        return redirectWithToast("/profile", {
+          type: "error",
+          title: "Billing portal unavailable",
+          description:
+            "Billing can only be managed for subscriptions purchased through Stripe.",
+        });
+      }
+
+      throw error;
     }
-    return json({ error: "Failed to create stripe portal session" });
+
+    return redirectWithToast("/profile", {
+      type: "error",
+      title: "Billing portal unavailable",
+      description: "Unable to open the billing portal right now.",
+    });
   }
 
   return null;
@@ -228,31 +248,35 @@ export const ProfilePage = () => {
                   Subscribe now
                 </Button>
               </Group>
-            ) : (
-              <>
-                {user?.subscription_status === "inactive" ? (
-                  <Button component={Link} to="/subscription">
-                    Resubscribe
+            ) : subscription?.plan_key === "free" ? (
+              <Button component={Link} to="/subscription">
+                Upgrade plan
+              </Button>
+            ) : user?.subscription_status === "inactive" ? (
+              <Button component={Link} to="/subscription">
+                Resubscribe
+              </Button>
+            ) : canManageStripeBilling(subscription) ? (
+              <Form method="post">
+                <input
+                  type="hidden"
+                  name="actionType"
+                  value="manageSubscription"
+                />
+                <Group wrap="nowrap">
+                  <Button
+                    loading={manageSubscriptionLoading}
+                    type="submit"
+                    fullWidth
+                  >
+                    Manage subscription
                   </Button>
-                ) : (
-                  <Form method="post">
-                    <input
-                      type="hidden"
-                      name="actionType"
-                      value="manageSubscription"
-                    />
-                    <Group wrap="nowrap">
-                      <Button
-                        loading={manageSubscriptionLoading}
-                        type="submit"
-                        fullWidth
-                      >
-                        Manage subscription
-                      </Button>
-                    </Group>
-                  </Form>
-                )}
-              </>
+                </Group>
+              </Form>
+            ) : (
+              <Text size="xs" c="dimmed">
+                Billing is managed locally for this account.
+              </Text>
             )}
           </Box>
         </Group>
@@ -415,6 +439,18 @@ const SubscriptionInfo = ({
           </Text>
         </Group>
         <Group justify="space-between">
+          <Text size="xs">Proposal Limit Remaining</Text>
+          <Text size="sm" fw={700}>
+            {subscription?.proposal_limit_remaining ?? "—"}
+          </Text>
+        </Group>
+        <Group justify="space-between">
+          <Text size="xs">AI Limit Remaining</Text>
+          <Text size="sm" fw={700}>
+            {subscription?.ai_limit_remaining ?? "—"}
+          </Text>
+        </Group>
+        <Group justify="space-between">
           <Text size="xs">Export Limit Remaining</Text>
           {subscription?.unlimited_export ? (
             <Text size="sm" fw={700}>
@@ -426,12 +462,19 @@ const SubscriptionInfo = ({
             </Text>
           )}
         </Group>
-        <Group justify="space-between">
-          <Text size="xs">Subscription End</Text>
-          <Text size="sm" fw={700}>
-            {formatDate(subscription?.current_period_end!)}
+        {subscription?.watermark_exports ? (
+          <Text size="xs" c="dimmed">
+            Exports on the Free plan include a watermark.
           </Text>
-        </Group>
+        ) : null}
+        {subscription?.current_period_end ? (
+          <Group justify="space-between">
+            <Text size="xs">Subscription End</Text>
+            <Text size="sm" fw={700}>
+              {formatDate(subscription.current_period_end)}
+            </Text>
+          </Group>
+        ) : null}
       </Stack>
     </Box>
   );

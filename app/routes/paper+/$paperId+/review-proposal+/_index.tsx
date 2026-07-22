@@ -50,6 +50,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     getCurrentUserSubscription({ request }),
   ]);
 
+  const exportPptx = subscriptionRes.data?.features?.export_pptx ?? false;
+
   const generatedDocuments =
     generatedDocumentsResponse.data?.generatedDocuments || [];
 
@@ -60,6 +62,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       timeZone: getHints(request).timeZone,
       generatedDocuments,
       subscription: subscriptionRes.data?.subscription,
+      exportPptx,
       hasActiveSubscription:
         user.subscription_status === "active" ||
         user.subscription_status === "trialing",
@@ -71,6 +74,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     timeZone: getHints(request).timeZone,
     generatedDocuments,
     subscription: subscriptionRes.data?.subscription,
+    exportPptx,
     hasActiveSubscription:
       user.subscription_status === "active" ||
       user.subscription_status === "trialing",
@@ -96,6 +100,7 @@ export const ReviewProposalPage = () => {
     timeZone,
     generatedDocuments,
     subscription,
+    exportPptx,
     hasActiveSubscription,
   } = useLoaderData<typeof loader>();
   const revalidator = useRevalidator();
@@ -112,13 +117,22 @@ export const ReviewProposalPage = () => {
     const hasPendingDocuments = generatedDocuments.some(
       (doc) =>
         doc.docx_generating_status === "pending" ||
-        doc.pdf_generating_status === "pending"
+        doc.pdf_generating_status === "pending" ||
+        doc.pptx_generating_status === "pending"
     );
 
     if (hasPendingDocuments) {
+      let attempts = 0;
+      const maxAttempts = 40;
+
       intervalId = setInterval(() => {
+        attempts += 1;
+        if (attempts >= maxAttempts) {
+          clearInterval(intervalId);
+          return;
+        }
         revalidator.revalidate();
-      }, 3000); // Revalidate every 5 seconds
+      }, 3000);
     }
 
     return () => {
@@ -240,8 +254,23 @@ export const ReviewProposalPage = () => {
                     </Text>
                   ) : (
                     <Text size="xs" c="var(--mantine-primary-color-filled)">
-                      {subscription?.export_limit_remaining} Export remaining
+                      {subscription?.export_limit_remaining} export remaining
                       this month
+                    </Text>
+                  )}
+                  {subscription.watermark_exports ? (
+                    <Text size="xs" c="dimmed">
+                      Free plan exports include a watermark.
+                    </Text>
+                  ) : null}
+                  {!exportPptx ? (
+                    <Text size="xs" c="dimmed">
+                      PowerPoint export is available on Standard and
+                      Professional plans.
+                    </Text>
+                  ) : (
+                    <Text size="xs" c="var(--mantine-primary-color-filled)">
+                      DOCX, PDF, and PPTX will be generated.
                     </Text>
                   )}
                 </>
@@ -259,6 +288,7 @@ export const ReviewProposalPage = () => {
           <GeneratedDocumentsTable
             generatedDocuments={generatedDocuments}
             timeZone={timeZone}
+            exportPptx={exportPptx}
           />
         </Box>
       </Stack>
@@ -269,9 +299,11 @@ export const ReviewProposalPage = () => {
 function GeneratedDocumentsTable({
   generatedDocuments,
   timeZone,
+  exportPptx,
 }: {
   generatedDocuments: GeneratedDocument[];
   timeZone: string;
+  exportPptx: boolean;
 }) {
   const formatDate = (date: string) => {
     return dayjs(date).tz(timeZone).format("DD/MM/YYYY HH:mm");
@@ -343,7 +375,6 @@ function GeneratedDocumentsTable({
               ) : (
                 <Button
                   disabled
-                  loading
                   variant="light"
                   color="red"
                   leftSection={
@@ -385,7 +416,6 @@ function GeneratedDocumentsTable({
               ) : (
                 <Button
                   disabled
-                  loading
                   variant="light"
                   color="red"
                   leftSection={
@@ -395,6 +425,58 @@ function GeneratedDocumentsTable({
                   Failed
                 </Button>
               )}
+
+              {exportPptx ? (
+                generatedDocument.pptx_generating_status === "completed" ? (
+                  <Button
+                    component={Link}
+                    reloadDocument
+                    to={`/resources/generate-pptx.pptx?url=${
+                      generatedDocument.pptx_url
+                    }&date=${formatDateForFileName(
+                      generatedDocument.created_at
+                    )}`}
+                    variant="light"
+                    leftSection={
+                      <Icon
+                        name="pika-file"
+                        style={{ width: 16, height: 16 }}
+                      />
+                    }
+                  >
+                    PPTX
+                  </Button>
+                ) : generatedDocument.pptx_generating_status === "pending" ? (
+                  <Button
+                    disabled
+                    loading
+                    variant="light"
+                    color="gray"
+                    leftSection={
+                      <Icon
+                        name="pika-file"
+                        style={{ width: 16, height: 16 }}
+                      />
+                    }
+                  >
+                    PPTX
+                  </Button>
+                ) : generatedDocument.pptx_generating_status === "failed" ? (
+                  <Button
+                    disabled
+                    variant="light"
+                    color="red"
+                    leftSection={
+                      <Icon
+                        name="pika-file"
+                        style={{ width: 16, height: 16 }}
+                      />
+                    }
+                  >
+                    Failed
+                  </Button>
+                ) : null
+              ) : null}
             </Table.Td>
           </Table.Tr>
         ))}
