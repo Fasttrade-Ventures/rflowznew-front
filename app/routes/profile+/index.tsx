@@ -17,6 +17,13 @@ import {
   getCurrentUserSubscription,
   UserSubscription,
 } from "#app/services/subscription.server";
+import {
+  FormattingPreferences,
+  getFormattingPreferences,
+  resetFormattingPreferences,
+  saveFormattingPreferences,
+} from "#app/services/formatting.server";
+import { FormattingPanel } from "#app/components/formatting-panel";
 import { getHints } from "#app/utils/client-hints";
 import { APIValidationError } from "#app/utils/error/api-validation-error";
 import { canManageStripeBilling } from "#app/utils/plan";
@@ -59,11 +66,17 @@ export const handle: BreadcrumbHandle = {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const [user, userRes, subscriptionRes] = await Promise.all([
+  const [user, userRes, subscriptionRes, formattingRes] = await Promise.all([
     requireAuth({ request }),
     getCurrentUser({ request }),
     getCurrentUserSubscription({ request }),
+    getFormattingPreferences({ request }),
   ]);
+
+  const formatting = {
+    preferences: formattingRes.data?.preferences,
+    isCustomized: formattingRes.data?.is_customized ?? false,
+  };
 
   if (user.subscription_status !== userRes.data?.subscription_status) {
     const newCookie = await updateUserSubscriptionStatus(
@@ -90,6 +103,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       user: userRes.data,
       subscription: subscriptionRes.data?.subscription,
       timeZone: getHints(request).timeZone,
+      formatting,
     });
   }
 
@@ -97,12 +111,27 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     user: userRes.data,
     subscription: subscriptionRes.data?.subscription,
     timeZone: getHints(request).timeZone,
+    formatting,
   });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const actionType = formData.get("actionType");
+  const intent = formData.get("intent");
+
+  if (intent === "save-formatting") {
+    const preferences = JSON.parse(
+      formData.get("preferences") as string
+    ) as FormattingPreferences;
+    const res = await saveFormattingPreferences({ request, preferences });
+    return json({ message: res.data?.message ?? "Formatting saved" });
+  }
+
+  if (intent === "reset-formatting") {
+    const res = await resetFormattingPreferences({ request });
+    return json({ message: res.data?.message ?? "Formatting reset" });
+  }
 
   if (actionType === "color-switch" || actionType === "scale-switch") {
     const color = formData.get("color") as string;
@@ -203,7 +232,8 @@ export const ProfilePage = () => {
     navigation.state !== "idle" &&
     navigation.formData?.get("actionType") === "manageSubscription";
 
-  const { user, subscription, timeZone } = useLoaderData<typeof loader>();
+  const { user, subscription, timeZone, formatting } =
+    useLoaderData<typeof loader>();
 
   const profileFetcher = useFetcher<typeof action>();
 
@@ -409,6 +439,13 @@ export const ProfilePage = () => {
           </Box>
         </Grid.Col>
       </Grid>
+      <CDivider darkColor="var(--mantine-color-dark-5)" />
+      {formatting.preferences && (
+        <FormattingPanel
+          preferences={formatting.preferences}
+          isCustomized={formatting.isCustomized}
+        />
+      )}
     </Stack>
   );
 };
