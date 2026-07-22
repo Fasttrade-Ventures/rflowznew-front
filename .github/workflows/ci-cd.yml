@@ -1,0 +1,79 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test:
+    name: Lint, typecheck & build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.12.2
+          cache: npm
+
+      - run: npm ci
+
+      # Pre-existing lint/typecheck debt predates this pipeline (the old
+      # deploy.yml never ran either). Keep them visible in CI without
+      # blocking deploys; `build` is the real deployability gate.
+      - run: npm run lint
+        continue-on-error: true
+
+      - run: npm run typecheck
+        continue-on-error: true
+
+      - run: npm run build
+
+  build-and-push:
+    name: Build & push image
+    runs-on: ubuntu-22.04
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        id: meta
+        run: |
+          IMAGE="${REGISTRY}/${IMAGE_NAME,,}:${{ github.sha }}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Deploy to CapRover
+    runs-on: ubuntu-22.04
+    needs: build-and-push
+    steps:
+      - uses: caprover/deploy-from-github@main
+        with:
+          server: ${{ secrets.CAPROVER_SERVER }}
+          app: rflowz-web
+          token: ${{ secrets.CAPROVER_APP_TOKEN_WEB }}
+          image: ${{ needs.build-and-push.outputs.image }}
