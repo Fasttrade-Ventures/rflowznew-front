@@ -8,6 +8,13 @@ import {
   getPaperGeneratedDocuments,
 } from "#app/services/paper.server";
 import { requireAuth } from "#app/services/authentication.server";
+import {
+  FormattingPreferences,
+  getFormattingPreferences,
+  resetFormattingPreferences,
+  saveFormattingPreferences,
+} from "#app/services/formatting.server";
+import { FormattingPanel } from "#app/components/formatting-panel";
 import { getHints } from "#app/utils/client-hints";
 import { invariant } from "@epic-web/invariant";
 import {
@@ -44,14 +51,21 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const paperId = params.paperId;
   invariant(paperId, "Paper ID is required");
 
-  const [res, generatedDocumentsResponse, subscriptionRes] = await Promise.all([
-    getPaperAbstractSec({ paperId, request }),
-    getPaperGeneratedDocuments({ paperId, request }),
-    getCurrentUserSubscription({ request }),
-  ]);
+  const [res, generatedDocumentsResponse, subscriptionRes, formattingRes] =
+    await Promise.all([
+      getPaperAbstractSec({ paperId, request }),
+      getPaperGeneratedDocuments({ paperId, request }),
+      getCurrentUserSubscription({ request }),
+      getFormattingPreferences({ request }),
+    ]);
 
   const generatedDocuments =
     generatedDocumentsResponse.data?.generatedDocuments || [];
+
+  const formatting = {
+    preferences: formattingRes.data?.preferences,
+    isCustomized: formattingRes.data?.is_customized ?? false,
+  };
 
   if (res.data?.message === "No abstract found for this paper") {
     return json({
@@ -63,6 +77,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       hasActiveSubscription:
         user.subscription_status === "active" ||
         user.subscription_status === "trialing",
+      formatting,
     });
   }
   return json({
@@ -74,6 +89,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     hasActiveSubscription:
       user.subscription_status === "active" ||
       user.subscription_status === "trialing",
+    formatting,
   });
 };
 
@@ -86,6 +102,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await generateDocuments({ paperId, request });
     return json({ message: "Documents is generating please wait ..." });
   }
+
+  if (intent === "save-formatting") {
+    const preferences = JSON.parse(
+      formData.get("preferences") as string
+    ) as FormattingPreferences;
+    const res = await saveFormattingPreferences({ request, preferences });
+    return json({ message: res.data?.message ?? "Formatting saved" });
+  }
+
+  if (intent === "reset-formatting") {
+    const res = await resetFormattingPreferences({ request });
+    return json({ message: res.data?.message ?? "Formatting reset" });
+  }
+
   return json({ message: "Invalid intent" });
 };
 
@@ -97,6 +127,7 @@ export const ReviewProposalPage = () => {
     generatedDocuments,
     subscription,
     hasActiveSubscription,
+    formatting,
   } = useLoaderData<typeof loader>();
   const revalidator = useRevalidator();
 
@@ -191,6 +222,14 @@ export const ReviewProposalPage = () => {
       </Stack>
       <CDivider />
       <Stack gap="md">
+        {formatting.preferences && (
+          <Box pl="md" pr="md">
+            <FormattingPanel
+              preferences={formatting.preferences}
+              isCustomized={formatting.isCustomized}
+            />
+          </Box>
+        )}
         <Center>
           <Form method="post">
             <input type="hidden" name="paperId" value={paperId} />
