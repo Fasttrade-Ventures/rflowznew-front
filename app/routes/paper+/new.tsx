@@ -52,9 +52,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const aiSubmission = parseWithZod(formData, { schema: aiGenerationSchema });
 
     if (aiSubmission.status !== "success") {
+      const message =
+        Object.values(aiSubmission.error ?? {})
+          .flat()
+          .filter(Boolean)
+          .join(", ") || "Please enter keywords before generating.";
+
       return json({
         lastResult: aiSubmission.reply(),
-        serverError: null,
+        serverError: message,
         success: false,
       });
     }
@@ -85,7 +91,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         });
       }
 
-      throw exception;
+      const message =
+        exception instanceof Error
+          ? exception.message
+          : "Failed to generate AI response. Please try again.";
+
+      return json({
+        lastResult: aiSubmission.reply({ formErrors: [message] }),
+        serverError: message,
+        success: false,
+      });
     }
   }
 

@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { getFormProps, getInputProps, useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
-import { Box, Button, Modal, Stack, Text, Textarea } from "@mantine/core";
+import { Box, Alert, Button, Modal, Stack, Textarea } from "@mantine/core";
 import { useFetcher, useRouteLoaderData } from "@remix-run/react";
 import type { loader as rootLoader } from "#app/root";
 
@@ -15,6 +15,43 @@ export const aiGenerationSchema = z.object({
 });
 
 export type AIGenerationFormData = z.infer<typeof aiGenerationSchema>;
+
+type AiActionData = {
+  success?: boolean;
+  serverError?: string | null;
+  lastResult?: {
+    error?: Record<string, string[] | null> | null;
+    formErrors?: string[];
+  };
+};
+
+function getErrorMessage(data: AiActionData | undefined): string | null {
+  if (!data) return null;
+
+  if (data.serverError) {
+    return data.serverError;
+  }
+
+  if (data.lastResult?.formErrors?.length) {
+    return data.lastResult.formErrors.join(", ");
+  }
+
+  if (data.lastResult?.error) {
+    const messages = Object.values(data.lastResult.error)
+      .flat()
+      .filter((message): message is string => Boolean(message));
+
+    if (messages.length > 0) {
+      return messages.join(", ");
+    }
+  }
+
+  if (data.success === false) {
+    return "Failed to generate AI response. Please try again.";
+  }
+
+  return null;
+}
 
 interface AIGenerationModalProps {
   opened: boolean;
@@ -44,19 +81,35 @@ export const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
   const fetcher = useFetcher<AIGenerationFormData>();
   const [aiResponse, setAiResponse] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [clientError, setClientError] = useState<string | null>(null);
   const [userScrolled, setUserScrolled] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const ablyRef = useRef<Ably.Realtime | null>(null);
   const channelRef = useRef<Ably.RealtimeChannel | null>(null);
 
   useEffect(() => {
-    if (!opened || !ablyKey) return;
+    if (!opened) {
+      setClientError(null);
+      return;
+    }
+
+    if (!ablyKey) {
+      setClientError(
+        "Real-time AI streaming is not configured. Set ABLY_KEY on the web server."
+      );
+      return;
+    }
 
     const ably = new Ably.Realtime({
       key: ablyKey,
       clientId: paperId ? `rflowz-${paperId}` : "rflowz-new-paper",
     });
     ablyRef.current = ably;
+
+    ably.connection.on("failed", () => {
+      setClientError("Could not connect to the AI streaming service. Please try again.");
+      setIsGenerating(false);
+    });
 
     const channel = ably.channels.get(channelName);
     channelRef.current = channel;
@@ -66,6 +119,7 @@ export const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
         setIsGenerating(false);
       } else {
         setAiResponse((prev) => prev + message.data);
+        setClientError(null);
       }
     });
 
@@ -84,15 +138,38 @@ export const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
     ) {
       setIsGenerating(true);
       setAiResponse("");
+      setClientError(null);
     }
   }, [fetcher.state, fetcher.formData]);
 
   useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data) {
-      const data = fetcher.data as { success?: boolean; serverError?: string };
-      if (data.success === false) {
-        setIsGenerating(false);
-      }
+    if (fetcher.state !== "idle" || !fetcher.data) {
+      return;
+    }
+
+    const data = fetcher.data as AiActionData;
+    const actionError = getErrorMessage(data);
+
+    if (actionError) {
+      setClientError(actionError);
+      setIsGenerating(false);
+      return;
+    }
+
+    if (data.success) {
+      const timeoutId = window.setTimeout(() => {
+        setAiResponse((currentResponse) => {
+          if (!currentResponse) {
+            setClientError(
+              "The AI request was accepted but no response was received. Check ABLY_KEY and try again."
+            );
+            setIsGenerating(false);
+          }
+          return currentResponse;
+        });
+      }, 45000);
+
+      return () => window.clearTimeout(timeoutId);
     }
   }, [fetcher.state, fetcher.data]);
 
@@ -125,12 +202,16 @@ export const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
     }
   };
 
+  const actionData = fetcher.data as AiActionData | undefined;
+  const errorMessage = clientError || getErrorMessage(actionData);
+
   return (
     <Modal
       size="xl"
       opened={opened}
       onClose={() => {
         setAiResponse("");
+        setClientError(null);
         onClose();
       }}
       title={title}
@@ -138,6 +219,11 @@ export const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
       <Stack>
         <fetcher.Form method="post" action={action} {...getFormProps(form)}>
           <Stack gap="xs">
+            {errorMessage ? (
+              <Alert color="red" title="Could not generate">
+                {errorMessage}
+              </Alert>
+            ) : null}
             {paperId && <input type="hidden" name="paperId" value={paperId} />}
             <input type="hidden" name="language" value={language} />
             <input type="hidden" name="intent" value="generateAiResponse" />
@@ -170,11 +256,6 @@ export const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
               ref={textareaRef}
               onScroll={handleScroll}
             />
-            {(fetcher.data as { serverError?: string } | undefined)?.serverError ? (
-              <Text c="red" size="sm">
-                {(fetcher.data as { serverError: string }).serverError}
-              </Text>
-            ) : null}
             {onGenerated ? (
               <Box style={{ display: "flex", justifyContent: "flex-end" }}>
                 <Button disabled={!aiResponse} onClick={handleInsertResponse}>
