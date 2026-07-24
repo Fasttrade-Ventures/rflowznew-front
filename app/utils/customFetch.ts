@@ -2,6 +2,7 @@ import { invariant } from "@epic-web/invariant";
 import { APIValidationError } from "./error/api-validation-error";
 import { authenticator } from "#app/services/auth.server";
 import { getSession } from "#app/services/session.server";
+import { getApiHost } from "#app/utils/env.server";
 
 export interface FetchProps {
   request?: Request;
@@ -24,7 +25,8 @@ const customFetch = async <T>({
   includeContentType = true,
 }: FetchProps): Promise<FetchResponse<T>> => {
   const session = await getSession(request?.headers.get("Cookie"));
-  const token = session.data?.user?.token;
+  const user = session.get("user") as { token?: string } | undefined;
+  const token = user?.token;
 
   console.log("PROCESING API REQUEST", {
     url,
@@ -34,7 +36,7 @@ const customFetch = async <T>({
     includeContentType,
   });
 
-  const response = await fetch(`${process.env.API_HOST}${url}`, {
+  const response = await fetch(`${getApiHost()}${url}`, {
     method,
     headers: new Headers({
       ...(includeContentType && { "Content-Type": contentType }),

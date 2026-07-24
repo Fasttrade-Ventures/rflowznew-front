@@ -1,31 +1,42 @@
 import { useEffect, useRef, useCallback } from "react";
 import * as Ably from "ably";
-import { Message } from "ably"; // Import the specific type
+import { Message } from "ably";
+import { useRouteLoaderData } from "@remix-run/react";
+import type { loader as rootLoader } from "#app/root";
 
 const useAbly = (
   paperId: string | undefined,
   ablyEventName: string,
-  onMessage: (message: Message) => void // Use the imported type
+  onMessage: (message: Message) => void,
+  channelPrefix = "paper"
 ) => {
+  const rootData = useRouteLoaderData<typeof rootLoader>("root");
+  const ablyKey = rootData?.ablyKey;
   const ablyRef = useRef<Ably.Realtime | null>(null);
   const channelRef = useRef<Ably.RealtimeChannel | null>(null);
+  const onMessageRef = useRef(onMessage);
+  onMessageRef.current = onMessage;
 
   const setupAbly = useCallback(() => {
-    if (!ablyRef.current) {
-      ablyRef.current = new Ably.Realtime({
-        key: "zNWqfQ.szAlPQ:PX_iFFsAaHiCwSXm_chtrHbpPtOP93QTUNslOb1puHw",
-        clientId: "your-client-id",
-      });
+    if (!ablyKey || !paperId || ablyRef.current) return;
 
-      ablyRef.current.connection.once("connected", () => {
-        channelRef.current = ablyRef.current!.channels.get(`paper-${paperId}`);
+    ablyRef.current = new Ably.Realtime({
+      key: ablyKey,
+      clientId: `rflowz-${paperId}`,
+    });
 
-        if (channelRef.current) {
-          channelRef.current.subscribe(ablyEventName, onMessage);
-        }
-      });
-    }
-  }, [paperId, ablyEventName, onMessage]);
+    ablyRef.current.connection.once("connected", () => {
+      channelRef.current = ablyRef.current!.channels.get(
+        `${channelPrefix}-${paperId}`
+      );
+
+      if (channelRef.current) {
+        channelRef.current.subscribe(ablyEventName, (message) => {
+          onMessageRef.current(message);
+        });
+      }
+    });
+  }, [ablyKey, paperId, ablyEventName, channelPrefix]);
 
   useEffect(() => {
     setupAbly();
@@ -35,7 +46,7 @@ const useAbly = (
         channelRef.current = null;
       }
       if (ablyRef.current) {
-        ablyRef.current.connection.off(); // Remove all event listeners
+        ablyRef.current.connection.off();
         ablyRef.current.close();
         ablyRef.current = null;
       }

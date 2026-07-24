@@ -47,27 +47,51 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const intent = formData.get("intent") as string;
-  const submission = parseWithZod(formData, { schema: paperSchema });
-  const aiSubmission = parseWithZod(formData, { schema: aiGenerationSchema });
-
-  if (aiSubmission.status !== "success") {
-    return json({
-      lastResult: submission.reply(),
-      serverError: null,
-      success: false,
-    });
-  }
 
   if (intent === "generateAiResponse") {
-    await generateAiTitle({
-      request,
-      keywords: aiSubmission.value.keywords,
-      language: aiSubmission.value.language || "en",
-    });
+    const aiSubmission = parseWithZod(formData, { schema: aiGenerationSchema });
+
+    if (aiSubmission.status !== "success") {
+      return json({
+        lastResult: aiSubmission.reply(),
+        serverError: null,
+        success: false,
+      });
+    }
+
+    try {
+      await generateAiTitle({
+        request,
+        keywords: aiSubmission.value.keywords,
+        language: aiSubmission.value.language || "en",
+      });
+
+      return json({
+        lastResult: aiSubmission.reply(),
+        serverError: null,
+        success: true,
+      });
+    } catch (exception: unknown) {
+      if (exception instanceof Response) throw exception;
+
+      if (exception instanceof APIValidationError) {
+        const message =
+          exception.data?.message ||
+          "You have reached your plan limit. Please upgrade to continue.";
+        return json({
+          lastResult: aiSubmission.reply({ formErrors: [message] }),
+          serverError: message,
+          success: false,
+        });
+      }
+
+      throw exception;
+    }
   }
 
+  const submission = parseWithZod(formData, { schema: paperSchema });
+
   if (submission.status !== "success") {
-    console.log("SUBMISSION ERRORS", submission.reply());
     return json({ lastResult: submission.reply(), serverError: null });
   }
 
