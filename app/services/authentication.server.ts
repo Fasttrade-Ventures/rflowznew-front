@@ -43,8 +43,6 @@ const requireAuth = async ({
 }) => {
   const user = await authenticator.isAuthenticated(request);
 
-  console.log("user isss 🔥🔥🔥🔥🔥", user);
-
   if (!user) {
     if (redirectTo) {
       throw redirect(`/login?redirectTo=${redirectTo}`);

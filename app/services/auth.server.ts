@@ -1,5 +1,6 @@
 // app/services/auth.server.ts
 import customFetch from "#app/utils/customFetch";
+import { getGoogleOAuthConfig } from "#app/utils/env.server";
 import { Authenticator } from "remix-auth";
 import { FormStrategy } from "remix-auth-form";
 import { sessionStorage } from "./session.server";
@@ -30,9 +31,6 @@ authenticator.use(
     const email = form.get("email") as string;
     const password = form.get("password") as string;
 
-    console.log("email :>> ", email);
-    console.log("password :>> ", password);
-
     const res = await customFetch<User>({
       url: "/api/login",
       method: "post",
@@ -50,12 +48,13 @@ authenticator.use(
 );
 
 // Google Strategy
+const googleOAuth = getGoogleOAuthConfig();
 authenticator.use(
   new GoogleStrategy(
     {
-      clientID: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      callbackURL: `${process.env.APP_URL}/auth/google/callback`,
+      clientID: googleOAuth.clientID,
+      clientSecret: googleOAuth.clientSecret,
+      callbackURL: googleOAuth.callbackURL,
       scope: ["profile", "email"],
     },
 

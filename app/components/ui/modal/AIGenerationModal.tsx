@@ -1,11 +1,12 @@
 import * as Ably from "ably";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
 import { getFormProps, getInputProps, useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
-import { Box, Button, Modal, Stack, Textarea } from "@mantine/core";
-import { useFetcher } from "@remix-run/react";
+import { Box, Button, Modal, Stack, Text, Textarea } from "@mantine/core";
+import { useFetcher, useRouteLoaderData } from "@remix-run/react";
+import type { loader as rootLoader } from "#app/root";
 
 export const aiGenerationSchema = z.object({
   keywords: z.string().min(1, "Keywords are required"),
@@ -38,6 +39,8 @@ export const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
   eventName,
   language = "en",
 }) => {
+  const rootData = useRouteLoaderData<typeof rootLoader>("root");
+  const ablyKey = rootData?.ablyKey;
   const fetcher = useFetcher<AIGenerationFormData>();
   const [aiResponse, setAiResponse] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -46,52 +49,52 @@ export const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
   const ablyRef = useRef<Ably.Realtime | null>(null);
   const channelRef = useRef<Ably.RealtimeChannel | null>(null);
 
-  const setupAbly = useCallback(() => {
+  useEffect(() => {
+    if (!opened || !ablyKey) return;
+
+    const ably = new Ably.Realtime({
+      key: ablyKey,
+      clientId: paperId ? `rflowz-${paperId}` : "rflowz-new-paper",
+    });
+    ablyRef.current = ably;
+
+    const channel = ably.channels.get(channelName);
+    channelRef.current = channel;
+
+    channel.subscribe(eventName, (message) => {
+      if (message.data === "[DONE]") {
+        setIsGenerating(false);
+      } else {
+        setAiResponse((prev) => prev + message.data);
+      }
+    });
+
+    return () => {
+      channel.unsubscribe();
+      ably.close();
+      ablyRef.current = null;
+      channelRef.current = null;
+    };
+  }, [opened, ablyKey, channelName, eventName, paperId]);
+
+  useEffect(() => {
     if (
       fetcher.state === "submitting" &&
       fetcher.formData?.get("intent") === "generateAiResponse"
     ) {
       setIsGenerating(true);
       setAiResponse("");
+    }
+  }, [fetcher.state, fetcher.formData]);
 
-      if (!ablyRef.current) {
-        ablyRef.current = new Ably.Realtime({
-          key: "zNWqfQ.szAlPQ:PX_iFFsAaHiCwSXm_chtrHbpPtOP93QTUNslOb1puHw",
-          clientId: "your-client-id",
-        });
-
-        ablyRef.current.connection.once("connected", () => {
-          channelRef.current = ablyRef.current!.channels.get(channelName);
-
-          channelRef.current.subscribe(eventName, (message) => {
-            console.log("message TITLE AIII 🔥🔥🔥🔥", message);
-            if (message.data === "[DONE]") {
-              setIsGenerating(false);
-            } else {
-              setAiResponse((prev) => prev + message.data);
-            }
-          });
-        });
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data) {
+      const data = fetcher.data as { success?: boolean; serverError?: string };
+      if (data.success === false) {
+        setIsGenerating(false);
       }
     }
-  }, [fetcher.state, fetcher.formData, channelName, onGenerated]);
-
-  useEffect(() => {
-    setupAbly();
-  }, [setupAbly]);
-
-  useEffect(() => {
-    return () => {
-      if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        channelRef.current = null;
-      }
-      if (ablyRef.current) {
-        ablyRef.current.close();
-        ablyRef.current = null;
-      }
-    };
-  }, []);
+  }, [fetcher.state, fetcher.data]);
 
   useEffect(() => {
     if (textareaRef.current && !userScrolled) {
@@ -118,7 +121,7 @@ export const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
   const handleInsertResponse = () => {
     if (onGenerated) {
       onGenerated(aiResponse);
-      setAiResponse(""); // Clear the AI response
+      setAiResponse("");
     }
   };
 
@@ -127,7 +130,7 @@ export const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
       size="xl"
       opened={opened}
       onClose={() => {
-        setAiResponse(""); // Clear the AI response when closing the modal
+        setAiResponse("");
         onClose();
       }}
       title={title}
@@ -149,10 +152,12 @@ export const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
             <Box style={{ display: "flex", justifyContent: "flex-end" }}>
               <Button
                 type="submit"
-                loading={fetcher.state === "submitting"}
-                disabled={fetcher.state === "submitting"}
+                loading={fetcher.state === "submitting" || isGenerating}
+                disabled={fetcher.state === "submitting" || isGenerating}
               >
-                {fetcher.state === "submitting" ? "Generating..." : "Generate"}
+                {fetcher.state === "submitting" || isGenerating
+                  ? "Generating..."
+                  : "Generate"}
               </Button>
             </Box>
             <Textarea
@@ -165,12 +170,14 @@ export const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
               ref={textareaRef}
               onScroll={handleScroll}
             />
+            {(fetcher.data as { serverError?: string } | undefined)?.serverError ? (
+              <Text c="red" size="sm">
+                {(fetcher.data as { serverError: string }).serverError}
+              </Text>
+            ) : null}
             {onGenerated ? (
               <Box style={{ display: "flex", justifyContent: "flex-end" }}>
-                <Button
-                  disabled={!aiResponse}
-                  onClick={handleInsertResponse} // Use the new handler
-                >
+                <Button disabled={!aiResponse} onClick={handleInsertResponse}>
                   Insert response
                 </Button>
               </Box>

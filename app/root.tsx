@@ -39,6 +39,7 @@ import { ClientHintCheck, getHints } from "./utils/client-hints";
 import { combineHeaders, getDomainUrl } from "./utils/misc";
 import { useNonce } from "./utils/nonce-provider";
 import { getTheme, Theme } from "./utils/theme.server";
+import { getAblyKey } from "./utils/env.server";
 import { getToast } from "./utils/toast.server";
 
 export const handle: BreadcrumbHandle = {
@@ -54,6 +55,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     {
       user,
       toast,
+      ablyKey: getAblyKey(),
       selectedTheme: user?.color_theme || "blue",
       scale: user?.scale || "md",
       requestInfo: {

@@ -332,8 +332,6 @@ export const PaperForm: React.FC<PaperFormPropsWithConditionalPaperId> = ({
     },
   });
 
-  console.log("🔥🔥🔥🔥  form.allErrors 🔥🔥🔥🔥🔥", form.allErrors);
-
   const authors = fields.authors.getFieldList();
   const affiliations = fields.affiliations.getFieldList();
 
