@@ -15,7 +15,7 @@ export interface FormattingPreferences {
   footer_text: string | null;
   page_number_enabled: boolean;
   page_number_position: "footer_center" | "footer_right" | "header_right";
-  citation_style: "apa" | "mla" | "chicago" | "harvard";
+  citation_style: "apa" | "mla" | "chicago" | "harvard" | "ieee";
 }
 
 interface FormattingResponse {

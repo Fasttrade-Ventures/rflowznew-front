@@ -152,6 +152,7 @@ export const AddCitationDrawer = ({
         key={currentCiteStatementIndex}
         onCiteSelected={onCiteSelected}
         isMendeleyLinked={isMendeleyLinked}
+        paperId={paperId}
       />
       <Form
         {...getFormProps(form)}
@@ -434,6 +435,27 @@ export const AddCitationDrawer = ({
                             type: "hidden",
                           })}
                           key={citeFields.doi.key}
+                        />
+                        <input
+                          placeholder="Reference type"
+                          {...getInputProps(citeFields.reference_type, {
+                            type: "hidden",
+                          })}
+                          key={citeFields.reference_type.key}
+                        />
+                        <input
+                          placeholder="Mendeley ID"
+                          {...getInputProps(citeFields.mendeley_id, {
+                            type: "hidden",
+                          })}
+                          key={citeFields.mendeley_id.key}
+                        />
+                        <input
+                          placeholder="OpenAlex ID"
+                          {...getInputProps(citeFields.openalex_id, {
+                            type: "hidden",
+                          })}
+                          key={citeFields.openalex_id.key}
                         />
                         {citeFields.authors.getFieldList().map((author) => {
                           const authorFields = author.getFieldset();

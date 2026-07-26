@@ -36,6 +36,7 @@ const CITATION_PREVIEWS: Record<string, string> = {
     'Doe, John, and Jane Smith. 2023. "Urban Farming at Scale." Journal of Urban Studies. https://doi.org/10.1000/xyz',
   harvard:
     "Doe, J. and Smith, J. (2023) 'Urban farming at scale', Journal of Urban Studies. doi: 10.1000/xyz",
+  ieee: 'J. Doe and J. Smith, "Urban farming at scale," Journal of Urban Studies, 2023. doi: 10.1000/xyz',
 };
 
 export function FormattingPanel({
@@ -263,6 +264,7 @@ export function FormattingPanel({
                   { label: "MLA (9th edition)", value: "mla" },
                   { label: "Chicago (author-date)", value: "chicago" },
                   { label: "Harvard", value: "harvard" },
+                  { label: "IEEE", value: "ieee" },
                 ]}
                 value={prefs.citation_style}
                 onChange={(value) =>

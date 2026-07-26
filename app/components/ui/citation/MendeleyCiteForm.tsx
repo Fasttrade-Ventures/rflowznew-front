@@ -26,6 +26,7 @@ export const citeSchema = z.object({
         source: z.string().min(1).optional(),
         doi: z.string().min(1).optional(),
         mendeley_id: z.string().min(1).optional(),
+        openalex_id: z.string().min(1).optional(),
         reference_type: z.string().min(1).optional(),
         authors: z.array(
           z.object({
