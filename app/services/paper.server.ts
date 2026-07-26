@@ -1079,6 +1079,48 @@ const getPaperBibliography = async ({
   return res;
 };
 
+export interface CitationVerificationStatus {
+  marker: string;
+  span: string;
+  status: "matched" | "unknown_source" | "unsupported";
+  openalex_id?: string;
+  note?: string;
+}
+
+export interface CitationVerificationResult {
+  citations: CitationVerificationStatus[];
+  uncited_sources: string[];
+  summary: {
+    total: number;
+    matched: number;
+    unknown: number;
+    unsupported: number;
+  };
+}
+
+const getCitationVerifications = async ({
+  paperId,
+  section,
+  request,
+}: {
+  paperId: string;
+  section: string;
+  request: Request;
+}) => {
+  const res = await customFetch<{
+    success: boolean;
+    status: "not_started" | "pending" | "completed" | "failed";
+    results?: CitationVerificationResult;
+    verified_at?: string | null;
+  }>({
+    request,
+    url: `/api/papers/${paperId}/citation-verifications?section=${section}`,
+    method: "get",
+  });
+
+  return res;
+};
+
 const generateDocuments = async ({
   paperId,
   request,
@@ -1310,6 +1352,7 @@ export {
   getPaperCitationsBySection,
   removeCitationById,
   getPaperBibliography,
+  getCitationVerifications,
   generateDocuments,
   getPaperGeneratedDocuments,
   createOrUpdateSolvingTheProblem,

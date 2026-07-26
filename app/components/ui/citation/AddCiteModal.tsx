@@ -23,6 +23,7 @@ import {
 } from "@mantine/core";
 
 import { Cite, MendeleyCiteForm } from "./MendeleyCiteForm";
+import { OpenAlexSuggestionForm } from "./OpenAlexSuggestionForm";
 import { useDisclosure } from "@mantine/hooks";
 import { Icon } from "#app/components/icon";
 import classes from "./AddCiteModal.module.css";
@@ -53,12 +54,16 @@ export const AddCiteModal = ({
   currentCiteStatementIndex,
   onCiteSelected,
   isMendeleyLinked,
+  paperId,
+  section,
 }: {
   opened: boolean;
   onClose: () => void;
   currentCiteStatementIndex: number;
   onCiteSelected: (statementIndex: number, cites: Cite[]) => void;
   isMendeleyLinked: boolean;
+  paperId?: string;
+  section?: string;
 }) => {
   const {
     activeTab,
@@ -99,9 +104,12 @@ export const AddCiteModal = ({
       <Box p="sm" pt={0} pb="sm">
         <SegmentedControl
           value={activeTab}
-          onChange={(value) => setActiveTab(value as "mendeley" | "manual")}
+          onChange={(value) =>
+            setActiveTab(value as "mendeley" | "suggestions" | "manual")
+          }
           data={[
             { label: "Mendeley", value: "mendeley" },
+            { label: "Suggestions", value: "suggestions" },
             { label: "Manual", value: "manual" },
           ]}
           fullWidth
@@ -128,6 +136,18 @@ export const AddCiteModal = ({
                       Profile
                     </Text>{" "}
                     page to use this feature.
+                  </Text>
+                </Center>
+              </Box>
+            ))}
+          {activeTab === "suggestions" &&
+            (paperId ? (
+              <OpenAlexSuggestionForm paperId={paperId} section={section} />
+            ) : (
+              <Box className={classes.mendeleyNotLinked}>
+                <Center style={{ height: "100%" }}>
+                  <Text ta="center">
+                    Suggestions are unavailable without a paper context.
                   </Text>
                 </Center>
               </Box>
@@ -199,16 +219,28 @@ export const AddCiteModal = ({
                                 <Badge
                                   size="xs"
                                   variant="dot"
-                                  color={cite.mendeley_id ? "green" : "gray"}
+                                  color={
+                                    cite.mendeley_id
+                                      ? "green"
+                                      : cite.openalex_id
+                                        ? "blue"
+                                        : "gray"
+                                  }
                                 >
-                                  {cite.mendeley_id ? "Mendeley" : "Manual"}
+                                  {cite.mendeley_id
+                                    ? "Mendeley"
+                                    : cite.openalex_id
+                                      ? "Suggested"
+                                      : "Manual"}
                                 </Badge>
                                 <Button
                                   size="compact-xs"
                                   color="var(--mantine-color-dark-7)"
                                   onClick={() => {
                                     removeSelectedCite(
-                                      cite.mendeley_id || cite.title
+                                      cite.mendeley_id ||
+                                        cite.openalex_id ||
+                                        cite.title
                                     );
                                   }}
                                 >

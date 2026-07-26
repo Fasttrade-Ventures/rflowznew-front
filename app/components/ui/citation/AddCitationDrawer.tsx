@@ -152,6 +152,7 @@ export const AddCitationDrawer = ({
         key={currentCiteStatementIndex}
         onCiteSelected={onCiteSelected}
         isMendeleyLinked={isMendeleyLinked}
+        paperId={paperId}
       />
       <Form
         {...getFormProps(form)}

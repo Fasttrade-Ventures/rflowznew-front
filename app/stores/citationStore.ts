@@ -1,10 +1,11 @@
 import { create } from "zustand";
 import { GetMendeleyCitationsByQueryLoaderData } from "#app/routes/resources+/mendeley+/_index";
+import type { OpenAlexSuggestion } from "#app/services/openalex.server";
 import type { Cite } from "#app/components/ui/citation/MendeleyCiteForm";
 
 type CitationStore = {
-  activeTab: "mendeley" | "manual";
-  setActiveTab: (tab: "mendeley" | "manual") => void;
+  activeTab: "mendeley" | "suggestions" | "manual";
+  setActiveTab: (tab: "mendeley" | "suggestions" | "manual") => void;
   mendeleyCiteFormState: {
     searchQuery: string;
     selectedCites: Cite[];
@@ -16,6 +17,12 @@ type CitationStore = {
   setSearchResults: (
     results: GetMendeleyCitationsByQueryLoaderData["citations"] | null
   ) => void;
+  openAlexSuggestionState: {
+    suggestions: OpenAlexSuggestion[] | null;
+    loading: boolean;
+  };
+  setOpenAlexSuggestions: (suggestions: OpenAlexSuggestion[] | null) => void;
+  setOpenAlexSuggestionsLoading: (loading: boolean) => void;
   addSelectedCite: (cite: Cite) => void;
   removeSelectedCite: (identifier: string) => void;
   resetStore: () => void;
@@ -27,6 +34,10 @@ const initialState = {
     searchQuery: "",
     selectedCites: [],
     searchResults: null,
+  },
+  openAlexSuggestionState: {
+    suggestions: null,
+    loading: false,
   },
 };
 
@@ -44,6 +55,14 @@ export const useCitationStore = create<CitationStore>((set) => ({
         searchResults: results,
       },
     })),
+  setOpenAlexSuggestions: (suggestions) =>
+    set((state) => ({
+      openAlexSuggestionState: { ...state.openAlexSuggestionState, suggestions },
+    })),
+  setOpenAlexSuggestionsLoading: (loading) =>
+    set((state) => ({
+      openAlexSuggestionState: { ...state.openAlexSuggestionState, loading },
+    })),
   addSelectedCite: (cite) =>
     set((state) => ({
       mendeleyCiteFormState: {
@@ -56,7 +75,10 @@ export const useCitationStore = create<CitationStore>((set) => ({
       mendeleyCiteFormState: {
         ...state.mendeleyCiteFormState,
         selectedCites: state.mendeleyCiteFormState.selectedCites.filter(
-          (cite) => cite.mendeley_id !== identifier && cite.title !== identifier
+          (cite) =>
+            cite.mendeley_id !== identifier &&
+            cite.openalex_id !== identifier &&
+            cite.title !== identifier
         ),
       },
     })),
