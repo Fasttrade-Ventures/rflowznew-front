@@ -19,3 +19,30 @@
 .textarea[data-error]:focus {
   border-color: var(--mantine-color-red-8);
 }
+
+.markdownPreview {
+  background-color: light-dark(
+    var(--mantine-color-gray-0),
+    var(--mantine-color-black)
+  );
+  border: 1px solid
+    light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-7));
+  border-radius: var(--mantine-radius-sm);
+  padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+  min-height: 6rem;
+  font-size: var(--mantine-font-size-md);
+}
+
+.markdownPreview :global(p) {
+  margin: 0 0 var(--mantine-spacing-sm) 0;
+}
+
+.markdownPreview :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+.markdownPreview :global(ul),
+.markdownPreview :global(ol) {
+  margin: 0 0 var(--mantine-spacing-sm) 0;
+  padding-left: var(--mantine-spacing-lg);
+}
