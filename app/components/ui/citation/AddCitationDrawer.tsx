@@ -42,14 +42,12 @@ export const AddCitationDrawer = ({
   drawerOpened,
   paperId,
   citations,
-  isMendeleyLinked,
   addCitationIntent = "addCitation",
 }: {
   closeDrawer: () => void;
   drawerOpened: boolean;
   paperId: string;
   citations: ExtendedCitation[] | undefined;
-  isMendeleyLinked: boolean;
   addCitationIntent?: string;
 }) => {
   const [citeModalOpened, { open: openCiteModal, close: closeCiteModal }] =
@@ -151,7 +149,6 @@ export const AddCitationDrawer = ({
         currentCiteStatementIndex={currentCiteStatementIndex!}
         key={currentCiteStatementIndex}
         onCiteSelected={onCiteSelected}
-        isMendeleyLinked={isMendeleyLinked}
         paperId={paperId}
       />
       <Form

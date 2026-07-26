@@ -272,7 +272,6 @@ export const PaperNewIntroductionPage = () => {
   const params = useParams();
 
   const user = loaderData.user;
-  const isMendeleyLinked = user?.is_mendeley_linked;
 
   const [
     motivationalProblemCitationDrawerOpened,
@@ -317,7 +316,6 @@ export const PaperNewIntroductionPage = () => {
         drawerOpened={motivationalProblemCitationDrawerOpened}
         paperId={params.paperId!}
         citations={motivationalProblemCitations}
-        isMendeleyLinked={isMendeleyLinked ?? false}
         addCitationIntent="addMotivationalProblemCitation"
       />
       <AddCitationDrawer
@@ -326,7 +324,6 @@ export const PaperNewIntroductionPage = () => {
         drawerOpened={researchProblemCitationDrawerOpened}
         paperId={params.paperId!}
         citations={researchProblemCitations}
-        isMendeleyLinked={isMendeleyLinked ?? false}
         addCitationIntent="addResearchProblemCitation"
       />
       <ProblemStatementForm

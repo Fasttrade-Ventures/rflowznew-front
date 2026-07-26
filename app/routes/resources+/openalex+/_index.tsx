@@ -1,14 +1,32 @@
-import { suggestOpenAlexCitations } from "#app/services/openalex.server";
+import {
+  searchOpenAlexCitations,
+  suggestOpenAlexCitations,
+} from "#app/services/openalex.server";
 import { invariant } from "@epic-web/invariant";
 import { ActionFunctionArgs, json, SerializeFrom } from "@remix-run/node";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const paperId = formData.get("paperId");
-  const section = formData.get("section");
-  const keywordsRaw = formData.get("keywords");
+  const intent = formData.get("intent");
 
   invariant(typeof paperId === "string" && paperId, "paperId is required");
+
+  if (intent === "search") {
+    const q = formData.get("q");
+    invariant(typeof q === "string" && q.trim(), "q is required");
+
+    const res = await searchOpenAlexCitations({ request, paperId, q });
+
+    return json({
+      mode: "search" as const,
+      works: res.data?.works ?? [],
+      success: res.data?.success ?? false,
+    });
+  }
+
+  const section = formData.get("section");
+  const keywordsRaw = formData.get("keywords");
 
   const keywords =
     typeof keywordsRaw === "string" && keywordsRaw.length > 0
@@ -23,6 +41,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   });
 
   return json({
+    mode: "suggest" as const,
     suggestions: res.data?.suggestions ?? [],
     success: res.data?.success ?? false,
   });

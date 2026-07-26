@@ -22,7 +22,7 @@ import {
   Badge,
 } from "@mantine/core";
 
-import { Cite, MendeleyCiteForm } from "./MendeleyCiteForm";
+import { Cite } from "./MendeleyCiteForm";
 import { OpenAlexSuggestionForm } from "./OpenAlexSuggestionForm";
 import { useDisclosure } from "@mantine/hooks";
 import { Icon } from "#app/components/icon";
@@ -53,7 +53,6 @@ export const AddCiteModal = ({
   onClose,
   currentCiteStatementIndex,
   onCiteSelected,
-  isMendeleyLinked,
   paperId,
   section,
 }: {
@@ -61,24 +60,14 @@ export const AddCiteModal = ({
   onClose: () => void;
   currentCiteStatementIndex: number;
   onCiteSelected: (statementIndex: number, cites: Cite[]) => void;
-  isMendeleyLinked: boolean;
   paperId?: string;
   section?: string;
 }) => {
-  const {
-    activeTab,
-    setActiveTab,
-    resetStore,
-    mendeleyCiteFormState,
-    removeSelectedCite,
-  } = useCitationStore();
+  const { activeTab, setActiveTab, resetStore, citeFormState, removeSelectedCite } =
+    useCitationStore();
 
   const [selectedCitesOpened, { toggle: toggleSelectedCites }] =
     useDisclosure(false);
-
-  React.useEffect(() => {
-    setActiveTab(isMendeleyLinked ? "mendeley" : "manual");
-  }, [isMendeleyLinked, setActiveTab]);
 
   const handleClose = () => {
     resetStore();
@@ -104,12 +93,9 @@ export const AddCiteModal = ({
       <Box p="sm" pt={0} pb="sm">
         <SegmentedControl
           value={activeTab}
-          onChange={(value) =>
-            setActiveTab(value as "mendeley" | "suggestions" | "manual")
-          }
+          onChange={(value) => setActiveTab(value as "search" | "manual")}
           data={[
-            { label: "Mendeley", value: "mendeley" },
-            { label: "Suggestions", value: "suggestions" },
+            { label: "Search", value: "search" },
             { label: "Manual", value: "manual" },
           ]}
           fullWidth
@@ -124,30 +110,14 @@ export const AddCiteModal = ({
         }}
       >
         <Stack>
-          {activeTab === "mendeley" &&
-            (isMendeleyLinked ? (
-              <MendeleyCiteForm />
-            ) : (
-              <Box className={classes.mendeleyNotLinked}>
-                <Center style={{ height: "100%" }}>
-                  <Text ta="center">
-                    Please link your Mendeley account in the{" "}
-                    <Text component="a" href="/profile" fw={700}>
-                      Profile
-                    </Text>{" "}
-                    page to use this feature.
-                  </Text>
-                </Center>
-              </Box>
-            ))}
-          {activeTab === "suggestions" &&
+          {activeTab === "search" &&
             (paperId ? (
               <OpenAlexSuggestionForm paperId={paperId} section={section} />
             ) : (
               <Box className={classes.mendeleyNotLinked}>
                 <Center style={{ height: "100%" }}>
                   <Text ta="center">
-                    Suggestions are unavailable without a paper context.
+                    Search is unavailable without a paper context.
                   </Text>
                 </Center>
               </Box>
@@ -165,7 +135,7 @@ export const AddCiteModal = ({
         }}
       >
         <Grid gutter="xs">
-          {mendeleyCiteFormState.selectedCites.length > 0 && (
+          {citeFormState.selectedCites.length > 0 && (
             <Grid.Col span={12}>
               <Center style={{ marginBottom: 10 }}>
                 <Group gap={5}>
@@ -184,7 +154,7 @@ export const AddCiteModal = ({
                     />
                   </ActionIcon>
                   <Text size="xs" c="white">
-                    {mendeleyCiteFormState.selectedCites.length} citations
+                    {citeFormState.selectedCites.length} citations
                     selected
                   </Text>
                 </Group>
@@ -207,7 +177,7 @@ export const AddCiteModal = ({
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
-                      {mendeleyCiteFormState.selectedCites.map((cite) => (
+                      {citeFormState.selectedCites.map((cite) => (
                         <React.Fragment key={cite.title}>
                           <Table.Tr key={cite.title}>
                             <Table.Td>
@@ -276,11 +246,11 @@ export const AddCiteModal = ({
               color="var(--mantine-primary-color-9)"
               fullWidth
               type="submit"
-              disabled={mendeleyCiteFormState.selectedCites.length === 0}
+              disabled={citeFormState.selectedCites.length === 0}
               onClick={() => {
                 onCiteSelected(
                   currentCiteStatementIndex,
-                  mendeleyCiteFormState.selectedCites
+                  citeFormState.selectedCites
                 );
                 handleClose();
               }}
@@ -295,10 +265,10 @@ export const AddCiteModal = ({
 };
 
 const ManualCitationForm = () => {
-  const { addSelectedCite, mendeleyCiteFormState } = useCitationStore();
+  const { addSelectedCite, citeFormState } = useCitationStore();
 
   const [form, fields] = useForm({
-    id: `manual-citation-form-${mendeleyCiteFormState.selectedCites.length}`,
+    id: `manual-citation-form-${citeFormState.selectedCites.length}`,
     onValidate({ formData }) {
       return parseWithZod(formData, { schema });
     },

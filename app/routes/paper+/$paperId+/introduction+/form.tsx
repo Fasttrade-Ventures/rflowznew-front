@@ -248,7 +248,6 @@ export const PaperIntroductionEditPage = () => {
   const { paperId } = useParams();
   const data = useLoaderData<typeof loader>();
   const user = data.user;
-  const isMendeleyLinked = user?.is_mendeley_linked;
   const actionData = useActionData<typeof action>();
   const [
     citationDrawerOpened,
@@ -282,7 +281,6 @@ export const PaperIntroductionEditPage = () => {
         drawerOpened={citationDrawerOpened}
         paperId={paperId!}
         citations={citations}
-        isMendeleyLinked={isMendeleyLinked ?? false}
       />
 
       {/* <AddCitationWithTopicDrawer
@@ -291,7 +289,6 @@ export const PaperIntroductionEditPage = () => {
         drawerOpened={citationDrawerOpened}
         paperId={paperId!}
         citations={citations}
-        isMendeleyLinked={isMendeleyLinked ?? false}
       /> */}
 
       <IntroductionForm
