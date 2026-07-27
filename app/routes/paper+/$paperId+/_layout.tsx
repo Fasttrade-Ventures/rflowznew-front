@@ -551,6 +551,13 @@ const navbarLink = (
     completion_percentage: progress?.conclusion.completion_percentage,
   },
   {
+    link: `/paper/${paperId}/library`,
+    label: "Library",
+    icon: "pika-file-bolt",
+    type: "standalone",
+    completion_percentage: 0,
+  },
+  {
     link: `/paper/${paperId}/reference`,
     label: "Reference",
     icon: "pika-list",
