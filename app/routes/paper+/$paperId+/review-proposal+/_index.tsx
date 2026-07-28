@@ -15,12 +15,20 @@ import {
   saveFormattingPreferences,
 } from "#app/services/formatting.server";
 import { FormattingPanel } from "#app/components/formatting-panel";
+import {
+  getIntegrity,
+  runIntegrityCheck,
+  type IntegritySection,
+} from "#app/services/library.server";
 import { getHints } from "#app/utils/client-hints";
 import { invariant } from "@epic-web/invariant";
 import {
+  Alert,
+  Badge,
   Box,
   Button,
   Center,
+  Checkbox,
   Group,
   Stack,
   Table,
@@ -38,7 +46,7 @@ import {
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import classes from "./_index.module.css";
 import { useDelayedIsPending } from "#app/utils/misc";
 import { getCurrentUserSubscription } from "#app/services/subscription.server";
@@ -51,13 +59,25 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const paperId = params.paperId;
   invariant(paperId, "Paper ID is required");
 
-  const [res, generatedDocumentsResponse, subscriptionRes, formattingRes] =
-    await Promise.all([
-      getPaperAbstractSec({ paperId, request }),
-      getPaperGeneratedDocuments({ paperId, request }),
-      getCurrentUserSubscription({ request }),
-      getFormattingPreferences({ request }),
-    ]);
+  const [
+    res,
+    generatedDocumentsResponse,
+    subscriptionRes,
+    formattingRes,
+    integrityRes,
+  ] = await Promise.all([
+    getPaperAbstractSec({ paperId, request }),
+    getPaperGeneratedDocuments({ paperId, request }),
+    getCurrentUserSubscription({ request }),
+    getFormattingPreferences({ request }),
+    getIntegrity({ paperId, request }),
+  ]);
+
+  const integrity = integrityRes.data ?? {
+    success: false,
+    overall: "not_run" as const,
+    sections: [],
+  };
 
   const exportPptx = subscriptionRes.data?.features?.export_pptx ?? false;
 
@@ -81,6 +101,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
         user.subscription_status === "active" ||
         user.subscription_status === "trialing",
       formatting,
+      integrity,
     });
   }
   return json({
@@ -94,6 +115,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       user.subscription_status === "active" ||
       user.subscription_status === "trialing",
     formatting,
+    integrity,
   });
 };
 
@@ -115,6 +137,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ message: res.data?.message ?? "Formatting saved" });
   }
 
+  if (intent === "run-integrity") {
+    const res = await runIntegrityCheck({ paperId, request });
+    return json({
+      message: res.data?.success
+        ? "Integrity check queued for all cited sections"
+        : "Could not queue the integrity check",
+    });
+  }
+
   if (intent === "reset-formatting") {
     const res = await resetFormattingPreferences({ request });
     return json({ message: res.data?.message ?? "Formatting reset" });
@@ -133,6 +164,7 @@ export const ReviewProposalPage = () => {
     exportPptx,
     hasActiveSubscription,
     formatting,
+    integrity,
   } = useLoaderData<typeof loader>();
   const revalidator = useRevalidator();
 
@@ -181,6 +213,27 @@ export const ReviewProposalPage = () => {
       : formatDate(abstract?.abstract_sec.updated_at!);
 
   const actionData = useActionData<typeof action>();
+
+  // Screen 9's reference-integrity gate: export is blocked until the check
+  // passes, with a documented override.
+  const [exportOverride, setExportOverride] = useState(false);
+  const integrityBlocked = integrity.overall !== "pass";
+  const exportAllowed = !integrityBlocked || exportOverride;
+
+  // Poll while a check is running. "pending" covers in-flight verifications;
+  // the queued-message case covers the window right after run-integrity when
+  // jobs haven't started yet and sections still read as not_run.
+  const justQueued = (actionData?.message ?? "").includes("queued");
+  useEffect(() => {
+    if (integrity.overall === "pass" || integrity.overall === "fail") return;
+    if (integrity.overall === "not_run" && !justQueued) return;
+    const intervalId = setInterval(() => revalidator.revalidate(), 3000);
+    const timeoutId = setTimeout(() => clearInterval(intervalId), 120_000);
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(timeoutId);
+    };
+  }, [integrity.overall, justQueued, revalidator]);
 
   if (!abstract) {
     return (
@@ -244,6 +297,84 @@ export const ReviewProposalPage = () => {
             />
           </Box>
         )}
+        <Box pl="md" pr="md">
+          <Alert
+            color={
+              integrity.overall === "pass"
+                ? "green"
+                : integrity.overall === "pending"
+                ? "blue"
+                : integrity.overall === "fail"
+                ? "red"
+                : "yellow"
+            }
+            title={
+              integrity.overall === "pass"
+                ? "Reference integrity: passed"
+                : integrity.overall === "pending"
+                ? "Reference integrity: checking…"
+                : integrity.overall === "fail"
+                ? "Reference integrity: issues found"
+                : "Reference integrity: not checked yet"
+            }
+          >
+            <Stack gap="xs">
+              {integrity.sections.length > 0 && (
+                <Group gap="xs">
+                  {integrity.sections.map((section: IntegritySection) => (
+                    <Badge
+                      key={section.section}
+                      variant="light"
+                      color={
+                        section.status === "clean"
+                          ? "green"
+                          : section.status === "issues"
+                          ? "red"
+                          : section.status === "pending"
+                          ? "blue"
+                          : "gray"
+                      }
+                    >
+                      {section.section.replace(/_/g, " ")}
+                      {section.summary
+                        ? ` · ${
+                            (section.summary.unknown ?? 0) +
+                            (section.summary.unsupported ?? 0) +
+                            (section.summary.ambiguous ?? 0)
+                          } issue(s)`
+                        : ` · ${section.status.replace(/_/g, " ")}`}
+                    </Badge>
+                  ))}
+                </Group>
+              )}
+              <Group gap="sm">
+                <Form method="post">
+                  <input type="hidden" name="paperId" value={paperId} />
+                  <Button
+                    type="submit"
+                    name="intent"
+                    value="run-integrity"
+                    size="compact-sm"
+                    variant="light"
+                    loading={isPending}
+                  >
+                    {integrity.overall === "not_run"
+                      ? "Run integrity check"
+                      : "Re-run integrity check"}
+                  </Button>
+                </Form>
+                {integrityBlocked && (
+                  <Checkbox
+                    size="xs"
+                    label="Export anyway — I have reviewed the citation issues"
+                    checked={exportOverride}
+                    onChange={(e) => setExportOverride(e.currentTarget.checked)}
+                  />
+                )}
+              </Group>
+            </Stack>
+          </Alert>
+        </Box>
         <Center>
           <Form method="post">
             <input type="hidden" name="paperId" value={paperId} />
@@ -274,6 +405,7 @@ export const ReviewProposalPage = () => {
                   value="generate-documents"
                   size="md"
                   variant="gradient"
+                  disabled={!exportAllowed}
                   loading={isPending}
                   leftSection={
                     <Icon
