@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { Textarea, Stack } from "@mantine/core";
+import { Textarea, Stack, Box, SegmentedControl } from "@mantine/core";
 import Ably from "ably";
+import Markdown from "react-markdown";
 import LabelWithActions from "../LabelWithActions";
 import useAbly from "#app/components/hooks/useAbly";
 import { useFetcher } from "@remix-run/react";
@@ -46,6 +47,7 @@ export const AITextArea: React.FC<AITextAreaProps> = ({
 }) => {
   const [value, setValue] = useState(initialValue || ""); // Ensure initial value is never undefined
   const [isGenerating, setIsGenerating] = useState(false);
+  const [mode, setMode] = useState<"edit" | "preview">("edit");
   const isAIGeneratedRef = useRef(false);
 
   const handleMessage = useCallback((message: Ably.Message) => {
@@ -127,26 +129,44 @@ export const AITextArea: React.FC<AITextAreaProps> = ({
             }}
           />
         )}
-      <Textarea
-        classNames={{
-          input: classes.textarea,
-        }}
-        size="md"
-        value={value}
-        onChange={handleChange}
-        error={errors?.join(", ")}
-        minRows={4}
-        autosize
-        placeholder={
-          fetcher.state === "submitting" || fetcher.state === "loading"
-            ? "Generating..."
-            : fetcher.data?.success === false
-            ? fetcher.data?.serverError
-            : "Start typing..."
-        }
-        disabled={isGenerating}
-        {...textareaProps}
-      />
+      {value && (
+        <SegmentedControl
+          size="xs"
+          value={mode}
+          onChange={(v) => setMode(v as "edit" | "preview")}
+          data={[
+            { label: "Edit", value: "edit" },
+            { label: "Preview", value: "preview" },
+          ]}
+          style={{ alignSelf: "flex-start" }}
+        />
+      )}
+      {mode === "preview" && value ? (
+        <Box className={classes.markdownPreview}>
+          <Markdown>{value}</Markdown>
+        </Box>
+      ) : (
+        <Textarea
+          classNames={{
+            input: classes.textarea,
+          }}
+          size="md"
+          value={value}
+          onChange={handleChange}
+          error={errors?.join(", ")}
+          minRows={4}
+          autosize
+          placeholder={
+            fetcher.state === "submitting" || fetcher.state === "loading"
+              ? "Generating..."
+              : fetcher.data?.success === false
+              ? fetcher.data?.serverError
+              : "Start typing..."
+          }
+          disabled={isGenerating}
+          {...textareaProps}
+        />
+      )}
     </Stack>
   );
 };

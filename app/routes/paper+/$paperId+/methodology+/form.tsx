@@ -271,7 +271,6 @@ export const PaperNewMethodologyPage = () => {
   const loaderData = useLoaderData<typeof loader>();
 
   const user = loaderData.user;
-  const isMendeleyLinked = user?.is_mendeley_linked;
 
   const [
     citationDrawerOpened,
@@ -305,7 +304,6 @@ export const PaperNewMethodologyPage = () => {
         drawerOpened={citationDrawerOpened}
         paperId={params.paperId!}
         citations={citations}
-        isMendeleyLinked={isMendeleyLinked ?? false}
       />
       <MethodologyForm
         actionData={actionData!}

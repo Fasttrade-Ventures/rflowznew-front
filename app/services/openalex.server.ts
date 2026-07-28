@@ -43,6 +43,13 @@ interface OpenAlexSuggestResponse {
   suggestions: OpenAlexSuggestion[];
 }
 
+interface OpenAlexSearchResponse {
+  success: boolean;
+  message?: string;
+  query?: string;
+  works: OpenAlexWork[];
+}
+
 const suggestOpenAlexCitations = async ({
   request,
   paperId,
@@ -64,4 +71,23 @@ const suggestOpenAlexCitations = async ({
   return res;
 };
 
-export { suggestOpenAlexCitations };
+const searchOpenAlexCitations = async ({
+  request,
+  paperId,
+  q,
+}: {
+  request: Request;
+  paperId: string;
+  q: string;
+}) => {
+  const res = await customFetch<OpenAlexSearchResponse>({
+    request,
+    url: `/api/papers/${paperId}/academic/search`,
+    method: "post",
+    data: JSON.stringify({ q }),
+  });
+
+  return res;
+};
+
+export { suggestOpenAlexCitations, searchOpenAlexCitations };

@@ -47,13 +47,11 @@ export const AddCitationWithTopicDrawer = ({
   drawerOpened,
   paperId,
   citations,
-  isMendeleyLinked,
 }: {
   closeDrawer: () => void;
   drawerOpened: boolean;
   paperId: string;
   citations: ExtendedCitation[] | undefined;
-  isMendeleyLinked: boolean;
 }) => {
   const [citeModalOpened, { open: openCiteModal, close: closeCiteModal }] =
     useDisclosure(false);
@@ -218,7 +216,6 @@ export const AddCitationWithTopicDrawer = ({
         currentCiteStatementIndex={currentCiteStatementIndex?.statementIndex!}
         key={currentCiteStatementIndex?.topicIndex}
         onCiteSelected={onCiteSelected}
-        isMendeleyLinked={isMendeleyLinked}
         paperId={paperId}
       />
       <Form

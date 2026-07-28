@@ -222,7 +222,6 @@ export const PaperLiteratureReviewFormEditPage = () => {
   const data = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const user = data.user;
-  const isMendeleyLinked = user?.is_mendeley_linked;
 
   const [
     citationDrawerOpened,
@@ -255,7 +254,6 @@ export const PaperLiteratureReviewFormEditPage = () => {
         drawerOpened={citationDrawerOpened}
         paperId={paperId!}
         citations={citations}
-        isMendeleyLinked={isMendeleyLinked ?? false}
       />
       <LiteratureReviewForm
         actionData={actionData}
