@@ -1,0 +1,246 @@
+import {
+  FrameworkV2Screen,
+  type FrameworkV2FormValues,
+} from "#app/components/paper-v2/FrameworkV2Screen";
+import { getLibraryEntries } from "#app/services/library.server";
+import {
+  generateFrameworkMermaidAi,
+  generateFrameworkTheoreticalAi,
+  getFramework,
+  renderFramework,
+  saveFramework,
+} from "#app/services/framework.server";
+import { invariant } from "@epic-web/invariant";
+import { ActionFunctionArgs, json, LoaderFunctionArgs } from "@remix-run/node";
+import { useFetcher, useLoaderData } from "@remix-run/react";
+import { notifications } from "@mantine/notifications";
+import { useEffect, useMemo, useState } from "react";
+import { repairMermaidSource } from "#app/utils/sanitize-mermaid-source";
+
+const DEFAULT_MERMAID = `flowchart TD
+  A[Problem Context] --> B[Constructs]
+  B --> C[Methodology]
+  C --> D[Expected Outcomes]`;
+
+export function shouldRevalidate({
+  formData,
+  defaultShouldRevalidate,
+}: {
+  formData?: FormData;
+  defaultShouldRevalidate: boolean;
+}) {
+  const intent = formData?.get("intent");
+  if (
+    intent === "save" ||
+    intent === "generate-mermaid" ||
+    intent === "generate-theoretical" ||
+    intent === "render"
+  ) {
+    return false;
+  }
+  return defaultShouldRevalidate;
+}
+
+export const loader = async ({ params, request }: LoaderFunctionArgs) => {
+  const paperId = params.paperId;
+  invariant(paperId, "paperId required");
+
+  const [frameworkRes, libraryRes] = await Promise.all([
+    getFramework({ request, paperId }),
+    getLibraryEntries({ request, paperId }),
+  ]);
+
+  return json({
+    paperId,
+    framework: frameworkRes.data?.framework ?? null,
+    libraryEntries: libraryRes.data?.entries ?? [],
+  });
+};
+
+export const action = async ({ params, request }: ActionFunctionArgs) => {
+  const paperId = params.paperId;
+  invariant(paperId, "paperId required");
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "save") {
+    try {
+      const res = await saveFramework({
+        request,
+        paperId,
+        data: JSON.parse(formData.get("data") as string) as FrameworkV2FormValues,
+      });
+      return json({ saveOk: true, framework: res.data?.framework });
+    } catch {
+      return json({ saveOk: false, serverError: "Error saving framework" });
+    }
+  }
+
+  if (intent === "render") {
+    try {
+      const res = await renderFramework({
+        request,
+        paperId,
+        mermaidSource: formData.get("mermaid_source") as string,
+        svgData: (formData.get("svg_data") as string) || undefined,
+      });
+      return json({ renderOk: true, framework: res.data?.framework });
+    } catch {
+      return json({ renderOk: false, serverError: "Could not render diagram" });
+    }
+  }
+
+  if (intent === "generate-theoretical") {
+    await generateFrameworkTheoreticalAi({
+      request,
+      paperId,
+      ablyEventName: formData.get("ablyEvent") as string,
+    });
+    return json({ ok: true, streaming: true });
+  }
+
+  if (intent === "generate-mermaid") {
+    await generateFrameworkMermaidAi({
+      request,
+      paperId,
+      ablyEventName: formData.get("ablyEvent") as string,
+      theoreticalFramework: formData.get("theoretical_framework") as string,
+    });
+    return json({ ok: true, streaming: true });
+  }
+
+  return json({ ok: false });
+};
+
+function fromFrameworkRecord(
+  framework?: {
+    theoretical_framework?: string | null;
+    mermaid_source?: string | null;
+  } | null
+): FrameworkV2FormValues {
+  return {
+    theoretical_framework: framework?.theoretical_framework ?? "",
+    mermaid_source: repairMermaidSource(
+      framework?.mermaid_source ?? DEFAULT_MERMAID
+    ),
+  };
+}
+
+export default function FrameworksRoute() {
+  const { paperId, framework, libraryEntries } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
+  const [renderedPngUrl, setRenderedPngUrl] = useState(
+    framework?.rendered_png_url ?? null
+  );
+
+  const initialValues = useMemo(
+    () => fromFrameworkRecord(framework),
+    [framework?.theoretical_framework, framework?.mermaid_source]
+  );
+
+  const [savedValues, setSavedValues] = useState<FrameworkV2FormValues | null>(
+    null
+  );
+
+  const screenInitial = savedValues ?? initialValues;
+
+  const isSaving =
+    fetcher.state !== "idle" && fetcher.formData?.get("intent") === "save";
+  const isRendering =
+    fetcher.state !== "idle" && fetcher.formData?.get("intent") === "render";
+
+  const saveError =
+    fetcher.data &&
+    "saveOk" in fetcher.data &&
+    !fetcher.data.saveOk &&
+    "serverError" in fetcher.data
+      ? fetcher.data.serverError
+      : null;
+
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data) return;
+    const data = fetcher.data;
+
+    if ("saveOk" in data) {
+      if (data.saveOk && "framework" in data && data.framework) {
+        setSavedValues(fromFrameworkRecord(data.framework));
+        notifications.show({
+          title: "Saved",
+          message: "Framework saved successfully",
+          color: "green",
+        });
+      } else if ("serverError" in data && data.serverError) {
+        notifications.show({
+          title: "Error",
+          message: data.serverError,
+          color: "red",
+        });
+      }
+      return;
+    }
+
+    if ("renderOk" in data) {
+      if (data.renderOk && "framework" in data) {
+        setRenderedPngUrl(data.framework?.rendered_png_url ?? null);
+        setSavedValues((current) => ({
+          theoretical_framework:
+            current?.theoretical_framework ||
+            data.framework?.theoretical_framework ||
+            "",
+          mermaid_source: repairMermaidSource(
+            data.framework?.mermaid_source ?? current?.mermaid_source ?? DEFAULT_MERMAID
+          ),
+        }));
+        notifications.show({
+          title: "Diagram ready",
+          message: "Diagram rendered and embedded for proposal export",
+          color: "green",
+        });
+      } else if ("serverError" in data && data.serverError) {
+        notifications.show({
+          title: "Render failed",
+          message: data.serverError,
+          color: "red",
+        });
+      }
+    }
+  }, [fetcher.data, fetcher.state]);
+
+  return (
+    <FrameworkV2Screen
+      paperId={paperId}
+      libraryEntries={libraryEntries}
+      initial={screenInitial}
+      renderedPngUrl={renderedPngUrl}
+      saving={isSaving}
+      rendering={isRendering}
+      saveError={saveError}
+      onAskProfZTheoretical={(ablyEvent) => {
+        const fd = new FormData();
+        fd.set("intent", "generate-theoretical");
+        fd.set("ablyEvent", ablyEvent);
+        fetcher.submit(fd, { method: "post" });
+      }}
+      onAskProfZMermaid={(ablyEvent, data) => {
+        const fd = new FormData();
+        fd.set("intent", "generate-mermaid");
+        fd.set("ablyEvent", ablyEvent);
+        fd.set("theoretical_framework", data.theoretical_framework);
+        fetcher.submit(fd, { method: "post" });
+      }}
+      onSave={(data) => {
+        const fd = new FormData();
+        fd.set("intent", "save");
+        fd.set("data", JSON.stringify(data));
+        fetcher.submit(fd, { method: "post" });
+      }}
+      onGenerateDiagram={(data, svgData) => {
+        const fd = new FormData();
+        fd.set("intent", "render");
+        fd.set("mermaid_source", data.mermaid_source);
+        if (svgData) fd.set("svg_data", svgData);
+        fetcher.submit(fd, { method: "post" });
+      }}
+    />
+  );
+}

@@ -1,5 +1,7 @@
 import { Icon } from "#app/components/icon";
+import { PaperPanel, PaperV2Page } from "#app/components/paper-v2/PaperV2Screens";
 import { getPaperMethodology } from "#app/services/paper.server";
+import { usePaperV2Flow } from "#app/utils/use-paper-v2-flow";
 import { getHints } from "#app/utils/client-hints";
 import { redirectWithToast } from "#app/utils/toast.server";
 import dayjs from "dayjs";
@@ -39,6 +41,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 export const MethodologyIndexPage = () => {
   const data = useLoaderData<typeof loader>();
+  const isV2 = usePaperV2Flow();
   const formatDate = (date: string) => {
     return dayjs(date).tz(data.timeZone).format("DD/MM/YYYY HH:mm");
   };
@@ -47,53 +50,91 @@ export const MethodologyIndexPage = () => {
     data?.methodology?.updated_at === data?.methodology?.created_at
       ? "-"
       : formatDate(data?.methodology?.updated_at!);
-  return (
-    <Stack>
-      <Group justify="space-between" pr="md" pl="md">
-        <Stack gap="xs">
-          <Title order={4}>Methodology</Title>
-          <Group>
-            <Text size="xs" c="dimmed">
-              Created: {createdAt}
-            </Text>
-            <Text size="xs" c="dimmed">
-              Updated: {updatedAt}
-            </Text>
-          </Group>
-        </Stack>
-        <Button
-          leftSection={
-            <Icon name="pencil-outline" style={{ width: 16, height: 16 }} />
-          }
-          variant="light"
-          component={Link}
-          to={`/paper/${data?.methodology?.paper_id}/methodology/form`}
-        >
-          Edit
-        </Button>
-      </Group>
-      <CDivider />
-      <Stack pr="md" pl="md">
-        <Title order={5}>Research Design</Title>
-        <FormattedText content={data?.methodology?.research_design!} />
-      </Stack>
-      <CDivider />
-      <Stack pr="md" pl="md">
-        <Title order={5}>Data Collection Methods</Title>
-        <FormattedText content={data?.methodology?.data_collection_methods!} />
-      </Stack>
-      <CDivider />
-      <Stack pr="md" pl="md">
-        <Title order={5}>Analysis Techniques</Title>
-        <FormattedText content={data?.methodology?.analysis_techniques!} />
-      </Stack>
-      <CDivider />
-      <Stack pr="md" pl="md">
-        <Title order={5}>Software and Tools</Title>
-        <FormattedText content={data?.methodology?.software_and_tools!} />
-      </Stack>
-    </Stack>
+
+  const editButton = (
+    <Button
+      leftSection={
+        <Icon name="pencil-outline" style={{ width: 16, height: 16 }} />
+      }
+      variant="light"
+      size="xs"
+      component={Link}
+      to={`/paper/${data?.methodology?.paper_id}/methodology/form`}
+    >
+      Edit
+    </Button>
   );
+
+  const sections = [
+    { title: "Research design", content: data?.methodology?.research_design ?? "" },
+    {
+      title: "Data collection methods",
+      content: data?.methodology?.data_collection_methods ?? "",
+    },
+    {
+      title: "Analysis techniques",
+      content: data?.methodology?.analysis_techniques ?? "",
+    },
+    {
+      title: "Software and tools",
+      content: data?.methodology?.software_and_tools ?? "",
+    },
+  ].filter((section) => section.content.trim() !== "");
+
+  const body = (
+    <>
+      {!isV2 && (
+        <>
+          <Group justify="space-between" pr="md" pl="md">
+            <Stack gap="xs">
+              <Title order={4}>Methodology</Title>
+              <Group>
+                <Text size="xs" c="dimmed">
+                  Created: {createdAt}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  Updated: {updatedAt}
+                </Text>
+              </Group>
+            </Stack>
+            {editButton}
+          </Group>
+          <CDivider />
+        </>
+      )}
+      {sections.map((section, index) =>
+        isV2 ? (
+          <PaperPanel key={section.title} title={section.title}>
+            <FormattedText content={section.content} />
+          </PaperPanel>
+        ) : (
+          <Stack key={section.title}>
+            {index > 0 && <CDivider />}
+            <Stack pr="md" pl="md">
+              <Title order={5}>{section.title}</Title>
+              <FormattedText content={section.content} />
+            </Stack>
+          </Stack>
+        )
+      )}
+    </>
+  );
+
+  if (isV2) {
+    return (
+      <PaperV2Page
+        title="Methodology"
+        subtitle={`Created ${createdAt} · Updated ${updatedAt}`}
+        guide="Align design, data collection, and analysis with your research questions."
+        profZ="Coherence checks will flag mismatches between RQs and methods in Phase 5."
+        actions={editButton}
+      >
+        <Stack gap="sm">{body}</Stack>
+      </PaperV2Page>
+    );
+  }
+
+  return <Stack>{body}</Stack>;
 };
 
 export default MethodologyIndexPage;

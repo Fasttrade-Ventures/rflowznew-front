@@ -26,7 +26,7 @@ import { LanguageSelect } from "./LanguageSelect";
 import classes from "./PaperForm.module.css";
 import toClasses from "./TangibleOutputRadioGroup.module.css";
 import { Icon } from "#app/components/icon";
-import { NewPaperData } from "#app/routes/paper+/new";
+import { NewPaperData } from "#app/routes/paper+/new+/_index";
 
 // Define the tangible output type
 type TangibleOutput =
@@ -116,6 +116,17 @@ interface PaperFormProps {
   isEditing?: boolean;
   paperId?: string | null;
   actionData: NewPaperData | undefined;
+  formAction?: string;
+  variant?: "default" | "v2";
+  wizardMeta?: {
+    purpose: string;
+    rqCount: number;
+    topic: string;
+    who: string;
+    what: string;
+    where: string;
+    refinedStatement: string;
+  };
 }
 
 type PaperFormPropsWithConditionalPaperId =
@@ -290,7 +301,7 @@ const MethodRadioGroup: React.FC<MethodRadioGroupProps> = ({ fields }) => {
       label="Select the method of your project"
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       {...getInputProps(fields.method as any, { type: "text" })}
-      error={fields.method.errors}
+      error={(fields.method as { errors?: string[] }).errors}
       withAsterisk
     >
       <Group mt="xs">
@@ -307,7 +318,11 @@ export const PaperForm: React.FC<PaperFormPropsWithConditionalPaperId> = ({
   isEditing = false,
   paperId = null,
   actionData,
+  formAction = "/paper/new",
+  variant = "default",
+  wizardMeta,
 }) => {
+  const isV2 = variant === "v2";
   const isPending = useIsPending();
   const [aiModalOpened, { open: openAiModal, close: closeAiModal }] =
     useDisclosure(false);
@@ -497,26 +512,48 @@ export const PaperForm: React.FC<PaperFormPropsWithConditionalPaperId> = ({
 
   return (
     <Stack>
-      <Stack>
-        <Text fw={700}>
-          {isEditing ? "Edit project" : "Create a new project"}
-        </Text>
-        {form.errors && (
-          <Text c="red" size="sm">
-            {form.errors}
+      {!isV2 && (
+        <Stack>
+          <Text fw={700}>
+            {isEditing ? "Edit project" : "Create a new project"}
           </Text>
-        )}
-      </Stack>
+          {form.errors && (
+            <Text c="red" size="sm">
+              {form.errors}
+            </Text>
+          )}
+        </Stack>
+      )}
+      {isV2 && form.errors && (
+        <Text c="red" size="xs">
+          {form.errors}
+        </Text>
+      )}
       <AIGenerationModal
         opened={aiModalOpened}
         onClose={closeAiModal}
         onGenerated={handleGenerateTitle}
-        action={`/paper/new`}
+        action={formAction}
         channelName={`newPaper`}
         eventName="title"
         language={fields.language.value || "en"}
       />
-      <Form method="post" {...getFormProps(form)}>
+      <Form method="post" action={formAction} {...getFormProps(form)}>
+        {wizardMeta && (
+          <>
+            <input type="hidden" name="purpose" value={wizardMeta.purpose} />
+            <input type="hidden" name="rqCount" value={wizardMeta.rqCount} />
+            <input type="hidden" name="topic" value={wizardMeta.topic} />
+            <input type="hidden" name="who" value={wizardMeta.who} />
+            <input type="hidden" name="what" value={wizardMeta.what} />
+            <input type="hidden" name="where" value={wizardMeta.where} />
+            <input
+              type="hidden"
+              name="refinedStatement"
+              value={wizardMeta.refinedStatement}
+            />
+          </>
+        )}
         <Stack gap="sm">
           <Stack gap="lg">
             <TangibleOutputRadioGroup
@@ -534,7 +571,7 @@ export const PaperForm: React.FC<PaperFormPropsWithConditionalPaperId> = ({
               name={fields.title.name}
               defaultValue={fields.title.initialValue}
               error={fields.title.errors}
-              size="md"
+              size={isV2 ? "xs" : "md"}
               placeholder="Running title"
               inputContainer={(children) => (
                 <Grid align="flex-start">
@@ -557,9 +594,13 @@ export const PaperForm: React.FC<PaperFormPropsWithConditionalPaperId> = ({
 
             <TextInput
               label="Context"
-              description="What is the context of your paper? Eg: Malaysia, School, Higher Education, etc."
+              description={
+                isV2
+                  ? undefined
+                  : "What is the context of your paper? Eg: Malaysia, School, Higher Education, etc."
+              }
               {...getInputProps(fields.context, { type: "text" })}
-              size="md"
+              size={isV2 ? "xs" : "md"}
               placeholder="Higher education"
               error={fields.context.errors}
             />
@@ -882,8 +923,8 @@ export const PaperForm: React.FC<PaperFormPropsWithConditionalPaperId> = ({
           </Stack>
 
           <Box className={classes.buttonContainer}>
-            <Button type="submit" disabled={isPending}>
-              {isEditing ? "Update" : "Create"}
+            <Button type="submit" disabled={isPending} size={isV2 ? "xs" : "md"}>
+              {isV2 ? "Continue" : isEditing ? "Update" : "Create"}
             </Button>
           </Box>
         </Stack>

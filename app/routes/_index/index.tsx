@@ -2,11 +2,14 @@ import {
   getCurrentUser,
   requireAuth,
 } from "#app/services/authentication.server";
+import { getLibraryEntries } from "#app/services/library.server";
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
-import { json, Link, useLoaderData } from "@remix-run/react";
+import { json, Link, useLoaderData, useRouteLoaderData } from "@remix-run/react";
 import { z } from "zod";
 import { Box, Flex, Progress, SimpleGrid, Text } from "@mantine/core";
 import { Icon } from "#app/components/icon";
+import { HomeDashboardV2 } from "#app/components/v2/HomeDashboardV2";
+import { loader as rootLoader } from "#app/root";
 
 import classes from "./index.module.css";
 import { getPapers } from "#app/services/paper.server";
@@ -37,7 +40,25 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const userRes = await getCurrentUser({ request });
 
   const res = await getPapers({ request });
-  const papers = res.data?.papers;
+  const papers = res.data?.papers ?? [];
+
+  const citationGroups = await Promise.all(
+    papers.map(async (paper) => {
+      const libraryRes = await getLibraryEntries({
+        request,
+        paperId: String(paper.id),
+      });
+      return libraryRes.data?.entries?.length ?? 0;
+    })
+  );
+  const citationsSaved = citationGroups.reduce((sum, n) => sum + n, 0);
+  const activeProjects = papers.filter((p) => p.overall_progress < 100).length;
+  const avgCompletion =
+    papers.length > 0
+      ? Math.round(
+          papers.reduce((sum, p) => sum + p.overall_progress, 0) / papers.length
+        )
+      : 0;
 
   if (user.subscription_status !== userRes.data?.subscription_status) {
     const newCookie = await updateUserSubscriptionStatus(
@@ -60,14 +81,34 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       );
     }
 
-    return json({ user: userRes.data, papers });
+    return json({
+      user: userRes.data,
+      papers,
+      stats: { activeProjects, citationsSaved, avgCompletion },
+    });
   }
 
-  return json({ papers, user: userRes.data });
+  return json({
+    papers,
+    user: userRes.data,
+    stats: { activeProjects, citationsSaved, avgCompletion },
+  });
 };
 
 export default function Index() {
-  const { papers } = useLoaderData<typeof loader>();
+  const { papers, user, stats } = useLoaderData<typeof loader>();
+  const rootData = useRouteLoaderData<typeof rootLoader>("root");
+
+  if (rootData?.paperV2Flow) {
+    return (
+      <HomeDashboardV2
+        papers={papers}
+        stats={stats}
+        userName={user?.name}
+        isPro={user?.subscription_status === "active"}
+      />
+    );
+  }
 
   return (
     <>
@@ -100,7 +141,7 @@ export default function Index() {
           {papers?.map((paper) => (
             <Box key={paper.id} className={classes.flexItem}>
               <Link
-                to={`/paper/${paper.id}/introduction`}
+                to={`/paper/${paper.id}`}
                 className={classes.boxLink}
               >
                 <div className={`${classes.box} ${classes.hoverEffect}`}>

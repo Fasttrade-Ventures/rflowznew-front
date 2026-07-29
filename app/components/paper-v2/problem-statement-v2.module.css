@@ -1,0 +1,242 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pageTitle {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.pageSub {
+  color: var(--rz-muted-foreground);
+  font-size: 11px;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.legCard {
+  background: var(--rz-card);
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.legHeader {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.legTitle {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.legGapLabel {
+  color: var(--rz-muted-foreground);
+  font-size: 10px;
+}
+
+.legActions {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.sourcesBadge {
+  background: var(--rz-muted);
+  border: 1px solid var(--rz-border);
+  border-radius: 999px;
+  color: var(--rz-muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.askProfZ {
+  align-items: center;
+  background: #e7f5ff;
+  border: none;
+  border-radius: 999px;
+  color: #228be6;
+  cursor: pointer;
+  display: flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 4px 10px;
+}
+
+.askProfZ:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.profAvatar {
+  background: #228be6;
+  border-radius: 999px;
+  flex-shrink: 0;
+  height: 28px;
+  width: 28px;
+}
+
+.editorShell {
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-md);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editorToolbar {
+  align-items: center;
+  background: var(--rz-muted);
+  border-bottom: 1px solid var(--rz-border);
+  color: var(--rz-muted-foreground);
+  display: flex;
+  font-size: 11px;
+  gap: 6px;
+  padding: 6px 8px;
+}
+
+.toolbarStrong {
+  color: var(--rz-foreground);
+  font-weight: 700;
+}
+
+.toolbarItalic {
+  color: var(--rz-foreground);
+  font-style: italic;
+}
+
+.toolbarLink {
+  color: var(--rz-primary);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.toolbarHint {
+  color: var(--rz-muted-foreground);
+  font-size: 9px;
+  margin-left: auto;
+}
+
+.editorBody {
+  background: var(--rz-background);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+.editorBody :global(.mantine-Textarea-input) {
+  background: transparent;
+  border: none;
+  font-size: 11px;
+  line-height: 1.5;
+  min-height: 80px;
+  padding: 0;
+}
+
+.editorBody :global(.mantine-Textarea-wrapper) {
+  margin: 0;
+}
+
+.gapFieldLabel {
+  color: var(--rz-muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.evidenceSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.evidenceLabel {
+  color: var(--rz-muted-foreground);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.evidenceChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.evidenceChip {
+  align-items: center;
+  background: var(--rz-muted);
+  border: 1px solid var(--rz-border);
+  border-radius: 999px;
+  color: var(--rz-foreground);
+  display: inline-flex;
+  font-size: 10px;
+  gap: 4px;
+  padding: 2px 8px;
+  text-decoration: none;
+}
+
+.evidenceChip:hover {
+  border-color: var(--rz-primary);
+  color: var(--rz-primary);
+}
+
+.evidenceEmpty {
+  color: var(--rz-muted-foreground);
+  font-size: 10px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.legReadCard {
+  background: var(--rz-card);
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.legReadTitle {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.legReadGapLabel {
+  color: var(--rz-muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+}

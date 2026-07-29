@@ -1,0 +1,245 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+}
+
+.pageHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.pageTitle {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.pageSub {
+  color: var(--rz-muted-foreground);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.headerActions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.statsRow {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.statCard {
+  background: var(--rz-card);
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 10px;
+}
+
+.statLabel {
+  color: var(--rz-muted-foreground);
+  font-size: 11px;
+}
+
+.statValue {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.statValueAccent {
+  color: var(--rz-primary);
+}
+
+.dualBody {
+  display: grid;
+  flex: 1;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
+}
+
+.panel {
+  background: var(--rz-card);
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  padding: 10px;
+}
+
+.panelHeader {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.panelTitle {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge {
+  background: var(--rz-muted);
+  border-radius: var(--rz-radius-sm);
+  color: var(--rz-muted-foreground);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  text-transform: uppercase;
+}
+
+.prefillNote {
+  color: var(--rz-muted-foreground);
+  font-size: 9px;
+}
+
+.searchRow {
+  align-items: flex-end;
+  display: flex;
+  gap: 8px;
+}
+
+.searchInput {
+  background: var(--rz-background);
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-sm);
+  flex: 1;
+  font-size: 11px;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.hint {
+  color: var(--rz-muted-foreground);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.resultsTable {
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-md);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 120px;
+  overflow: hidden;
+}
+
+.tableHeader,
+.tableRow {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  min-height: 36px;
+  padding: 0 8px;
+}
+
+.tableHeader {
+  background: var(--rz-muted);
+  border-bottom: 1px solid var(--rz-border);
+  color: var(--rz-muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+  min-height: 24px;
+}
+
+.tableRow {
+  border-bottom: 1px solid var(--rz-border);
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+.policyRow {
+  grid-template-columns: 28px auto minmax(0, 1fr);
+}
+
+.rowTitle {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rowMeta {
+  color: var(--rz-muted-foreground);
+  font-size: 10px;
+}
+
+.citeCheck {
+  align-items: center;
+  background: var(--rz-card);
+  border: 1px solid var(--rz-border);
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  height: 14px;
+  justify-content: center;
+  padding: 0;
+  width: 14px;
+}
+
+.citeCheck:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.citeCheck:not(:disabled):hover {
+  border-color: var(--rz-primary);
+}
+
+.citeCheckPending {
+  opacity: 0.55;
+}
+
+.citeCheckActive {
+  background: var(--rz-primary);
+  border-color: var(--rz-primary);
+  color: var(--rz-primary-foreground);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.rowActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.emptyState {
+  color: var(--rz-muted-foreground);
+  font-size: 11px;
+  padding: 12px 8px;
+}
+
+.errorText {
+  color: var(--rz-destructive);
+  font-size: 11px;
+}
+
+.scrollBody {
+  flex: 1;
+  overflow-y: auto;
+}
+
+@media (max-width: 62em) {
+  .dualBody {
+    grid-template-columns: 1fr;
+  }
+}

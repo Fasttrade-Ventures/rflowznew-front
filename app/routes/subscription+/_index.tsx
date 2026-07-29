@@ -37,10 +37,18 @@ import {
   useNavigate,
   useNavigation,
 } from "@remix-run/react";
-import classes from "./_index.module.css";
+import {
+  PageBreadcrumb,
+  PlanCardV2,
+} from "#app/components/v2/V2UIKit";
+import v2classes from "#app/components/v2/v2.module.css";
+import { loader as rootLoader } from "#app/root";
+import { useRouteLoaderData } from "@remix-run/react";
+import { APIValidationError } from "#app/utils/error/api-validation-error";
 import { canManageStripeBilling, isFreePlan } from "#app/utils/plan";
 import { Icon } from "#app/components/icon";
-import { APIValidationError } from "#app/utils/error/api-validation-error";
+import { BreadcrumbHandle } from "../_index";
+import classes from "./_index.module.css";
 
 export const handle: BreadcrumbHandle = {
   breadcrumb: "Subscription",
@@ -157,15 +165,165 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export const SubscriptionPage = () => {
-  const {
-    billingPeriod,
-    subscriptions,
-    message,
-    subscription_status,
-    currentPlanKey,
-    hasUsedTrial,
-    canManageBilling,
-  } = useLoaderData<typeof loader>();
+  const rootData = useRouteLoaderData<typeof rootLoader>("root");
+  const data = useLoaderData<typeof loader>();
+
+  if (rootData?.paperV2Flow) {
+    return <SubscriptionV2 {...data} />;
+  }
+
+  return <SubscriptionLegacy {...data} />;
+};
+
+function SubscriptionV2({
+  billingPeriod,
+  subscriptions,
+  message,
+  subscription_status,
+  currentPlanKey,
+  hasUsedTrial,
+  canManageBilling,
+}: ReturnType<typeof useLoaderData<typeof loader>>) {
+  const navigate = useNavigate();
+  const plans = subscriptions || [];
+  const onFreePlan = isFreePlan(currentPlanKey);
+  const hasPaidAccess =
+    (subscription_status === "active" || subscription_status === "trialing") &&
+    !onFreePlan;
+
+  const handleBillingPeriodChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    navigate(`?billingPeriod=${event.target.checked ? "yearly" : "monthly"}`);
+  };
+
+  return (
+    <div className={v2classes.subscriptionPage}>
+      <PageBreadcrumb>Home → Subscription</PageBreadcrumb>
+      {message && <Alert color="red">{message}</Alert>}
+      <div className={v2classes.subscriptionHeader}>
+        <div className={v2classes.subscriptionTitle}>Choose Your Plan</div>
+        <Text size="xs" c="dimmed">
+          Toggle monthly or yearly billing
+        </Text>
+      </div>
+      <div className={v2classes.billingToggle}>
+        <Text size="sm" c={billingPeriod === "monthly" ? undefined : "dimmed"}>
+          Monthly
+        </Text>
+        <Switch
+          checked={billingPeriod === "yearly"}
+          onChange={handleBillingPeriodChange}
+          size="sm"
+        />
+        <Text size="sm" fw={billingPeriod === "yearly" ? 500 : undefined}>
+          Yearly
+        </Text>
+      </div>
+      <div className={v2classes.planGrid}>
+        {plans.map((plan) => {
+          const recommended =
+            plan.isRecommended[billingPeriod as "monthly" | "yearly"];
+          return (
+            <PlanCardV2
+              key={plan.title.label}
+              name={plan.title.label}
+              description={plan.description}
+              highlighted={recommended}
+              price={
+                plan.isFree ? (
+                  <Text fz={28} fw={700}>
+                    Free
+                  </Text>
+                ) : (
+                  <Text fz={28} fw={700}>
+                    ${plan.price[billingPeriod as "monthly" | "yearly"]}
+                  </Text>
+                )
+              }
+              priceNote={
+                !plan.isFree && billingPeriod === "yearly"
+                  ? "/month (billed annually)"
+                  : !plan.isFree
+                    ? "/month"
+                    : undefined
+              }
+              features={
+                <List spacing={6} size="sm" icon={<CheckIcon />}>
+                  {plan.features.map((feature) => (
+                    <List.Item key={feature}>
+                      <Text size="xs">{feature}</Text>
+                    </List.Item>
+                  ))}
+                  {plan.notIncluded.map((feature) => (
+                    <List.Item key={feature} icon={<CrossIcon />}>
+                      <Text size="xs" c="dimmed">
+                        {feature}
+                      </Text>
+                    </List.Item>
+                  ))}
+                </List>
+              }
+              cta={
+                plan.isFree ? (
+                  onFreePlan ? (
+                    <Button fullWidth size="xs" variant="outline" disabled>
+                      Current plan
+                    </Button>
+                  ) : (
+                    <Text size="xs" c="dimmed" ta="center">
+                      Included for all new accounts
+                    </Text>
+                  )
+                ) : subscription_status === null ||
+                  subscription_status === "inactive" ||
+                  onFreePlan ? (
+                  <SubscribeButton
+                    planName={plan.title[billingPeriod as "monthly" | "yearly"]}
+                    stripePrice={
+                      plan.stripePriceId[billingPeriod as "monthly" | "yearly"]!
+                    }
+                    originalExportMonthlyLimit={plan.original_export_monthly_limit.toString()}
+                    hasUsedTrial={hasUsedTrial}
+                  />
+                ) : canManageBilling ? (
+                  <ManageSubscriptionButton
+                    planName={plan.title[billingPeriod as "monthly" | "yearly"]}
+                  />
+                ) : (
+                  <Button fullWidth size="xs" disabled>
+                    Current plan
+                  </Button>
+                )
+              }
+              footer={
+                !plan.isFree && !hasUsedTrial ? (
+                  <Text size="xs" c="dimmed" ta="center">
+                    No credit card required for the trial.
+                  </Text>
+                ) : undefined
+              }
+            />
+          );
+        })}
+      </div>
+      <div className={v2classes.subscriptionDisclaimer}>
+        RflowZ is designed to assist users in developing research proposals
+        utilizing Design Science Research (DSR) principles.
+      </div>
+    </div>
+  );
+}
+
+function SubscriptionLegacy({
+  billingPeriod,
+  subscriptions,
+  message,
+  subscription_status,
+  currentPlanKey,
+  hasUsedTrial,
+  canManageBilling,
+}: ReturnType<typeof useLoaderData<typeof loader>>) {
   const navigate = useNavigate();
 
   const plans = subscriptions || [];
@@ -316,7 +474,7 @@ export const SubscriptionPage = () => {
       </Grid>
     </Container>
   );
-};
+}
 
 const ManageSubscriptionButton = ({ planName }: { planName: string }) => {
   const navigation = useNavigation();

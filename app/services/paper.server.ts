@@ -28,6 +28,7 @@ const createNewPaper = async ({
       }>;
     }>;
     language?: "en" | "id" | "ar" | "ms";
+    meta?: Record<string, unknown>;
   };
   request: Request;
 }) => {
@@ -105,6 +106,12 @@ export type PaperResponse = {
     }>;
     language: "en" | "id" | "ar" | "ms";
     user_id: number;
+    meta?: {
+      purpose?: string;
+      rqCount?: number;
+      engineRoute?: string[];
+      simulation_v2?: boolean;
+    } | null;
     created_at: string;
     updated_at: string;
   };
@@ -350,53 +357,9 @@ const getPaperProgress = async ({
   const res = await customFetch<{
     success: boolean;
     message: string;
-    progress: {
-      introduction: {
-        completion_percentage: number;
-      };
-      problem_statement: {
-        completion_percentage: number;
-      };
-      methodology: {
-        completion_percentage: number;
-      };
-      expected_output: {
-        completion_percentage: number;
-      };
-      conclusion: {
-        completion_percentage: number;
-      };
-      research_significant: {
-        completion_percentage: number;
-      };
-      abstract_sec: {
-        completion_percentage: number;
-      };
-      point_of_departure: {
-        completion_percentage: number;
-      };
-      research_question_and_objective: {
-        completion_percentage: number;
-      };
-      literature_review: {
-        completion_percentage: number;
-      };
-      experiment_analysis: {
-        completion_percentage: number;
-      };
-      expert_review: {
-        completion_percentage: number;
-      };
-      solving_the_problem: {
-        completion_percentage: number;
-      };
-      reliability: {
-        completion_percentage: number;
-      };
-      trustworthiness: {
-        completion_percentage: number;
-      };
-    };
+    overall_percentage?: number;
+    simulation_v2?: boolean;
+    progress: Record<string, { completion_percentage: number }>;
   }>({
     request,
     url: `/api/papers/${paperId}/progress`,
@@ -446,22 +409,26 @@ const createOrUpdateMethodology = async ({
     data_collection_methods?: string;
     analysis_techniques?: string;
     software_and_tools?: string;
+    meta?: Record<string, unknown>;
   };
   request: Request;
 }) => {
-  const data: Record<string, string> = {};
+  const data: Record<string, unknown> = {};
 
-  if (methodology.research_design) {
+  if (methodology.research_design !== undefined) {
     data.research_design = methodology.research_design;
   }
-  if (methodology.data_collection_methods) {
+  if (methodology.data_collection_methods !== undefined) {
     data.data_collection_methods = methodology.data_collection_methods;
   }
-  if (methodology.analysis_techniques) {
+  if (methodology.analysis_techniques !== undefined) {
     data.analysis_techniques = methodology.analysis_techniques;
   }
-  if (methodology.software_and_tools) {
+  if (methodology.software_and_tools !== undefined) {
     data.software_and_tools = methodology.software_and_tools;
+  }
+  if (methodology.meta !== undefined) {
+    data.meta = methodology.meta;
   }
 
   const res = await customFetch<{

@@ -12,6 +12,7 @@ export interface LibraryEntry {
   openalex_id: string | null;
   cite: OpenAlexCite | null;
   summary: string | null;
+  is_cited: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -105,6 +106,55 @@ const removeLibraryEntry = async ({
     method: "delete",
   });
 
+const toggleLibraryEntryCite = async ({
+  request,
+  paperId,
+  entryId,
+  isCited,
+}: {
+  request: Request;
+  paperId: string;
+  entryId: number | string;
+  isCited: boolean;
+}) =>
+  customFetch<{ success: boolean; entry: LibraryEntry; message?: string }>({
+    request,
+    url: `/api/papers/${paperId}/library/${entryId}/cite`,
+    method: "post",
+    data: JSON.stringify({ is_cited: isCited }),
+  });
+
+const attachLibraryEntry = async ({
+  request,
+  paperId,
+  entryId,
+  section,
+  topic,
+  statementText,
+}: {
+  request: Request;
+  paperId: string;
+  entryId: number | string;
+  section: string;
+  topic?: string;
+  statementText?: string;
+}) =>
+  customFetch<{
+    success: boolean;
+    already_attached?: boolean;
+    citation?: unknown;
+    message?: string;
+  }>({
+    request,
+    url: `/api/papers/${paperId}/library/${entryId}/attach`,
+    method: "post",
+    data: JSON.stringify({
+      section,
+      topic,
+      statement_text: statementText,
+    }),
+  });
+
 const researchSearch = async ({
   request,
   paperId,
@@ -151,6 +201,8 @@ export {
   getLibraryEntries,
   saveLibraryEntry,
   removeLibraryEntry,
+  toggleLibraryEntryCite,
+  attachLibraryEntry,
   researchSearch,
   getIntegrity,
   runIntegrityCheck,

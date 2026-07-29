@@ -248,6 +248,31 @@ const updateUser = async ({
   return res;
 };
 
+const changePassword = async ({
+  request,
+  current_password,
+  password,
+  password_confirmation,
+}: {
+  request: Request;
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}) => {
+  const res = await customFetch<{ message: string }>({
+    request,
+    url: "/api/profile/password",
+    method: "put",
+    data: JSON.stringify({
+      current_password: current_password.replace(/^"|"$/g, ""),
+      password: password.replace(/^"|"$/g, ""),
+      password_confirmation: password_confirmation.replace(/^"|"$/g, ""),
+    }),
+  });
+
+  return res;
+};
+
 export {
   authenticate,
   requireAuth,
@@ -261,6 +286,7 @@ export {
   unlinkMendeley,
   getCurrentUser,
   updateUser,
+  changePassword,
   verifyEmail,
   resendVerificationEmail,
 };
