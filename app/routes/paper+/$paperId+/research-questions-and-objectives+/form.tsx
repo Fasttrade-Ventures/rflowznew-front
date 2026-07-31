@@ -1,11 +1,14 @@
 import { Icon } from "#app/components/icon";
+import { ResearchQuestionsV2Screen } from "#app/components/paper-v2/ResearchQuestionsV2Screen";
 import { BreadcrumbHandle } from "#app/routes/_index";
 import {
   addSubResearchQuestionAndObjective,
   deleteSubResearchQuestionAndObjective,
+  getPaper,
   getPaperResearchQuestionsAndObjectives,
   updatePaperSubResearchQuestionOrObjective,
 } from "#app/services/paper.server";
+import { usePaperV2Flow } from "#app/utils/use-paper-v2-flow";
 import { redirectWithToast } from "#app/utils/toast.server";
 import { z } from "zod";
 
@@ -16,6 +19,7 @@ import {
   json,
   LoaderFunctionArgs,
   SerializeFrom,
+  ShouldRevalidateFunctionArgs,
 } from "@remix-run/node";
 import { useActionData, useLoaderData, useParams } from "@remix-run/react";
 import { ResearchQuestionAndObjectiveForm } from "#app/components/ui/paper/ResearchQuestionAndObjectiveForm";
@@ -26,7 +30,12 @@ import {
   generateSubResearchQuestionOrObjectiveAI,
   saveMainResearchQuestion,
 } from "./_utils.server";
-import { FSWatcher } from "vite";
+import {
+  ensureRqSubSlots,
+  saveAllResearchQuestionsV2,
+  toRqFormValues,
+} from "./rq-v2.server";
+import type { PaperSimulationMeta } from "#app/utils/research-questions-v2";
 import { requireAuth } from "#app/services/authentication.server";
 import NoSubscriptionEmptyState from "#app/components/NoSubscriptionEmptyState";
 
@@ -34,6 +43,21 @@ export const handle: BreadcrumbHandle = {
   icon: <Icon name="plus-outline" style={{ width: "20px", height: "30px" }} />,
   breadcrumb: "Form",
 };
+
+export function shouldRevalidate({
+  formData,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  const intent = formData?.get("intent");
+  if (
+    intent === "gen_ai_main_research_question" ||
+    intent === "gen_ai_sub_research_question" ||
+    intent === "gen_ai_sub_research_objective"
+  ) {
+    return false;
+  }
+  return defaultShouldRevalidate;
+}
 
 export const ResearchQuestionAndObjectiveSchema = z.object({
   paperId: z.string().min(1),
@@ -50,15 +74,19 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const paperId = params.paperId;
   invariant(paperId, "Paper ID is required");
   try {
-    const res = await getPaperResearchQuestionsAndObjectives({
-      paperId,
-      request,
-    });
+    const paperRes = await getPaper({ paperId, request });
+    const meta = paperRes.data?.paper?.meta ?? null;
+
+    const ensured = await ensureRqSubSlots({ paperId, request, meta });
+
     return json({
       hasActiveSubscription:
         user.subscription_status === "active" ||
         user.subscription_status === "trialing",
-      researchQuestionAndObjective: res.data?.research_question_and_objective,
+      researchQuestionAndObjective: ensured.researchQuestionAndObjective,
+      paperMeta: meta,
+      rqCount: ensured.rqCount,
+      rqValues: toRqFormValues(ensured.researchQuestionAndObjective ?? null),
     });
   } catch (error) {
     return redirectWithToast(
@@ -74,7 +102,59 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
-  const intent = formData.get("intent"); // generateAiResponse || updateMainResearchQuestion || addSubResearchQuestionAndObjective || updateSubResearchQuestionAndObjective
+  const intent = formData.get("intent");
+
+  if (intent === "save_all_v2") {
+    const paperId = formData.get("paperId");
+    const mainResearchQuestion = String(
+      formData.get("main_research_question") ?? ""
+    );
+    invariant(paperId, "Paper ID is required");
+
+    const subs: Array<{ id: number; question: string }> = [];
+    for (const [key, value] of formData.entries()) {
+      const match = key.match(/^sub_question_(\d+)$/);
+      if (match) {
+        subs.push({
+          id: Number(match[1]),
+          question: String(value),
+        });
+      }
+    }
+
+    if (mainResearchQuestion.trim().length < 10) {
+      return json({
+        lastResult: null,
+        serverError: "RQ1 must be at least 10 characters.",
+        success: false,
+        toast: null,
+      });
+    }
+
+    try {
+      await saveAllResearchQuestionsV2({
+        request,
+        paperId: paperId as string,
+        mainResearchQuestion,
+        subs,
+      });
+      return redirectWithToast(
+        `/paper/${paperId}/research-questions-and-objectives`,
+        {
+          type: "success",
+          title: "Saved",
+          description: "Research questions saved successfully",
+        }
+      );
+    } catch (error) {
+      return json({
+        lastResult: null,
+        serverError: "Error saving research questions",
+        success: false,
+        toast: null,
+      });
+    }
+  }
 
   if (intent === "addSubResearchQuestionAndObjective") {
     const paperId = formData.get("paperId");
@@ -372,6 +452,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export const PaperNewIntroductionPage = () => {
   const actionData = useActionData<typeof action>();
   const loaderData = useLoaderData<typeof loader>();
+  const isV2 = usePaperV2Flow();
 
   const params = useParams();
   useEffect(() => {
@@ -385,6 +466,18 @@ export const PaperNewIntroductionPage = () => {
 
   if (!loaderData.hasActiveSubscription) {
     return <NoSubscriptionEmptyState />;
+  }
+
+  if (isV2) {
+    return (
+      <ResearchQuestionsV2Screen
+        paperId={params.paperId!}
+        formUrl={`/paper/${params.paperId}/research-questions-and-objectives/form`}
+        actionData={actionData}
+        meta={loaderData.paperMeta as PaperSimulationMeta | null}
+        initialValues={loaderData.rqValues}
+      />
+    );
   }
 
   return (

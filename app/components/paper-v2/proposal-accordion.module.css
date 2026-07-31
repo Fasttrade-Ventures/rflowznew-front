@@ -1,0 +1,45 @@
+.wrap {
+  background: var(--rz-card);
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-md);
+  overflow: hidden;
+}
+
+.section {
+  border-bottom: 1px solid var(--rz-border);
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.header {
+  align-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.body {
+  padding: 0 12px 12px;
+}
+
+.hint {
+  color: var(--rz-muted-foreground);
+  font-size: 9px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.readonly {
+  white-space: pre-wrap;
+}
+
+.codeInput {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+}

@@ -1,0 +1,102 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.toolbarLabel {
+  color: var(--rz-muted-foreground);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.zoomBtn {
+  align-items: center;
+  background: var(--rz-background);
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-sm);
+  color: var(--rz-foreground);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  height: 24px;
+  justify-content: center;
+  line-height: 1;
+  min-width: 24px;
+  padding: 0;
+}
+
+.zoomBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.zoomValue {
+  color: var(--rz-foreground);
+  font-size: 10px;
+  font-weight: 600;
+  min-width: 40px;
+  text-align: center;
+}
+
+.resetBtn {
+  background: var(--rz-muted);
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-sm);
+  color: var(--rz-foreground);
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 4px 8px;
+}
+
+.resetBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.error {
+  color: var(--rz-destructive);
+  font-size: 11px;
+}
+
+.loading {
+  color: var(--rz-muted-foreground);
+  font-size: 10px;
+  font-style: italic;
+}
+
+.viewport {
+  background: #fff;
+  border: 1px solid var(--rz-border);
+  border-radius: 6px;
+  max-height: 280px;
+  min-height: 160px;
+  overflow: auto;
+  width: 100%;
+}
+
+.scaledLayer {
+  display: inline-block;
+  min-width: 100%;
+  padding: 8px;
+}
+
+.canvas {
+  width: 100%;
+}
+
+.canvas :global(svg) {
+  display: block;
+  height: auto;
+  max-width: 100%;
+}

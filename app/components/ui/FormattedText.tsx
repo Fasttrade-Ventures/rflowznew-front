@@ -8,11 +8,12 @@ import {
 import { Icon } from "../icon";
 
 interface FormattedTextProps {
-  content: string;
+  content?: string | null;
 }
 
 export function FormattedText({ content }: FormattedTextProps) {
-  const formattedContent = content
+  const safeContent = content ?? "";
+  const formattedContent = safeContent
     .replace(/\n\n/g, "</p><p>")
     .replace(/\n/g, "<br>");
 

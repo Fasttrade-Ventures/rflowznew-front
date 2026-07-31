@@ -1,10 +1,15 @@
+import { isPaperV2FlowEnabled } from "#app/utils/feature-flags.server";
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { useParams } from "@remix-run/react";
 
 export const loader = async ({ params }: LoaderFunctionArgs) => {
   const paperId = params.paperId;
-  // const paper = await getPaperById(paperId);
-  // return json(paper);
+
+  // V2 simulation flow lands on Library; legacy DSR still opens Background study.
+  if (isPaperV2FlowEnabled()) {
+    return redirect(`/paper/${paperId}/library`);
+  }
+
   return redirect(`/paper/${paperId}/introduction`);
 };
 

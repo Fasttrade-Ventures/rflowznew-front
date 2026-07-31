@@ -24,6 +24,7 @@ import {
 
 import { Cite } from "./MendeleyCiteForm";
 import { OpenAlexSuggestionForm } from "./OpenAlexSuggestionForm";
+import { LibraryCitePicker } from "./LibraryCitePicker";
 import { useDisclosure } from "@mantine/hooks";
 import { Icon } from "#app/components/icon";
 import classes from "./AddCiteModal.module.css";
@@ -93,9 +94,12 @@ export const AddCiteModal = ({
       <Box p="sm" pt={0} pb="sm">
         <SegmentedControl
           value={activeTab}
-          onChange={(value) => setActiveTab(value as "search" | "manual")}
+          onChange={(value) =>
+            setActiveTab(value as "search" | "manual" | "library")
+          }
           data={[
             { label: "Search", value: "search" },
+            { label: "From Library", value: "library" },
             { label: "Manual", value: "manual" },
           ]}
           fullWidth
@@ -118,6 +122,18 @@ export const AddCiteModal = ({
                 <Center style={{ height: "100%" }}>
                   <Text ta="center">
                     Search is unavailable without a paper context.
+                  </Text>
+                </Center>
+              </Box>
+            ))}
+          {activeTab === "library" &&
+            (paperId ? (
+              <LibraryCitePicker paperId={paperId} />
+            ) : (
+              <Box className={classes.mendeleyNotLinked}>
+                <Center style={{ height: "100%" }}>
+                  <Text ta="center">
+                    Library is unavailable without a paper context.
                   </Text>
                 </Center>
               </Box>

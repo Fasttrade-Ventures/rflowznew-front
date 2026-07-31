@@ -6,6 +6,11 @@ import {
   getPaperCitationsBySection,
   getPaperMethodology,
 } from "#app/services/paper.server";
+import {
+  fromMethodologyRecord,
+  toMethodologyPayload,
+  type MethodologyV2FormValues,
+} from "#app/utils/methodology-v2";
 import { redirectWithToast } from "#app/utils/toast.server";
 import { AuthorizationError } from "remix-auth";
 import { z } from "zod";
@@ -18,11 +23,11 @@ import {
   LoaderFunctionArgs,
   SerializeFrom,
 } from "@remix-run/node";
-import { useActionData, useLoaderData, useParams } from "@remix-run/react";
+import { useActionData, useFetcher, useLoaderData, useParams } from "@remix-run/react";
 import { generateAiMethodology } from "#app/services/ai.server";
 import { MethodologyForm } from "#app/components/ui/paper/MethodologyForm";
 import { useDisclosure } from "@mantine/hooks";
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import { notifications } from "@mantine/notifications";
 import {
   getCurrentUser,
@@ -32,12 +37,30 @@ import {
   AddCitationDrawer,
   addCitationSchema,
 } from "#app/components/ui/citation/AddCitationDrawer";
+import { MethodologyV2Screen } from "#app/components/paper-v2/MethodologyV2Screen";
 import NoSubscriptionEmptyState from "#app/components/NoSubscriptionEmptyState";
+import { getCoherence } from "#app/services/coherence.server";
+import { getPhilosophy } from "#app/services/philosophy.server";
+import { isPaperV2FlowEnabled } from "#app/utils/feature-flags.server";
 
 export const handle: BreadcrumbHandle = {
   icon: <Icon name="plus-outline" style={{ width: "20px", height: "30px" }} />,
   breadcrumb: "Form",
 };
+
+export function shouldRevalidate({
+  formData,
+  defaultShouldRevalidate,
+}: {
+  formData?: FormData;
+  defaultShouldRevalidate: boolean;
+}) {
+  const intent = formData?.get("intent");
+  if (intent === "generateAiResponse") {
+    return false;
+  }
+  return defaultShouldRevalidate;
+}
 
 export const PaperMethodologySchema = z.object({
   paperId: z.string(),
@@ -52,7 +75,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const paperId = params.paperId;
   invariant(paperId, "Paper ID is required");
   try {
-    const [userRes, methodologyRes, citationsRes] = await Promise.all([
+    const [userRes, methodologyRes, citationsRes, coherenceRes, philosophyRes] =
+      await Promise.all([
       getCurrentUser({ request }),
       getPaperMethodology({ paperId, request }),
       getPaperCitationsBySection({
@@ -60,12 +84,21 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
         request,
         section: "methodology",
       }),
+      isPaperV2FlowEnabled()
+        ? getCoherence({ request, paperId })
+        : Promise.resolve({ data: { warnings: [] } }),
+      isPaperV2FlowEnabled()
+        ? getPhilosophy({ request, paperId })
+        : Promise.resolve({ data: { philosophy: null } }),
     ]);
 
     return json({
       user: userRes.data,
       methodology: methodologyRes.data?.methodology,
       citations: citationsRes.data?.citations,
+      coherence: coherenceRes.data ?? null,
+      philosophy: philosophyRes.data?.philosophy,
+      paperV2Flow: isPaperV2FlowEnabled(),
       hasActiveSubscription:
         user.subscription_status === "active" ||
         user.subscription_status === "trialing",
@@ -82,6 +115,28 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const intent = formData.get("intent");
+
+  if (intent === "save_all_v2") {
+    const paperId = formData.get("paperId");
+    invariant(paperId, "Paper ID is required");
+    const payload = JSON.parse(formData.get("data") as string) as MethodologyV2FormValues;
+    try {
+      const res = await createOrUpdateMethodology({
+        paperId: paperId as string,
+        request,
+        methodology: toMethodologyPayload(payload),
+      });
+      return json({
+        saveOk: true,
+        methodology: res.data?.methodology,
+      });
+    } catch (error) {
+      return json({
+        saveOk: false,
+        serverError: "Error saving methodology",
+      });
+    }
+  }
 
   const submission = parseWithZod(formData, {
     schema: PaperMethodologySchema,
@@ -269,19 +324,41 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export const PaperNewMethodologyPage = () => {
   const actionData = useActionData<typeof action>();
   const loaderData = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
+  const params = useParams();
 
-  const user = loaderData.user;
+  const initialValues = useMemo(
+    () => fromMethodologyRecord(loaderData.methodology),
+    [loaderData.methodology]
+  );
 
   const [
     citationDrawerOpened,
     { open: openCitationDrawer, close: closeCitationDrawer },
   ] = useDisclosure(false);
 
-  if (!loaderData.hasActiveSubscription) {
-    return <NoSubscriptionEmptyState />;
-  }
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data || !("saveOk" in fetcher.data)) {
+      return;
+    }
+    if (fetcher.data.saveOk) {
+      notifications.show({
+        title: "Saved",
+        message: "Methodology saved successfully",
+        color: "green",
+      });
+      return;
+    }
+    if (fetcher.data.serverError) {
+      notifications.show({
+        title: "Error",
+        message: fetcher.data.serverError,
+        color: "red",
+      });
+    }
+  }, [fetcher.data, fetcher.state]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (actionData?.success) {
       if (actionData.toast) {
         notifications.show({
@@ -291,11 +368,50 @@ export const PaperNewMethodologyPage = () => {
       }
       closeCitationDrawer();
     }
-  }, [actionData]);
+  }, [actionData, closeCitationDrawer]);
+
+  const isSaving =
+    fetcher.state !== "idle" &&
+    fetcher.formData?.get("intent") === "save_all_v2";
+
+  const saveError =
+    fetcher.data && "saveOk" in fetcher.data && !fetcher.data.saveOk
+      ? fetcher.data.serverError
+      : null;
+
+  if (!loaderData.hasActiveSubscription) {
+    return <NoSubscriptionEmptyState />;
+  }
+
+  if (loaderData.paperV2Flow) {
+    return (
+      <MethodologyV2Screen
+        paperId={params.paperId!}
+        philosophyParadigm={loaderData.philosophy?.paradigm}
+        initial={initialValues}
+        saving={isSaving}
+        saveError={saveError}
+        onAskProfZ={(ablyEvent) => {
+          const fd = new FormData();
+          fd.set("intent", "generateAiResponse");
+          fd.set("paperId", params.paperId!);
+          fd.set("field", "research_design");
+          fd.set("ablyEventName", ablyEvent);
+          fetcher.submit(fd, { method: "post" });
+        }}
+        onSave={(data) => {
+          const fd = new FormData();
+          fd.set("intent", "save_all_v2");
+          fd.set("paperId", params.paperId!);
+          fd.set("data", JSON.stringify(data));
+          fetcher.submit(fd, { method: "post" });
+        }}
+      />
+    );
+  }
 
   const citations = loaderData.citations;
 
-  const params = useParams();
   return (
     <>
       <AddCitationDrawer

@@ -1,46 +1,25 @@
-import { Icon } from "#app/components/icon";
-
 import { createNewPaper } from "#app/services/paper.server";
 import { redirectWithToast } from "#app/utils/toast.server";
 import { AuthorizationError } from "remix-auth";
-
 import { parseWithZod } from "@conform-to/zod";
-
 import {
   ActionFunctionArgs,
   json,
   LoaderFunctionArgs,
+  redirect,
   SerializeFrom,
 } from "@remix-run/node";
-
-import { BreadcrumbHandle } from "../_index";
 import PaperForm, { paperSchema } from "#app/components/ui/paper/PaperForm";
 import { aiGenerationSchema } from "#app/components/ui/modal/AIGenerationModal";
 import { generateAiTitle } from "#app/services/ai.server";
 import { useActionData } from "@remix-run/react";
-import { requireAuth } from "#app/services/authentication.server";
 import { APIValidationError } from "#app/utils/error/api-validation-error";
-
-export const handle: BreadcrumbHandle = {
-  icon: (
-    <Icon
-      name="square-rounded-plus-outline"
-      style={{ width: "20px", height: "20px" }}
-    />
-  ),
-  breadcrumb: "New",
-};
+import { isPaperV2FlowEnabled } from "#app/utils/feature-flags.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const user = await requireAuth({ request });
-  if (user.subscription_status === "inactive") {
-    return redirectWithToast("/subscription", {
-      type: "error",
-      title: "Subscription inactive",
-      description: "Your subscription is inactive. Please choose a plan to continue.",
-    });
+  if (isPaperV2FlowEnabled()) {
+    throw redirect("/paper/new/purpose");
   }
-
   return null;
 };
 
@@ -106,14 +85,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       description: "Paper has been created successfully",
     });
   } catch (exception: unknown) {
-    if (exception instanceof Response && exception.status === 302) {
-      throw exception;
-    }
-
     if (exception instanceof Response) throw exception;
 
     if (exception instanceof AuthorizationError) {
-      const error = exception as any;
+      const error = exception as { cause?: { data?: { message?: string } } };
       return json({
         serverError: error?.cause?.data?.message,
         lastResult: submission.reply(),
@@ -130,30 +105,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
     }
 
-    if (exception && typeof exception === "object" && "data" in exception) {
-      const errorData = (exception as any).data;
-      if (errorData && typeof errorData === "object" && "error" in errorData) {
-        const errors = errorData.error;
-        if (errors && typeof errors === "object") {
-          const errorMessages = Object.values(errors).flat();
-          return json({
-            serverError: null,
-            lastResult: submission.reply({
-              formErrors: [errorMessages.join(", ")],
-            }),
-          });
-        }
-      }
-    }
-
     throw exception;
   }
 };
 
-export const NewPaperPage = () => {
+export default function NewPaperIndex() {
   const actionData = useActionData<typeof action>();
   return <PaperForm actionData={actionData} />;
-};
+}
 
 export type NewPaperData = SerializeFrom<typeof action>;
-export default NewPaperPage;

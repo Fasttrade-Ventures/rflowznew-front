@@ -4,6 +4,7 @@ import { FormattedText } from "#app/components/ui/FormattedText";
 import {
   GeneratedDocument,
   generateDocuments,
+  getPaper,
   getPaperAbstractSec,
   getPaperGeneratedDocuments,
 } from "#app/services/paper.server";
@@ -17,9 +18,17 @@ import {
 import { FormattingPanel } from "#app/components/formatting-panel";
 import {
   getIntegrity,
+  getLibraryEntries,
   runIntegrityCheck,
   type IntegritySection,
 } from "#app/services/library.server";
+import { getFramework } from "#app/services/framework.server";
+import { getProposalAssembly, saveProposalSection } from "#app/services/proposal-assembly.server";
+import {
+  generateAiLiteratureReview,
+  generateAiResearchSignificant,
+} from "#app/services/ai.server";
+import { isPaperV2FlowEnabled } from "#app/utils/feature-flags.server";
 import { getHints } from "#app/utils/client-hints";
 import { invariant } from "@epic-web/invariant";
 import {
@@ -40,6 +49,7 @@ import {
   Form,
   Link,
   useActionData,
+  useFetcher,
   useLoaderData,
   useRevalidator,
 } from "@remix-run/react";
@@ -50,9 +60,28 @@ import { useEffect, useState } from "react";
 import classes from "./_index.module.css";
 import { useDelayedIsPending } from "#app/utils/misc";
 import { getCurrentUserSubscription } from "#app/services/subscription.server";
+import { ReviewProposalV2 } from "#app/components/paper-v2/ReviewProposalV2";
+import { getProjectMetadataIssues, projectMetadataWarningMessage } from "#app/utils/project-metadata-export";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+
+export function shouldRevalidate({
+  formData,
+  defaultShouldRevalidate,
+}: {
+  formData?: FormData;
+  defaultShouldRevalidate: boolean;
+}) {
+  const intent = formData?.get("intent");
+  if (
+    intent === "save-proposal-section" ||
+    intent === "regenerate-proposal-section"
+  ) {
+    return false;
+  }
+  return defaultShouldRevalidate;
+}
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const user = await requireAuth({ request });
@@ -61,16 +90,30 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
   const [
     res,
+    paperRes,
     generatedDocumentsResponse,
     subscriptionRes,
     formattingRes,
     integrityRes,
+    proposalRes,
+    libraryRes,
+    frameworkRes,
   ] = await Promise.all([
     getPaperAbstractSec({ paperId, request }),
+    getPaper({ paperId, request }),
     getPaperGeneratedDocuments({ paperId, request }),
     getCurrentUserSubscription({ request }),
     getFormattingPreferences({ request }),
     getIntegrity({ paperId, request }),
+    isPaperV2FlowEnabled()
+      ? getProposalAssembly({ paperId, request })
+      : Promise.resolve({ data: null }),
+    isPaperV2FlowEnabled()
+      ? getLibraryEntries({ paperId, request })
+      : Promise.resolve({ data: null }),
+    isPaperV2FlowEnabled()
+      ? getFramework({ paperId, request })
+      : Promise.resolve({ data: null }),
   ]);
 
   const integrity = integrityRes.data ?? {
@@ -89,24 +132,20 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     isCustomized: formattingRes.data?.is_customized ?? false,
   };
 
-  if (res.data?.message === "No abstract found for this paper") {
-    return json({
-      paperId,
-      abstract: null,
-      timeZone: getHints(request).timeZone,
-      generatedDocuments,
-      subscription: subscriptionRes.data?.subscription,
-      exportPptx,
-      hasActiveSubscription:
-        user.subscription_status === "active" ||
-        user.subscription_status === "trialing",
-      formatting,
-      integrity,
-    });
-  }
-  return json({
+  const paperV2Flow = isPaperV2FlowEnabled();
+  const proposalSections = proposalRes.data?.sections ?? null;
+  const paper = paperRes.data?.paper;
+  const paperTitle = paper?.title ?? "Research proposal";
+  const paperAuthors = paper?.authors ?? [];
+  const paperAffiliations = paper?.affiliations ?? [];
+  const libraryEntries = libraryRes?.data?.entries ?? [];
+  const framework = frameworkRes?.data?.framework ?? null;
+
+  const basePayload = {
     paperId,
-    abstract: res.data,
+    paperTitle,
+    paperAuthors,
+    paperAffiliations,
     timeZone: getHints(request).timeZone,
     generatedDocuments,
     subscription: subscriptionRes.data?.subscription,
@@ -116,6 +155,21 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       user.subscription_status === "trialing",
     formatting,
     integrity,
+    proposalSections,
+    libraryEntries,
+    framework,
+    paperV2Flow,
+  };
+
+  if (res.data?.message === "No abstract found for this paper") {
+    return json({
+      ...basePayload,
+      abstract: null,
+    });
+  }
+  return json({
+    ...basePayload,
+    abstract: res.data,
   });
 };
 
@@ -123,6 +177,45 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const intent = formData.get("intent");
   const paperId = formData.get("paperId") as string;
+
+  if (intent === "save-proposal-section") {
+    const sectionKey = formData.get("section_key") as string;
+    const content = formData.get("content") as string;
+    await saveProposalSection({ request, paperId, sectionKey, content });
+    return json({ message: "Section saved" });
+  }
+
+  if (intent === "regenerate-proposal-section") {
+    const section = formData.get("section") as string;
+    const ablyEventName = formData.get("ably_event_name") as string;
+
+    if (section === "lit_review") {
+      await generateAiLiteratureReview({ request, paperId, ablyEventName });
+      return json({ message: "Regenerating literature review…" });
+    }
+
+    if (section === "benefits-practical") {
+      await generateAiResearchSignificant({
+        request,
+        paperId,
+        field: "practical_contribution",
+        ablyEventName,
+      });
+      return json({ message: "Regenerating practical contribution…" });
+    }
+
+    if (section === "benefits-research") {
+      await generateAiResearchSignificant({
+        request,
+        paperId,
+        field: "research_contribution",
+        ablyEventName,
+      });
+      return json({ message: "Regenerating research contribution…" });
+    }
+
+    return json({ message: "Unknown section" }, { status: 400 });
+  }
 
   if (intent === "generate-documents") {
     await generateDocuments({ paperId, request });
@@ -157,6 +250,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export const ReviewProposalPage = () => {
   const {
     paperId,
+    paperTitle,
+    paperAuthors,
+    paperAffiliations,
     abstract,
     timeZone,
     generatedDocuments,
@@ -165,7 +261,13 @@ export const ReviewProposalPage = () => {
     hasActiveSubscription,
     formatting,
     integrity,
+    proposalSections,
+    libraryEntries,
+    framework,
+    paperV2Flow,
   } = useLoaderData<typeof loader>();
+  const sectionFetcher = useFetcher();
+  const regenerateFetcher = useFetcher();
   const revalidator = useRevalidator();
 
   const isPending = useDelayedIsPending({
@@ -217,8 +319,16 @@ export const ReviewProposalPage = () => {
   // Screen 9's reference-integrity gate: export is blocked until the check
   // passes, with a documented override.
   const [exportOverride, setExportOverride] = useState(false);
+  const [metadataOverride, setMetadataOverride] = useState(false);
   const integrityBlocked = integrity.overall !== "pass";
-  const exportAllowed = !integrityBlocked || exportOverride;
+  const metadataIssues = getProjectMetadataIssues(
+    paperAuthors,
+    paperAffiliations
+  );
+  const metadataBlocked = metadataIssues.length > 0;
+  const exportAllowed =
+    (!integrityBlocked || exportOverride) &&
+    (!metadataBlocked || metadataOverride);
 
   // Poll while a check is running. "pending" covers in-flight verifications;
   // the queued-message case covers the window right after run-integrity when
@@ -235,7 +345,7 @@ export const ReviewProposalPage = () => {
     };
   }, [integrity.overall, justQueued, revalidator]);
 
-  if (!abstract) {
+  if (!abstract && !(paperV2Flow && proposalSections)) {
     return (
       <Center>
         <Stack align="center">
@@ -256,6 +366,63 @@ export const ReviewProposalPage = () => {
       </Center>
     );
   }
+
+  if (paperV2Flow && proposalSections) {
+    return (
+      <ReviewProposalV2
+        paperId={paperId}
+        paperTitle={paperTitle}
+        paperAuthors={paperAuthors}
+        paperAffiliations={paperAffiliations}
+        abstractBody={abstract?.abstract_sec.body ?? undefined}
+        sections={proposalSections}
+        libraryEntries={libraryEntries}
+        framework={framework}
+        integrity={integrity}
+        generatedDocuments={generatedDocuments}
+        timeZone={timeZone}
+        exportAllowed={exportAllowed}
+        exportOverride={exportOverride}
+        onExportOverride={setExportOverride}
+        metadataIssues={metadataIssues}
+        metadataOverride={metadataOverride}
+        onMetadataOverride={setMetadataOverride}
+        exportPptx={exportPptx}
+        hasActiveSubscription={hasActiveSubscription}
+        exportLimitRemaining={subscription?.export_limit_remaining}
+        unlimitedExport={subscription?.unlimited_export}
+        watermarkExports={subscription?.watermark_exports}
+        isPending={isPending}
+        actionMessage={actionData?.message ?? null}
+        savingKey={
+          sectionFetcher.state !== "idle"
+            ? (sectionFetcher.formData?.get("section_key") as string)
+            : null
+        }
+        onSaveSection={(key, content) => {
+          const fd = new FormData();
+          fd.set("intent", "save-proposal-section");
+          fd.set("paperId", paperId);
+          fd.set("section_key", key);
+          fd.set("content", content);
+          sectionFetcher.submit(fd, { method: "post" });
+        }}
+        onRegenerateSection={(section, ablyEventName) => {
+          const fd = new FormData();
+          fd.set("intent", "regenerate-proposal-section");
+          fd.set("paperId", paperId);
+          fd.set("section", section);
+          fd.set("ably_event_name", ablyEventName);
+          regenerateFetcher.submit(fd, { method: "post" });
+        }}
+      />
+    );
+  }
+
+  if (!abstract) {
+    return null;
+  }
+
   return (
     <Stack>
       <Stack pr="md" pl="md">
@@ -298,6 +465,29 @@ export const ReviewProposalPage = () => {
           </Box>
         )}
         <Box pl="md" pr="md">
+          {metadataBlocked ? (
+            <Alert color="yellow" title="Title page metadata incomplete" mb="md">
+              <Stack gap="xs">
+                <Text size="sm">
+                  {projectMetadataWarningMessage(metadataIssues)}
+                </Text>
+                <Button
+                  component={Link}
+                  to={`/paper/${paperId}/settings/edit`}
+                  size="compact-xs"
+                  variant="light"
+                >
+                  Open Project settings
+                </Button>
+                <Checkbox
+                  size="xs"
+                  label="Export anyway — title page will be missing author/affiliation details"
+                  checked={metadataOverride}
+                  onChange={(e) => setMetadataOverride(e.currentTarget.checked)}
+                />
+              </Stack>
+            </Alert>
+          ) : null}
           <Alert
             color={
               integrity.overall === "pass"

@@ -1,7 +1,9 @@
 import { Icon } from "#app/components/icon";
+import { ProjectSettingsV2Screen } from "#app/components/paper-v2/ProjectSettingsV2Screen";
 import PaperForm, { paperSchema } from "#app/components/ui/paper/PaperForm";
 import { BreadcrumbHandle } from "#app/routes/_index";
 import { getPaper, updatePaper } from "#app/services/paper.server";
+import { usePaperV2Flow } from "#app/utils/use-paper-v2-flow";
 import { redirectWithToast } from "#app/utils/toast.server";
 import { AuthorizationError } from "remix-auth";
 import { z } from "zod";
@@ -56,6 +58,7 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
 
   return json({
     paper,
+    paperMeta: returnedPaper?.meta ?? null,
     hasActiveSubscription:
       user.subscription_status === "active" ||
       user.subscription_status === "trialing",
@@ -101,12 +104,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export const EditSettingsPage = () => {
-  const { paper, hasActiveSubscription } = useLoaderData<typeof loader>();
+  const { paper, paperMeta, hasActiveSubscription } = useLoaderData<typeof loader>();
   const { paperId } = useParams();
   const actionData = useActionData<typeof action>();
+  const isV2 = usePaperV2Flow();
 
   if (!hasActiveSubscription) {
     return <NoSubscriptionEmptyState />;
+  }
+
+  if (isV2) {
+    return (
+      <ProjectSettingsV2Screen
+        initialData={paper}
+        paperId={paperId!}
+        paperTitle={paper.title}
+        paperMeta={paperMeta}
+        actionData={actionData}
+      />
+    );
   }
 
   return (

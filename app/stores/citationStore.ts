@@ -3,8 +3,8 @@ import type { OpenAlexSuggestion, OpenAlexWork } from "#app/services/openalex.se
 import type { Cite } from "#app/components/ui/citation/MendeleyCiteForm";
 
 type CitationStore = {
-  activeTab: "search" | "manual";
-  setActiveTab: (tab: "search" | "manual") => void;
+  activeTab: "search" | "manual" | "library";
+  setActiveTab: (tab: "search" | "manual" | "library") => void;
   citeFormState: {
     selectedCites: Cite[];
   };

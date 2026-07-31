@@ -1,21 +1,21 @@
 import { Icon } from "#app/components/icon";
 import CDivider from "#app/components/ui/CDivider";
+import { FormattingPanel } from "#app/components/formatting-panel";
 import {
   updateUserScale,
   updateUserSubscriptionStatus,
   updateUserTheme,
 } from "#app/services/auth.server";
 import {
+  changePassword,
   getCurrentUser,
-  linkMendeley,
   requireAuth,
-  unlinkMendeley,
   updateUser,
 } from "#app/services/authentication.server";
 import {
   createStripePortalSession,
   getCurrentUserSubscription,
-  UserSubscription,
+  type UserSubscription,
 } from "#app/services/subscription.server";
 import {
   FormattingPreferences,
@@ -23,7 +23,6 @@ import {
   resetFormattingPreferences,
   saveFormattingPreferences,
 } from "#app/services/formatting.server";
-import { FormattingPanel } from "#app/components/formatting-panel";
 import { getHints } from "#app/utils/client-hints";
 import { APIValidationError } from "#app/utils/error/api-validation-error";
 import { canManageStripeBilling } from "#app/utils/plan";
@@ -32,8 +31,15 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
-
-import { Box, Button, Grid, Group, Slider, Stack, Text } from "@mantine/core";
+import {
+  Box,
+  Button,
+  Group,
+  Slider,
+  Stack,
+  Text,
+  TextInput,
+} from "@mantine/core";
 import {
   ActionFunctionArgs,
   json,
@@ -43,17 +49,20 @@ import {
 import {
   Form,
   Link,
+  useActionData,
   useFetcher,
   useLoaderData,
   useNavigation,
+  useRouteLoaderData,
 } from "@remix-run/react";
 
+import { ChangePasswordCard, changePasswordSchema } from "#app/components/v2/ChangePasswordCard";
+import { PageBreadcrumb, PageTitleBlock, V2Card } from "#app/components/v2/V2UIKit";
+import { loader as rootLoader } from "#app/root";
 import { BreadcrumbHandle } from "../_index";
-import classes from "./profile.module.css";
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
-dayjs.extend(relativeTime);
+import classes from "#app/components/v2/v2.module.css";
+import legacyClasses from "./profile.module.css";
+import { parseWithZod } from "@conform-to/zod";
 
 export const handle: BreadcrumbHandle = {
   icon: (
@@ -64,6 +73,10 @@ export const handle: BreadcrumbHandle = {
   ),
   breadcrumb: "Profile",
 };
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(relativeTime);
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const [user, userRes, subscriptionRes, formattingRes] = await Promise.all([
@@ -91,11 +104,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           description: "Your subscription status has been updated.",
           type: "success",
         },
-        {
-          headers: {
-            "Set-Cookie": newCookie,
-          },
-        }
+        { headers: { "Set-Cookie": newCookie } }
       );
     }
 
@@ -120,6 +129,58 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const actionType = formData.get("actionType");
   const intent = formData.get("intent");
 
+  if (intent === "change-password") {
+    const submission = parseWithZod(formData, { schema: changePasswordSchema });
+
+    if (submission.status !== "success") {
+      return json({
+        passwordResult: submission.reply(),
+        passwordServerError: null,
+      });
+    }
+
+    try {
+      await changePassword({
+        request,
+        ...submission.value,
+      });
+
+      return redirectWithToast("/profile", {
+        type: "success",
+        title: "Password updated",
+        description: "Your password has been changed successfully.",
+      });
+    } catch (error) {
+      if (error instanceof APIValidationError) {
+        const fieldErrors = error.data?.errors as
+          | Record<string, string[]>
+          | undefined;
+        const message =
+          fieldErrors?.current_password?.[0] ??
+          fieldErrors?.password?.[0] ??
+          error.data?.message ??
+          "Unable to update password.";
+
+        return json({
+          passwordResult: submission.reply({
+            fieldErrors: fieldErrors
+              ? Object.fromEntries(
+                  Object.entries(fieldErrors).map(([key, messages]) => [
+                    key,
+                    messages,
+                  ])
+                )
+              : undefined,
+            formErrors: fieldErrors ? [] : [message],
+          }),
+          passwordServerError: message,
+        });
+      }
+
+      throw error;
+    }
+  }
+
   if (intent === "save-formatting") {
     const preferences = JSON.parse(
       formData.get("preferences") as string
@@ -137,7 +198,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const color = formData.get("color") as string;
     const scale = formData.get("scale") as "xs" | "sm" | "md" | "lg" | "xl";
     const userId = formData.get("userId") as string;
-    const res = await updateUser({
+    await updateUser({
       user: {
         color_theme: color || undefined,
         scale: scale || undefined,
@@ -146,49 +207,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       request,
     });
 
-    // Update theme or scale in the session cookie
     const newCookie =
       actionType === "color-switch"
         ? await updateUserTheme(request, color)
         : await updateUserScale(request, scale);
 
     if (newCookie) {
-      return json(
-        { color, scale },
-        {
-          headers: {
-            "Set-Cookie": newCookie,
-          },
-        }
-      );
+      return json({ color, scale }, { headers: { "Set-Cookie": newCookie } });
     }
-
     return json({ color, scale });
-  }
-
-  if (actionType === "linkMendeley") {
-    const res = await linkMendeley({ request });
-    if (res.data?.redirect_url) {
-      return redirect(res.data.redirect_url);
-    }
-    return json({ error: "Failed to link account with Mendeley" });
-  }
-
-  if (actionType === "unlinkMendeley") {
-    await unlinkMendeley({ request });
-    return redirectWithToast("/profile", {
-      type: "success",
-      title: "Mendeley unlinked",
-      description: "You have successfully unlinked your Mendeley account.",
-    });
   }
 
   if (actionType === "manageSubscription") {
     try {
       const res = await createStripePortalSession({ request });
-      if (res.data?.url) {
-        return redirect(res.data.url);
-      }
+      if (res.data?.url) return redirect(res.data.url);
     } catch (error) {
       if (error instanceof APIValidationError) {
         return redirectWithToast("/profile", {
@@ -198,10 +231,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             "Billing can only be managed for subscriptions purchased through Stripe.",
         });
       }
-
       throw error;
     }
-
     return redirectWithToast("/profile", {
       type: "error",
       title: "Billing portal unavailable",
@@ -220,29 +251,222 @@ const marks = [
   { value: 100, label: "xl" },
 ];
 
-export const ProfilePage = () => {
+function ProfileV2() {
   const navigation = useNavigation();
-  const linkMendeleyLoading =
-    navigation.state !== "idle" &&
-    navigation.formData?.get("actionType") === "linkMendeley";
-  const unlinkMendeleyLoading =
-    navigation.state !== "idle" &&
-    navigation.formData?.get("actionType") === "unlinkMendeley";
+  const { user, subscription, formatting } = useLoaderData<typeof loader>();
+  const profileFetcher = useFetcher<typeof action>();
+  const actionData = useActionData<typeof action>();
   const manageSubscriptionLoading =
     navigation.state !== "idle" &&
     navigation.formData?.get("actionType") === "manageSubscription";
 
+  const handleThemeChange = (color: string) => {
+    const formData = new FormData();
+    formData.append("color", color);
+    formData.append("actionType", "color-switch");
+    formData.append("userId", user?.id?.toString() || "");
+    profileFetcher.submit(formData, { method: "post" });
+  };
+
+  const handleScaleChange = (value: number) => {
+    const formData = new FormData();
+    formData.append("scale", marks[value / 25].label);
+    formData.append("actionType", "scale-switch");
+    formData.append("userId", user?.id?.toString() || "");
+    profileFetcher.submit(formData, { method: "post" });
+  };
+
+  return (
+    <div className={classes.dashboard}>
+      <PageBreadcrumb>Home → Profile</PageBreadcrumb>
+      <PageTitleBlock
+        title="Profile"
+        subtitle="Account, theme, and document formatting"
+      />
+
+      <div className={classes.profileGrid}>
+        <Stack gap={10}>
+          {subscription && (
+            <V2Card>
+              <div className={classes.kvRow}>
+                <span className={classes.kvLabel}>Plan</span>
+                <span className={classes.kvValue}>{subscription.plan_name}</span>
+              </div>
+              <div className={classes.kvRow}>
+                <span className={classes.kvLabel}>Status</span>
+                <span className={classes.kvValue}>{subscription.status}</span>
+              </div>
+              <div className={classes.kvRow}>
+                <span className={classes.kvLabel}>Proposal limit</span>
+                <span className={classes.kvValue}>
+                  {subscription.proposal_limit_remaining ?? "—"}
+                </span>
+              </div>
+              <div className={classes.kvRow}>
+                <span className={classes.kvLabel}>AI generations</span>
+                <span className={classes.kvValue}>
+                  {subscription.ai_limit_remaining ?? "—"}
+                </span>
+              </div>
+              <div className={classes.kvRow}>
+                <span className={classes.kvLabel}>Export limit</span>
+                <span className={classes.kvValue}>
+                  {subscription.unlimited_export
+                    ? "Unlimited"
+                    : subscription.export_limit_remaining}
+                </span>
+              </div>
+            </V2Card>
+          )}
+
+          <div
+            className={classes.v2Card}
+            style={{
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "space-between",
+            }}
+          >
+            <div>
+              <div className={classes.v2CardTitle}>Subscription</div>
+              <div className={classes.v2CardSub}>
+                Manage billing and plan upgrades
+              </div>
+            </div>
+            {user?.subscription_status === null ? (
+              <Button component={Link} to="/subscription" size="xs">
+                Subscribe
+              </Button>
+            ) : subscription?.plan_key === "free" ? (
+              <Button component={Link} to="/subscription" size="xs">
+                Upgrade plan
+              </Button>
+            ) : canManageStripeBilling(subscription) ? (
+              <Form method="post">
+                <input type="hidden" name="actionType" value="manageSubscription" />
+                <Button size="xs" type="submit" loading={manageSubscriptionLoading}>
+                  Manage billing
+                </Button>
+              </Form>
+            ) : (
+              <Button component={Link} to="/subscription" size="xs">
+                View plans
+              </Button>
+            )}
+          </div>
+
+          {formatting.preferences && (
+            <V2Card title="Document formatting" subtitle="Margins, typography, citations">
+              <FormattingPanel
+                preferences={formatting.preferences}
+                isCustomized={formatting.isCustomized}
+              />
+            </V2Card>
+          )}
+        </Stack>
+
+        <Stack gap={10}>
+          <V2Card title="Profile" subtitle="Your account information">
+            <Group gap={10} align="flex-start" wrap="nowrap">
+              <Box
+                style={{
+                  alignItems: "center",
+                  background: "var(--rz-primary)",
+                  borderRadius: 999,
+                  color: "#fff",
+                  display: "flex",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  height: 40,
+                  justifyContent: "center",
+                  width: 40,
+                }}
+              >
+                {user?.name?.charAt(0) ?? "?"}
+              </Box>
+              <Stack gap={2} style={{ flex: 1 }}>
+                <Text size="sm" fw={600}>
+                  {user?.name}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  {user?.email}
+                </Text>
+              </Stack>
+            </Group>
+            <TextInput label="Display name" value={user?.name ?? ""} size="xs" readOnly />
+            <TextInput label="Email" value={user?.email ?? ""} size="xs" readOnly />
+          </V2Card>
+
+          <ChangePasswordCard actionData={actionData ?? undefined} />
+
+          <V2Card title="Appearance" subtitle="Theme color and font size">
+            <Group justify="space-between">
+              <Text size="sm" fw={600}>
+                Theme
+              </Text>
+              <Button.Group>
+                {(["pink", "teal", "blue", "orange"] as const).map((color) => (
+                  <Button
+                    key={color}
+                    variant="default"
+                    className={legacyClasses.themeButton}
+                    mod={user?.color_theme === color ? "selected" : undefined}
+                    onClick={() => handleThemeChange(color)}
+                  >
+                    <div
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        backgroundColor: `var(--mantine-color-${color}-5)`,
+                      }}
+                    />
+                  </Button>
+                ))}
+              </Button.Group>
+            </Group>
+            <CDivider darkColor="var(--rz-border)" />
+            <Group justify="space-between" align="center" wrap="nowrap">
+              <Text size="sm" fw={600}>
+                Font size
+              </Text>
+              <Box style={{ flex: 1, maxWidth: 180 }}>
+                <Slider
+                  defaultValue={
+                    marks.findIndex((mark) => mark.label === user?.scale) * 25
+                  }
+                  label={(val) => marks.find((mark) => mark.value === val)!.label}
+                  step={25}
+                  marks={marks}
+                  styles={{ markLabel: { display: "none" } }}
+                  onChange={handleScaleChange}
+                />
+              </Box>
+            </Group>
+          </V2Card>
+        </Stack>
+      </div>
+    </div>
+  );
+}
+
+export const ProfilePage = () => {
+  const rootData = useRouteLoaderData<typeof rootLoader>("root");
+  if (rootData?.paperV2Flow) {
+    return <ProfileV2 />;
+  }
+
+  const navigation = useNavigation();
   const { user, subscription, timeZone, formatting } =
     useLoaderData<typeof loader>();
-
   const profileFetcher = useFetcher<typeof action>();
+  const actionData = useActionData<typeof action>();
 
   const handleThemeChange = (color: string, userId?: number) => {
     const formData = new FormData();
     formData.append("color", color);
     formData.append("actionType", "color-switch");
     formData.append("userId", userId?.toString() || "");
-
     profileFetcher.submit(formData, { method: "post" });
   };
 
@@ -251,7 +475,6 @@ export const ProfilePage = () => {
     formData.append("scale", scale);
     formData.append("actionType", "scale-switch");
     formData.append("userId", userId?.toString() || "");
-
     profileFetcher.submit(formData, { method: "post" });
   };
 
@@ -260,7 +483,7 @@ export const ProfilePage = () => {
       {subscription ? (
         <SubscriptionInfo subscription={subscription} timeZone={timeZone} />
       ) : null}
-      <div className={classes.container}>
+      <div className={legacyClasses.container}>
         <Group justify="space-between" gap="sm">
           <Stack gap="xs">
             <Text size="lg" fw={700}>
@@ -270,182 +493,62 @@ export const ProfilePage = () => {
           </Stack>
           <Box>
             {user?.subscription_status === null ? (
-              <Group gap="xs">
-                <Text size="xs" c="dimmed">
-                  You didn't subscribed to any plan yet
-                </Text>
-                <Button component={Link} to="/subscription">
-                  Subscribe now
-                </Button>
-              </Group>
+              <Button component={Link} to="/subscription">
+                Subscribe now
+              </Button>
             ) : subscription?.plan_key === "free" ? (
               <Button component={Link} to="/subscription">
                 Upgrade plan
               </Button>
-            ) : user?.subscription_status === "inactive" ? (
+            ) : (
               <Button component={Link} to="/subscription">
-                Resubscribe
+                Manage
               </Button>
-            ) : canManageStripeBilling(subscription) ? (
-              <Form method="post">
-                <input
-                  type="hidden"
-                  name="actionType"
-                  value="manageSubscription"
-                />
-                <Group wrap="nowrap">
-                  <Button
-                    loading={manageSubscriptionLoading}
-                    type="submit"
-                    fullWidth
-                  >
-                    Manage subscription
-                  </Button>
-                </Group>
-              </Form>
-            ) : (
-              <Text size="xs" c="dimmed">
-                Billing is managed locally for this account.
-              </Text>
             )}
           </Box>
         </Group>
       </div>
-      <div className={classes.container}>
-        <Group justify="space-between" gap="sm">
-          <Stack gap="xs">
-            <Text size="lg" fw={700}>
-              Profile
-            </Text>
-            <Text size="sm">
-              This is your profile page. You can edit your profile here.
-            </Text>
-          </Stack>
-          <Box>
-            {user?.is_mendeley_linked ? (
-              <Form method="post">
-                <input type="hidden" name="actionType" value="unlinkMendeley" />
-                <Button
-                  loading={unlinkMendeleyLoading}
-                  type="submit"
-                  color="red"
-                  fullWidth
-                >
-                  Unlink Mendeley
-                </Button>
-              </Form>
-            ) : (
-              <Form method="post">
-                <input type="hidden" name="actionType" value="linkMendeley" />
-                <Button loading={linkMendeleyLoading} type="submit" fullWidth>
-                  Link with Mendeley
-                </Button>
-              </Form>
-            )}
-          </Box>
-        </Group>
-      </div>
-
-      <div>
-        <Group justify="space-between">
-          <Text size="sm" fw={700}>
-            Theme
-          </Text>
-          <Button.Group>
+      <Group justify="space-between">
+        <Text size="sm" fw={700}>
+          Theme
+        </Text>
+        <Button.Group>
+          {(["pink", "teal", "blue", "orange"] as const).map((color) => (
             <Button
-              mod={user?.color_theme === "pink" ? "selected" : undefined}
-              className={classes.themeButton}
+              key={color}
               variant="default"
-              onClick={() => handleThemeChange("pink", user?.id)}
+              className={legacyClasses.themeButton}
+              mod={user?.color_theme === color ? "selected" : undefined}
+              onClick={() => handleThemeChange(color, user?.id)}
             >
               <div
                 style={{
-                  width: "25px",
-                  height: "25px",
+                  width: 25,
+                  height: 25,
                   borderRadius: "50%",
-                  backgroundColor: "var(--mantine-color-pink-5)",
+                  backgroundColor: `var(--mantine-color-${color}-5)`,
                 }}
               />
             </Button>
-            <Button
-              variant="default"
-              mod={user?.color_theme === "teal" ? "selected" : undefined}
-              className={classes.themeButton}
-              onClick={() => handleThemeChange("teal", user?.id)}
-            >
-              <div
-                style={{
-                  width: "25px",
-                  height: "25px",
-                  borderRadius: "50%",
-                  backgroundColor: "var(--mantine-color-teal-5)",
-                }}
-              />
-            </Button>
-            <Button
-              variant="default"
-              mod={user?.color_theme === "blue" ? "selected" : undefined}
-              className={classes.themeButton}
-              onClick={() => handleThemeChange("blue", user?.id)}
-            >
-              <div
-                style={{
-                  width: "25px",
-                  height: "25px",
-                  borderRadius: "50%",
-                  backgroundColor: "var(--mantine-color-blue-5)",
-                }}
-              />
-            </Button>
-            <Button
-              variant="default"
-              mod={user?.color_theme === "orange" ? "selected" : undefined}
-              className={classes.themeButton}
-              onClick={() => handleThemeChange("orange", user?.id)}
-            >
-              <div
-                style={{
-                  width: "25px",
-                  height: "25px",
-                  borderRadius: "50%",
-                  backgroundColor: "var(--mantine-color-orange-5)",
-                }}
-              />
-            </Button>
-          </Button.Group>
-        </Group>
-      </div>
+          ))}
+        </Button.Group>
+      </Group>
       <CDivider darkColor="var(--mantine-color-dark-5)" />
-      <Grid>
-        <Grid.Col span="auto">
-          <Text size="sm" fw={700}>
-            Font Size
-          </Text>
-        </Grid.Col>
-        <Grid.Col span={4}>
-          <Box>
-            <Slider
-              defaultValue={
-                marks.findIndex((mark) => mark.label === user?.scale) * 25
-              }
-              label={(val) => marks.find((mark) => mark.value === val)!.label}
-              step={25}
-              marks={marks}
-              styles={{ markLabel: { display: "none" } }}
-              onChange={(value) =>
-                handleScaleChange(marks[value / 25].label, user?.id)
-              }
-            />
-          </Box>
-        </Grid.Col>
-      </Grid>
-      <CDivider darkColor="var(--mantine-color-dark-5)" />
+      <Slider
+        defaultValue={marks.findIndex((mark) => mark.label === user?.scale) * 25}
+        step={25}
+        marks={marks}
+        onChange={(value) =>
+          handleScaleChange(marks[value / 25].label, user?.id)
+        }
+      />
       {formatting.preferences && (
         <FormattingPanel
           preferences={formatting.preferences}
           isCustomized={formatting.isCustomized}
         />
       )}
+      <ChangePasswordCard actionData={actionData ?? undefined} />
     </Stack>
   );
 };
@@ -456,65 +559,31 @@ const SubscriptionInfo = ({
 }: {
   subscription: UserSubscription;
   timeZone: string;
-}) => {
-  const formatDate = (date: string) => {
-    return dayjs(date).tz(timeZone).format("DD MMMM YYYY");
-  };
-  return (
-    <Box className={classes.subscriptionInfo}>
-      <Stack gap="xs">
+}) => (
+  <Box className={legacyClasses.subscriptionInfo}>
+    <Stack gap="xs">
+      <Group justify="space-between">
+        <Text size="xs">Plan</Text>
+        <Text size="sm" fw={700}>
+          {subscription.plan_name}
+        </Text>
+      </Group>
+      <Group justify="space-between">
+        <Text size="xs">Status</Text>
+        <Text size="sm" fw={700}>
+          {subscription.status}
+        </Text>
+      </Group>
+      {subscription.current_period_end && (
         <Group justify="space-between">
-          <Text size="xs">Plan</Text>
+          <Text size="xs">Renews</Text>
           <Text size="sm" fw={700}>
-            {subscription?.plan_name}
+            {dayjs(subscription.current_period_end).tz(timeZone).format("DD MMM YYYY")}
           </Text>
         </Group>
-        <Group justify="space-between">
-          <Text size="xs">Status</Text>
-          <Text size="sm" fw={700}>
-            {subscription?.status}
-          </Text>
-        </Group>
-        <Group justify="space-between">
-          <Text size="xs">Proposal Limit Remaining</Text>
-          <Text size="sm" fw={700}>
-            {subscription?.proposal_limit_remaining ?? "—"}
-          </Text>
-        </Group>
-        <Group justify="space-between">
-          <Text size="xs">AI Limit Remaining</Text>
-          <Text size="sm" fw={700}>
-            {subscription?.ai_limit_remaining ?? "—"}
-          </Text>
-        </Group>
-        <Group justify="space-between">
-          <Text size="xs">Export Limit Remaining</Text>
-          {subscription?.unlimited_export ? (
-            <Text size="sm" fw={700}>
-              Unlimited
-            </Text>
-          ) : (
-            <Text size="sm" fw={700}>
-              {subscription?.export_limit_remaining}
-            </Text>
-          )}
-        </Group>
-        {subscription?.watermark_exports ? (
-          <Text size="xs" c="dimmed">
-            Exports on the Free plan include a watermark.
-          </Text>
-        ) : null}
-        {subscription?.current_period_end ? (
-          <Group justify="space-between">
-            <Text size="xs">Subscription End</Text>
-            <Text size="sm" fw={700}>
-              {formatDate(subscription.current_period_end)}
-            </Text>
-          </Group>
-        ) : null}
-      </Stack>
-    </Box>
-  );
-};
+      )}
+    </Stack>
+  </Box>
+);
 
 export default ProfilePage;

@@ -1,4 +1,5 @@
 import { Icon } from "#app/components/icon";
+import { ProblemStatementV2Screen } from "#app/components/paper-v2/ProblemStatementV2Screen";
 import { ProblemStatementForm } from "#app/components/ui/paper/ProblemStatementForm";
 import { BreadcrumbHandle } from "#app/routes/_index";
 import {
@@ -7,6 +8,8 @@ import {
   getPaperCitationsBySection,
   getPaperProblemStatement,
 } from "#app/services/paper.server";
+import { getLibraryEntries } from "#app/services/library.server";
+import { usePaperV2Flow } from "#app/utils/use-paper-v2-flow";
 import { redirectWithToast } from "#app/utils/toast.server";
 import { AuthorizationError } from "remix-auth";
 import { z } from "zod";
@@ -29,6 +32,7 @@ import {
   json,
   LoaderFunctionArgs,
   SerializeFrom,
+  ShouldRevalidateFunctionArgs,
 } from "@remix-run/node";
 import { useActionData, useLoaderData, useParams } from "@remix-run/react";
 import React from "react";
@@ -38,6 +42,17 @@ export const handle: BreadcrumbHandle = {
   icon: <Icon name="plus-outline" style={{ width: "20px", height: "30px" }} />,
   breadcrumb: "Form",
 };
+
+export function shouldRevalidate({
+  formData,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  if (formData?.get("intent") === "generateAiResponse") {
+    return false;
+  }
+
+  return defaultShouldRevalidate;
+}
 
 export const PaperProblemStatementSchema = z.object({
   paperId: z.string(),
@@ -58,6 +73,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       problemStatementRes,
       motivationalProblemCitationsRes,
       researchProblemCitationsRes,
+      libraryRes,
     ] = await Promise.all([
       getCurrentUser({ request }),
       getPaperProblemStatement({ paperId, request }),
@@ -71,6 +87,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
         request,
         section: "research_problem",
       }),
+      getLibraryEntries({ request, paperId }),
     ]);
 
     return json({
@@ -82,6 +99,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       motivationalProblemCitations:
         motivationalProblemCitationsRes.data?.citations,
       researchProblemCitations: researchProblemCitationsRes.data?.citations,
+      libraryEntries: libraryRes.data?.entries ?? [],
     });
   } catch (error) {
     return redirectWithToast(`/paper/${paperId}/problem-statement`, {
@@ -194,84 +212,89 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
   }
 
-  if (submission.status !== "success") {
-    return json({
-      lastResult: submission.reply(),
-      serverError: null,
-      success: false,
-      toast: null,
-    });
-  }
-
-  console.log("submission.value 🔥🔥🔥🔥", submission.value);
-
-  try {
-    const res = await createOrUpdateProblemStatement({
-      paperId: submission.value.paperId,
-      request,
-      problemStatement: {
-        motivational_problem: submission.value.motivational_problem,
-        gap_in_practice: submission.value.gap_in_practice,
-        research_problem: submission.value.research_problem,
-        gap_in_research: submission.value.gap_in_research,
-      },
-    });
-    return json({
-      lastResult: submission.reply(),
-      serverError: null,
-      success: true,
-      toast: {
-        type: "success",
-        title: `Done ${intent}`,
-        description: `${intent} successfully`,
-      },
-    });
-  } catch (exception: unknown) {
-    if (exception instanceof Response && exception.status === 302) {
-      throw exception;
-    }
-
-    if (exception instanceof Response) throw exception;
-
-    if (exception instanceof AuthorizationError) {
-      const error = exception as any;
+  if (
+    intent === "save_all" ||
+    (intent !== "generateAiResponse" &&
+      intent !== "addMotivationalProblemCitation" &&
+      intent !== "addResearchProblemCitation")
+  ) {
+    if (submission.status !== "success") {
       return json({
-        serverError: error?.cause?.data?.message,
         lastResult: submission.reply(),
-        success: false,
-        toast: null,
-      });
-    }
-
-    if (exception && typeof exception === "object" && "data" in exception) {
-      console.error(
-        "Error details:",
-        (exception as any).data?.errors?.error || exception
-      );
-
-      return json({
-        lastResult: submission.reply({
-          formErrors: (exception as any).data?.errors?.error,
-        }),
         serverError: null,
         success: false,
         toast: null,
       });
-    } else {
-      console.error("Unstructured error:", exception);
     }
 
-    throw exception;
+    try {
+      await createOrUpdateProblemStatement({
+        paperId: submission.value.paperId,
+        request,
+        problemStatement: {
+          motivational_problem: submission.value.motivational_problem,
+          gap_in_practice: submission.value.gap_in_practice,
+          research_problem: submission.value.research_problem,
+          gap_in_research: submission.value.gap_in_research,
+        },
+      });
+      return json({
+        lastResult: submission.reply(),
+        serverError: null,
+        success: true,
+        toast: {
+          type: "success",
+          title: "Saved",
+          description: "Problem statement saved successfully",
+        },
+      });
+    } catch (exception: unknown) {
+      if (exception instanceof Response && exception.status === 302) {
+        throw exception;
+      }
+
+      if (exception instanceof Response) throw exception;
+
+      if (exception instanceof AuthorizationError) {
+        const error = exception as { cause?: { data?: { message?: string } } };
+        return json({
+          serverError: error?.cause?.data?.message,
+          lastResult: submission.reply(),
+          success: false,
+          toast: null,
+        });
+      }
+
+      if (exception && typeof exception === "object" && "data" in exception) {
+        return json({
+          lastResult: submission.reply({
+            formErrors: (exception as { data?: { errors?: { error?: string } } })
+              .data?.errors?.error,
+          }),
+          serverError: null,
+          success: false,
+          toast: null,
+        });
+      }
+
+      throw exception;
+    }
   }
+
+  return json({
+    lastResult: submission.reply(),
+    serverError: null,
+    success: false,
+    toast: null,
+  });
 };
 
 export const PaperNewIntroductionPage = () => {
   const actionData = useActionData<typeof action>();
   const loaderData = useLoaderData<typeof loader>();
+  const isV2 = usePaperV2Flow();
 
   const params = useParams();
-
-  const user = loaderData.user;
 
   const [
     motivationalProblemCitationDrawerOpened,
@@ -306,6 +329,23 @@ export const PaperNewIntroductionPage = () => {
 
   if (!loaderData.hasActiveSubscription) {
     return <NoSubscriptionEmptyState />;
+  }
+
+  if (isV2) {
+    return (
+      <ProblemStatementV2Screen
+        paperId={params.paperId!}
+        actionData={actionData}
+        libraryEntries={loaderData.libraryEntries}
+        initialValues={{
+          motivational_problem:
+            loaderData.problemStatement?.motivational_problem ?? "",
+          gap_in_practice: loaderData.problemStatement?.gap_in_practice ?? "",
+          research_problem: loaderData.problemStatement?.research_problem ?? "",
+          gap_in_research: loaderData.problemStatement?.gap_in_research ?? "",
+        }}
+      />
+    );
   }
 
   return (

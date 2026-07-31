@@ -49,10 +49,24 @@ const customFetch = async <T>({
   let result: T | undefined;
 
   if (response.status === 204) {
-    // No Content response
     result = undefined;
   } else {
-    result = await response.json();
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      result = await response.json();
+    } else {
+      const text = await response.text();
+      throw new APIValidationError(
+        response.status,
+        response.statusText,
+        {
+          message:
+            text.startsWith("<")
+              ? "API returned an HTML error page. Check that migrations are up to date and the API is running."
+              : text.slice(0, 500),
+        }
+      );
+    }
   }
 
   if (!response.ok) {

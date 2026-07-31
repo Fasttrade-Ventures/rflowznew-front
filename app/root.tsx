@@ -1,6 +1,7 @@
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "@mantine/nprogress/styles.css";
+import "#app/styles/rflowz-v2.css";
 import "@fontsource/poppins/100.css";
 import "@fontsource/poppins/200.css";
 import "@fontsource/poppins/300.css";
@@ -27,6 +28,8 @@ import {
 } from "@remix-run/react";
 
 import AppLayout from "./components/AppLayout";
+import { HomeShellLayout } from "./components/v2/HomeShellLayout";
+import { isPaperV2FlowEnabled } from "./utils/feature-flags.server";
 import { GeneralErrorBoundary } from "./components/error-boundary";
 import { Icon } from "./components/icon";
 import { EpicProgress } from "./components/progress-bar";
@@ -56,6 +59,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       user,
       toast,
       ablyKey: getAblyKey(),
+      paperV2Flow: isPaperV2FlowEnabled(),
       selectedTheme: user?.color_theme || "blue",
       scale: user?.scale || "md",
       requestInfo: {
@@ -161,11 +165,12 @@ export default function App() {
     >
       {isAuthRoute || isPaperRoute ? (
         <Outlet />
+      ) : data.paperV2Flow ? (
+        <HomeShellLayout>
+          <Outlet />
+        </HomeShellLayout>
       ) : (
         <AppLayout>
-          {/* <Link to="/subscription">Subscription</Link>
-          <Link to="/">Home</Link> */}
-          {/* <pre>{JSON.stringify(data.user, null, 2)}</pre> */}
           <Outlet />
         </AppLayout>
       )}

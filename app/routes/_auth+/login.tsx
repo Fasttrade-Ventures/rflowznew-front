@@ -15,6 +15,8 @@ import { Form, Link, useActionData, useLoaderData } from "@remix-run/react";
 import { z } from "zod";
 
 import { useIsPending } from "#app/utils/misc";
+import { loader as rootLoader } from "#app/root.tsx";
+import { useRouteLoaderData } from "@remix-run/react";
 import { getFormProps, getInputProps, useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
 
@@ -88,6 +90,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 const LoginPage = () => {
   const actionData = useActionData<typeof action>();
   const loaderData = useLoaderData<typeof loader>();
+  const rootData = useRouteLoaderData<typeof rootLoader>("root");
+  const isV2 = rootData?.paperV2Flow;
 
   const isPending = useIsPending();
 
@@ -105,15 +109,30 @@ const LoginPage = () => {
   });
 
   return (
-    <Stack style={{ width: "100%" }}>
+    <Stack style={{ width: "100%" }} gap={12}>
+      {isV2 && (
+        <>
+          <div className={classes.logo} style={{ marginBottom: 0 }} />
+          <div>
+            <Title order={2} mb={4} size="h3">
+              Sign in
+            </Title>
+            <Text size="sm" c="dimmed">
+              From Researcher to Researcher
+            </Text>
+          </div>
+        </>
+      )}
+      {!isV2 && (
+        <Title order={2} mb={10}>
+          Login
+        </Title>
+      )}
       {loaderData.googleSignInErrorMessage ? (
-        <Alert variant="light" color="red" mb={4} style={{ width: "100%" }}>
+        <Alert variant="light" color="red" style={{ width: "100%" }}>
           {loaderData.googleSignInErrorMessage}
         </Alert>
       ) : null}
-      <Title order={2} mb={10}>
-        Login
-      </Title>
       {loaderData.toast ? (
         <Alert
           color={
@@ -134,28 +153,28 @@ const LoginPage = () => {
       ) : null}
       <Form method="post" className={classes.form} {...getFormProps(form)}>
         <TextInput
-          label="Email address"
+          label={isV2 ? "Email" : "Email address"}
           placeholder="hello@gmail.com"
-          size="md"
+          size={isV2 ? "sm" : "md"}
           {...getInputProps(fields.email, { type: "email" })}
           error={fields.email.errors?.[0]}
         />
 
         <PasswordInput
           label="Password"
-          placeholder="Your password"
+          placeholder={isV2 ? "••••••••" : "Your password"}
           mt="md"
-          size="md"
+          size={isV2 ? "sm" : "md"}
           {...getInputProps(fields.password, { type: "password" })}
           error={fields.password.errors?.[0]}
         />
 
-        <Button fullWidth mt="xl" size="md" type="submit" loading={isPending}>
-          Login
+        <Button fullWidth mt="xl" size={isV2 ? "sm" : "md"} type="submit" loading={isPending}>
+          {isV2 ? "Sign in" : "Login"}
         </Button>
       </Form>
 
-      <Divider my="xs" label="Or" labelPosition="center" />
+      <Divider my="xs" label={isV2 ? "or continue with" : "Or"} labelPosition="center" />
 
       <Form action="/auth/google" method="post">
         <Button
@@ -166,7 +185,7 @@ const LoginPage = () => {
           }
           type="submit"
         >
-          Sign in with Google
+          {isV2 ? "Google" : "Sign in with Google"}
         </Button>
       </Form>
 

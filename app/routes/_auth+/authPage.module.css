@@ -48,3 +48,50 @@
 [data-mantine-color-scheme="dark"] .logo {
   background-image: url("/images/rflowz-white.png");
 }
+
+.v2Wrapper {
+  align-items: stretch;
+  background: var(--rz-background);
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-md);
+  display: grid;
+  margin: 24px auto;
+  max-width: 960px;
+  min-height: calc(100vh - 48px);
+  overflow: hidden;
+  grid-template-columns: 420px 1fr;
+}
+
+.v2HeroImage {
+  background-image: url("https://images.unsplash.com/photo-1484242857719-4b9144542727?w=800&q=80");
+  background-position: center;
+  background-size: cover;
+  min-height: 560px;
+}
+
+.v2Paper {
+  align-self: stretch;
+  background: var(--rz-card);
+  border: none;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: none;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .v2Wrapper {
+    grid-template-columns: 1fr;
+    margin: 0;
+    max-width: none;
+    min-height: 100vh;
+    border-radius: 0;
+    border: none;
+  }
+
+  .v2HeroImage {
+    display: none;
+  }
+}

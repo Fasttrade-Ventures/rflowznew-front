@@ -1,0 +1,174 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.profileStrip {
+  background: var(--rz-muted);
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.profileHeading {
+  color: var(--rz-muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.profileBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.profileBadge {
+  background: var(--rz-card);
+  border: 1px solid var(--rz-border);
+  border-radius: 999px;
+  color: var(--rz-foreground);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 4px 10px;
+}
+
+.profileNote {
+  color: var(--rz-muted-foreground);
+  font-size: 10px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panel {
+  background: var(--rz-card);
+  border: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.panelTitle {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.panelSub {
+  color: var(--rz-muted-foreground);
+  font-size: 10px;
+  margin-top: -6px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  color: var(--rz-foreground);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.fieldHint {
+  color: var(--rz-muted-foreground);
+  font-size: 10px;
+}
+
+.contactValue {
+  background: var(--rz-muted);
+  border-radius: var(--rz-radius-md);
+  color: var(--rz-foreground);
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.sectionHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.linkButton,
+.linkButtonDanger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--rz-font);
+  font-size: 10px;
+  padding: 0;
+}
+
+.linkButton {
+  color: var(--rz-primary);
+  font-weight: 500;
+}
+
+.linkButtonDanger {
+  color: var(--rz-destructive, #e03131);
+}
+
+.authorRow {
+  align-items: flex-end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr auto;
+}
+
+.affCard {
+  background: var(--rz-muted);
+  border-radius: var(--rz-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+.emptyAffiliations {
+  align-items: center;
+  background: var(--rz-background);
+  border: 1px dashed var(--rz-border);
+  border-radius: var(--rz-radius-md);
+  color: var(--rz-muted-foreground);
+  display: flex;
+  flex-direction: column;
+  font-size: 11px;
+  gap: 6px;
+  padding: 16px 12px;
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}

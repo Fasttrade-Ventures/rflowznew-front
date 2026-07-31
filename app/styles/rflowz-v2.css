@@ -1,0 +1,41 @@
+/* RFlowz 2.0 design tokens — from pencil-new.pen */
+:root {
+  --rz-background: #fafafa;
+  --rz-foreground: #09090b;
+  --rz-card: #ffffff;
+  --rz-muted: #f4f4f5;
+  --rz-muted-foreground: #71717a;
+  --rz-border: #e4e4e7;
+  --rz-primary: #228be6;
+  --rz-primary-foreground: #ffffff;
+  --rz-sidebar: #fafafa;
+  --rz-sidebar-accent: #f4f4f5;
+  --rz-sidebar-border: #e4e4e7;
+  --rz-success: #22c55e;
+  --rz-destructive: #ef4444;
+  --rz-radius-sm: 4px;
+  --rz-radius-md: 6px;
+  --rz-font: "Inter", "Poppins", system-ui, sans-serif;
+  --rz-gap-xs: 4px;
+  --rz-gap-sm: 8px;
+  --rz-gap-md: 12px;
+  --rz-pad-sm: 8px;
+  --rz-pad-md: 12px;
+  --rz-pad-lg: 16px;
+}
+
+.rz-v2 {
+  font-family: var(--rz-font);
+  color: var(--rz-foreground);
+}
+
+html:has(.rz-v2.shell),
+html:has(.rz-v2.workspace) {
+  height: 100%;
+}
+
+body:has(.rz-v2.shell),
+body:has(.rz-v2.workspace) {
+  height: 100%;
+  overflow: hidden;
+}
