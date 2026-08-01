@@ -19,8 +19,8 @@ import {
   json,
   LoaderFunctionArgs,
   SerializeFrom,
-  ShouldRevalidateFunctionArgs,
 } from "@remix-run/node";
+import type { ShouldRevalidateFunctionArgs } from "@remix-run/react";
 import { useActionData, useLoaderData, useParams } from "@remix-run/react";
 import { ResearchQuestionAndObjectiveForm } from "#app/components/ui/paper/ResearchQuestionAndObjectiveForm";
 import { useEffect } from "react";

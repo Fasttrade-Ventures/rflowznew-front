@@ -73,10 +73,7 @@ export function ProjectSettingsV2Screen({
     shouldValidate: "onSubmit",
     shouldRevalidate: "onBlur",
     lastResult: actionData?.lastResult,
-    defaultValue: {
-      ...initialData,
-      keywords: normalizeKeywords(initialData.keywords),
-    },
+    defaultValue: initialData,
   });
 
   const authors = fields.authors.getFieldList();

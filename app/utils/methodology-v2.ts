@@ -214,7 +214,7 @@ export function evaluateCoherenceClient({
   return {
     warnings,
     report: [...report],
-    aligned: warnings.length === 0 || overridden,
+    aligned: warnings.length === 0 || Boolean(overridden),
     suggested_design: warnings[0]?.suggested_design ?? null,
   };
 }

@@ -3,6 +3,7 @@ import {
   generatePhilosophyAi,
   getPhilosophy,
   savePhilosophy,
+  type Philosophy,
 } from "#app/services/philosophy.server";
 import { invariant } from "@epic-web/invariant";
 import { ActionFunctionArgs, json, LoaderFunctionArgs } from "@remix-run/node";
@@ -52,8 +53,10 @@ export default function PhilosophyRoute() {
   );
 
   useEffect(() => {
-    if (fetcher.data?.ok && fetcher.data.philosophy) {
-      setSavedDraft(Boolean(fetcher.data.philosophy.draft_philosophy?.trim()));
+    const data = fetcher.data;
+    if (data?.ok && "philosophy" in data && data.philosophy) {
+      const savedPhilosophy = data.philosophy as Philosophy;
+      setSavedDraft(Boolean(savedPhilosophy.draft_philosophy?.trim()));
       notifications.show({
         title: "Saved",
         message: "Philosophy saved successfully",
