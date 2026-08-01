@@ -3,7 +3,7 @@ import { ThemeSwitch } from "#app/routes/resources+/theme-switch";
 import { loader as rootLoader } from "#app/root.tsx";
 import { useIsPending } from "#app/utils/misc";
 import { displayFirstName, getPlanDisplayLabel } from "#app/utils/plan";
-import { Badge, Group, Loader, Menu, rem, Stack, Text } from "@mantine/core";
+import { Badge, Group, Loader, Menu, rem } from "@mantine/core";
 import { Form, Link, useRouteLoaderData } from "@remix-run/react";
 
 import classes from "./v2.module.css";
@@ -34,10 +34,10 @@ export function AppHeaderV2() {
 
   return (
     <header className={classes.header}>
-      <Stack gap={2} className={classes.headerIntro}>
-        <Text className={classes.headerDate}>{dateLabel}</Text>
-        <Text className={classes.headerGreet}>{greet}</Text>
-      </Stack>
+      <div className={classes.headerIntro}>
+        <p className={classes.headerDate}>{dateLabel}</p>
+        <p className={classes.headerGreet}>{greet}</p>
+      </div>
 
       <Group gap={8} wrap="nowrap" className={classes.headerActions}>
         <Badge size="sm" variant="light" color="blue" className={classes.planBadge}>
@@ -48,12 +48,10 @@ export function AppHeaderV2() {
           <Menu.Target>
             <button type="button" className={classes.profileBtn}>
               <NavbarAvatar username={user?.name ?? ""} />
-              <Text size="xs" fw={500} className={classes.profileName}>
-                {firstName}
-              </Text>
-              <Text size="xs" c="dimmed" className={classes.profileCaret}>
+              <span className={classes.profileName}>{firstName}</span>
+              <span className={classes.profileCaret} aria-hidden>
                 ▾
-              </Text>
+              </span>
             </button>
           </Menu.Target>
           <Menu.Dropdown>

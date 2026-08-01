@@ -32,8 +32,8 @@ import {
   json,
   LoaderFunctionArgs,
   SerializeFrom,
-  ShouldRevalidateFunctionArgs,
 } from "@remix-run/node";
+import type { ShouldRevalidateFunctionArgs } from "@remix-run/react";
 import { useActionData, useLoaderData, useParams } from "@remix-run/react";
 import React from "react";
 import NoSubscriptionEmptyState from "#app/components/NoSubscriptionEmptyState";
@@ -266,10 +266,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
 
       if (exception && typeof exception === "object" && "data" in exception) {
+        const formError = (
+          exception as { data?: { errors?: { error?: string } } }
+        ).data?.errors?.error;
+
         return json({
           lastResult: submission.reply({
-            formErrors: (exception as { data?: { errors?: { error?: string } } })
-              .data?.errors?.error,
+            formErrors: formError ? [formError] : undefined,
           }),
           serverError: null,
           success: false,

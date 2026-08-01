@@ -372,8 +372,6 @@ export const ReviewProposalPage = () => {
       <ReviewProposalV2
         paperId={paperId}
         paperTitle={paperTitle}
-        paperAuthors={paperAuthors}
-        paperAffiliations={paperAffiliations}
         abstractBody={abstract?.abstract_sec.body ?? undefined}
         sections={proposalSections}
         libraryEntries={libraryEntries}

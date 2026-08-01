@@ -6,8 +6,7 @@ import { ProposalReadinessPanel } from "#app/components/paper-v2/ProposalReadine
 import { ReviewTabBar } from "#app/components/paper-v2/ReviewTabBar";
 import type { ReviewProposalTab } from "#app/components/paper-v2/types";
 import type { loader as rootLoader } from "#app/root";
-import type { IntegritySection } from "#app/services/library.server";
-import type { LibraryEntry } from "#app/services/library.server";
+import type { IntegritySection, LibraryEntry } from "#app/services/library.server";
 import type { Framework } from "#app/services/framework.server";
 import type { ProposalSections } from "#app/services/proposal-assembly.server";
 import type { GeneratedDocument } from "#app/services/paper.server";

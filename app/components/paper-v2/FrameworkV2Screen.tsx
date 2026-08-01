@@ -11,7 +11,7 @@ import {
 } from "#app/utils/export-mermaid-png";
 import { prepareMermaidForEditor } from "#app/utils/sanitize-mermaid-source";
 import { repairAndRenderMermaid } from "#app/utils/render-mermaid";
-import { Alert, Button } from "@mantine/core";
+import { Alert } from "@mantine/core";
 import { useRouteLoaderData } from "@remix-run/react";
 import * as Ably from "ably";
 import type { Message } from "ably";

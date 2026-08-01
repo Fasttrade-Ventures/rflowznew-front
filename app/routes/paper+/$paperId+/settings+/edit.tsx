@@ -93,9 +93,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (exception instanceof Response) throw exception;
 
     if (exception instanceof AuthorizationError) {
-      const error = exception as unknown;
+      const error = exception as AuthorizationError & {
+        cause?: { data?: { message?: string } };
+      };
       return json({
-        serverError: error?.cause?.data?.message,
+        serverError: error.cause?.data?.message,
         lastResult: submission.reply(),
       });
     }

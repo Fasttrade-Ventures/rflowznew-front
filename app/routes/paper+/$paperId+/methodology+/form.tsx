@@ -349,7 +349,7 @@ export const PaperNewMethodologyPage = () => {
       });
       return;
     }
-    if (fetcher.data.serverError) {
+    if ("serverError" in fetcher.data && fetcher.data.serverError) {
       notifications.show({
         title: "Error",
         message: fetcher.data.serverError,
@@ -358,12 +358,27 @@ export const PaperNewMethodologyPage = () => {
     }
   }, [fetcher.data, fetcher.state]);
 
+  useEffect(() => {
+    if (actionData && "success" in actionData && actionData.success) {
+      if ("toast" in actionData && actionData.toast) {
+        notifications.show({
+          title: actionData.toast.title,
+          message: actionData.toast.description,
+        });
+      }
+      closeCitationDrawer();
+    }
+  }, [actionData, closeCitationDrawer]);
+
   const isSaving =
     fetcher.state !== "idle" &&
     fetcher.formData?.get("intent") === "save_all_v2";
 
   const saveError =
-    fetcher.data && "saveOk" in fetcher.data && !fetcher.data.saveOk
+    fetcher.data &&
+    "saveOk" in fetcher.data &&
+    !fetcher.data.saveOk &&
+    "serverError" in fetcher.data
       ? fetcher.data.serverError
       : null;
 

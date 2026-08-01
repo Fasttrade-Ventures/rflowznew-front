@@ -92,10 +92,7 @@ export const paperSchema = z.object({
       })
     )
     .min(1),
-  keywords: z.preprocess(
-    (value) => normalizeKeywords(value),
-    z.array(z.string().min(1)).min(1)
-  ),
+  keywords: z.array(z.string().min(1)).min(1),
   affiliations: z
     .array(
       z.object({

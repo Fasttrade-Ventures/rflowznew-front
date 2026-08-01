@@ -1,6 +1,5 @@
-import type { LibraryEntry } from "#app/services/library.server";
+import type { LibraryEntry, WebSearchResult } from "#app/services/library.server";
 import type { OpenAlexWork } from "#app/services/openalex.server";
-import type { WebSearchResult } from "#app/services/library.server";
 import { Anchor, Button, Group } from "@mantine/core";
 import type { ReactNode } from "react";
 
