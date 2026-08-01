@@ -20,6 +20,13 @@ FROM base as build
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
 
+# mermaid-cli pulls in puppeteer as a peer dep for CLI-only diagram
+# rendering; this app renders mermaid client-side (see
+# app/utils/render-mermaid.ts) and never launches puppeteer's Chrome,
+# so skip its binary download rather than installing unzip just to
+# throw the browser away in the prune step below.
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
 # Install node modules
 COPY --link package-lock.json package.json ./
 RUN npm ci --include=dev
