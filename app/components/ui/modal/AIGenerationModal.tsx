@@ -170,9 +170,10 @@ export const AIGenerationModal: React.FC<AIGenerationModalProps> = ({
               ref={textareaRef}
               onScroll={handleScroll}
             />
-            {(fetcher.data as { serverError?: string } | undefined)?.serverError ? (
+            {(fetcher.data as { serverError?: string } | undefined)
+              ?.serverError ? (
               <Text c="red" size="sm">
-                {(fetcher.data as { serverError: string }).serverError}
+                {(fetcher.data as { serverError?: string }).serverError}
               </Text>
             ) : null}
             {onGenerated ? (

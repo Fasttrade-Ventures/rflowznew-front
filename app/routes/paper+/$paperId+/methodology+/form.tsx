@@ -358,18 +358,6 @@ export const PaperNewMethodologyPage = () => {
     }
   }, [fetcher.data, fetcher.state]);
 
-  useEffect(() => {
-    if (actionData?.success) {
-      if (actionData.toast) {
-        notifications.show({
-          title: actionData.toast.title,
-          message: actionData.toast.description,
-        });
-      }
-      closeCitationDrawer();
-    }
-  }, [actionData, closeCitationDrawer]);
-
   const isSaving =
     fetcher.state !== "idle" &&
     fetcher.formData?.get("intent") === "save_all_v2";

@@ -1,7 +1,7 @@
 import { GeneralErrorBoundary } from "#app/components/error-boundary";
 import { invariantResponse } from "@epic-web/invariant";
 import { json, LoaderFunctionArgs } from "@remix-run/node";
-import { Paper } from "@mantine/core";
+import { Button, Paper } from "@mantine/core";
 import { Icon } from "#app/components/icon";
 
 export const loader = ({ request }: LoaderFunctionArgs) => {

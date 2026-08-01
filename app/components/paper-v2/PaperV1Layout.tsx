@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import BreadcrumbsComponent from "#app/components/breadcrumbs/breadcrumbs";
 import { Icon } from "#app/components/icon";
 import NavbarAvatar from "#app/components/ui/NavbarAvatar";

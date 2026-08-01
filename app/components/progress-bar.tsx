@@ -7,7 +7,6 @@ import {
   setNavigationProgress,
   completeNavigationProgress,
 } from "@mantine/nprogress";
-import { Loader } from "@mantine/core";
 
 function EpicProgress() {
   const transition = useNavigation();
