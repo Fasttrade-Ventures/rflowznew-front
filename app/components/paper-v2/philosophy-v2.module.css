@@ -341,3 +341,22 @@
   justify-content: flex-end;
   padding-top: 4px;
 }
+
+@media (max-width: 62em) {
+  .questionHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .draftHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .paradigmBar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -2,6 +2,7 @@ import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "@mantine/nprogress/styles.css";
 import "#app/styles/rflowz-v2.css";
+import "#app/styles/paper-v2-mobile.css";
 import "@fontsource/poppins/100.css";
 import "@fontsource/poppins/200.css";
 import "@fontsource/poppins/300.css";
@@ -37,7 +38,8 @@ import { useToast } from "./components/toaster";
 import classes from "./root.module.css";
 import { BreadcrumbHandle } from "./routes/_index";
 import { useTheme } from "./routes/resources+/theme-switch";
-import { getUser } from "./services/auth.server";
+import { getUser, updateUserSubscriptionStatus } from "./services/auth.server";
+import { getCurrentUser } from "./services/authentication.server";
 import { ClientHintCheck, getHints } from "./utils/client-hints";
 import { combineHeaders, getDomainUrl } from "./utils/misc";
 import { useNonce } from "./utils/nonce-provider";
@@ -52,7 +54,41 @@ export const handle: BreadcrumbHandle = {
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { toast, headers: toastHeaders } = await getToast(request);
-  const user = await getUser(request);
+  let user = await getUser(request);
+  const responseHeaders = combineHeaders(toastHeaders);
+
+  if (user) {
+    try {
+      const userRes = await getCurrentUser({ request });
+      const apiUser = userRes.data;
+
+      if (
+        apiUser &&
+        (apiUser.subscription_status !== user.subscription_status ||
+          apiUser.plan_key !== user.plan_key)
+      ) {
+        const newCookie = await updateUserSubscriptionStatus(
+          request,
+          apiUser.subscription_status ?? null,
+          apiUser.plan_key ?? null
+        );
+
+        if (newCookie) {
+          responseHeaders.append("Set-Cookie", newCookie);
+        }
+
+        user = {
+          ...user,
+          subscription_status: apiUser.subscription_status ?? null,
+          plan_key: apiUser.plan_key ?? null,
+        };
+      } else if (apiUser?.plan_key && !user.plan_key) {
+        user = { ...user, plan_key: apiUser.plan_key };
+      }
+    } catch {
+      // Keep session user when API refresh fails.
+    }
+  }
 
   return json(
     {
@@ -72,7 +108,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       },
     },
     {
-      headers: combineHeaders(toastHeaders),
+      headers: responseHeaders,
     }
   );
 }

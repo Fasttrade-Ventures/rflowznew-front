@@ -3,6 +3,7 @@ import { ProjectSettingsV2Screen } from "#app/components/paper-v2/ProjectSetting
 import PaperForm, { paperSchema } from "#app/components/ui/paper/PaperForm";
 import { BreadcrumbHandle } from "#app/routes/_index";
 import { getPaper, updatePaper } from "#app/services/paper.server";
+import { normalizeKeywords } from "#app/utils/normalize-keywords";
 import { usePaperV2Flow } from "#app/utils/use-paper-v2-flow";
 import { redirectWithToast } from "#app/utils/toast.server";
 import { AuthorizationError } from "remix-auth";
@@ -40,7 +41,7 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
     ...returnedPaper,
     title: returnedPaper?.title ?? "",
     authors: returnedPaper?.authors ?? [],
-    keywords: returnedPaper?.keywords ?? [],
+    keywords: normalizeKeywords(returnedPaper?.keywords),
     method: returnedPaper?.method ?? "Qualitative", // Add default method
     context: returnedPaper?.context ?? "", // Add default context
     tangibleOutput:

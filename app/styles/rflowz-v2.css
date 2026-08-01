@@ -22,11 +22,60 @@
   --rz-pad-sm: 8px;
   --rz-pad-md: 12px;
   --rz-pad-lg: 16px;
+  --rz-control-height: 32px;
 }
 
 .rz-v2 {
   font-family: var(--rz-font);
   color: var(--rz-foreground);
+}
+
+/* Keep native inputs and Mantine buttons the same height in inline rows */
+.rz-v2 .inputButtonRow {
+  align-items: stretch;
+  display: flex;
+  gap: var(--rz-gap-sm);
+}
+
+.rz-v2 .inputButtonRow > form {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.rz-v2 .inputButtonRow > input:not([type="hidden"]),
+.rz-v2 .inputButtonRow .searchInput {
+  box-sizing: border-box;
+  flex: 1;
+  height: var(--rz-control-height);
+  min-height: var(--rz-control-height);
+  min-width: 0;
+}
+
+.rz-v2 .inputButtonRow .mantine-Button-root {
+  --button-height: var(--rz-control-height);
+  align-self: stretch;
+  flex-shrink: 0;
+  height: var(--rz-control-height);
+  min-height: var(--rz-control-height);
+}
+
+.rz-v2 .mantine-Group-root:has(.mantine-TextInput-root):has(.mantine-Button-root) {
+  align-items: stretch;
+}
+
+.rz-v2
+  .mantine-Group-root:has(.mantine-TextInput-root)
+  .mantine-TextInput-root {
+  flex: 1;
+  min-width: 0;
+}
+
+.rz-v2
+  .mantine-Group-root:has(.mantine-TextInput-root)
+  .mantine-Button-root {
+  align-self: stretch;
+  height: var(--input-height, var(--rz-control-height));
+  min-height: var(--input-height, var(--rz-control-height));
 }
 
 html:has(.rz-v2.shell),

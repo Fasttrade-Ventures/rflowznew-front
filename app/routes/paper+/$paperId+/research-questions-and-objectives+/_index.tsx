@@ -22,6 +22,7 @@ import { json, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 
 import classes from "./_index.module.css";
+import { V2ReadContent } from "#app/components/paper-v2/V2ReadContent";
 import { FormattedText } from "#app/components/ui/FormattedText";
 
 dayjs.extend(utc);
@@ -108,11 +109,11 @@ export const ResearchQuestionsAndObjectivesPage = () => {
               <Text size="xs" fw={600}>
                 Question
               </Text>
-              <FormattedText content={subResearchQuestionAndObjective.question!} />
+              <V2ReadContent content={subResearchQuestionAndObjective.question!} />
               <Text size="xs" fw={600}>
                 Objective
               </Text>
-              <FormattedText content={subResearchQuestionAndObjective.objective!} />
+              <V2ReadContent content={subResearchQuestionAndObjective.objective!} />
             </Stack>
           </PaperPanel>
         ) : (

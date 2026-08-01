@@ -14,6 +14,7 @@ import { Button, Group, Stack, Text, Title } from "@mantine/core";
 import { json, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import CDivider from "#app/components/ui/CDivider";
+import { V2ReadContent } from "#app/components/paper-v2/V2ReadContent";
 import { FormattedText } from "#app/components/ui/FormattedText";
 
 dayjs.extend(utc);
@@ -94,20 +95,20 @@ export const ProblemStatementIndexPage = () => {
               Leg 1 — Motivational (policy/media)
             </div>
             <div className={readClasses.legReadGapLabel}>Motivational problem</div>
-            <FormattedText
+            <V2ReadContent
               content={data?.problem_statement?.motivational_problem!}
             />
             <div className={readClasses.legReadGapLabel}>Motivational gap</div>
-            <FormattedText content={data?.problem_statement?.gap_in_practice!} />
+            <V2ReadContent content={data?.problem_statement?.gap_in_practice!} />
           </div>
           <div className={readClasses.legReadCard}>
             <div className={readClasses.legReadTitle}>
               Leg 2 — Research (literature)
             </div>
             <div className={readClasses.legReadGapLabel}>Research problem</div>
-            <FormattedText content={data?.problem_statement?.research_problem!} />
+            <V2ReadContent content={data?.problem_statement?.research_problem!} />
             <div className={readClasses.legReadGapLabel}>Research gap</div>
-            <FormattedText content={data?.problem_statement?.gap_in_research!} />
+            <V2ReadContent content={data?.problem_statement?.gap_in_research!} />
           </div>
         </>
       ) : (

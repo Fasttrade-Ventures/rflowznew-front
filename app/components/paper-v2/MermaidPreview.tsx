@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 import classes from "./mermaid-preview.module.css";
 import { toMermaidExportPayload, type MermaidExportPayload } from "#app/utils/export-mermaid-png";
@@ -13,12 +21,36 @@ type MermaidPreviewProps = {
   onRepairedSource?: (repaired: string) => void;
 };
 
+type ContentSize = { width: number; height: number };
+type Pan = { x: number; y: number };
+
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 2;
 const ZOOM_STEP = 0.1;
 
 function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
+}
+
+function measureDisplayedSize(canvas: HTMLDivElement | null): ContentSize {
+  if (!canvas) return { width: 0, height: 0 };
+  const svg = canvas.querySelector("svg");
+  if (!svg) return { width: 0, height: 0 };
+
+  const rect = svg.getBoundingClientRect();
+  const width = rect.width || svg.clientWidth || svg.scrollWidth;
+  const height = rect.height || svg.clientHeight || svg.scrollHeight;
+
+  if (width > 0 && height > 0) {
+    return { width, height };
+  }
+
+  const viewBox = svg.viewBox?.baseVal;
+  if (viewBox.width > 0 && viewBox.height > 0) {
+    return { width: viewBox.width, height: viewBox.height };
+  }
+
+  return { width: 0, height: 0 };
 }
 
 export function MermaidPreview({
@@ -30,9 +62,21 @@ export function MermaidPreview({
   onRepairedSource,
 }: MermaidPreviewProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    panX: number;
+    panY: number;
+  } | null>(null);
+
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<Pan>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [baseSize, setBaseSize] = useState<ContentSize>({ width: 0, height: 0 });
   const onSvgReadyRef = useRef(onSvgReady);
   const onRepairedSourceRef = useRef(onRepairedSource);
 
@@ -48,15 +92,28 @@ export function MermaidPreview({
     onRepairedSourceRef.current = onRepairedSource;
   }, [onRepairedSource]);
 
-  useEffect(() => {
+  const resetView = useCallback(() => {
     setZoom(1);
-  }, [source, svg]);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  const captureBaseSize = useCallback(() => {
+    requestAnimationFrame(() => {
+      setBaseSize(measureDisplayedSize(ref.current));
+    });
+  }, []);
+
+  useEffect(() => {
+    resetView();
+    setBaseSize({ width: 0, height: 0 });
+  }, [source, svg, resetView]);
 
   useLayoutEffect(() => {
     if (!mounted || loading || !svg || !ref.current) return;
     ref.current.innerHTML = svg;
     setError(null);
-  }, [mounted, loading, svg]);
+    captureBaseSize();
+  }, [mounted, loading, svg, captureBaseSize]);
 
   useEffect(() => {
     if (!mounted || loading || svg) return;
@@ -76,6 +133,7 @@ export function MermaidPreview({
         if (cancelled || !ref.current) return;
         ref.current.innerHTML = renderedSvg;
         setError(null);
+        captureBaseSize();
         onRepairedSourceRef.current?.(repairedSource);
         onSvgReadyRef.current?.(toMermaidExportPayload(renderedSvg));
       } catch (e) {
@@ -91,21 +149,85 @@ export function MermaidPreview({
     return () => {
       cancelled = true;
     };
-  }, [mounted, source, svg, loading]);
+  }, [mounted, source, svg, loading, captureBaseSize]);
 
   const zoomOut = useCallback(() => {
-    setZoom((current) => clampZoom(Number((current - ZOOM_STEP).toFixed(2))));
-  }, []);
+    setZoom((current) => {
+      const next = clampZoom(Number((current - ZOOM_STEP).toFixed(2)));
+      if (current !== 1 && next === 1) {
+        captureBaseSize();
+      }
+      return next;
+    });
+  }, [captureBaseSize]);
 
   const zoomIn = useCallback(() => {
-    setZoom((current) => clampZoom(Number((current + ZOOM_STEP).toFixed(2))));
-  }, []);
+    setZoom((current) => {
+      if (current === 1) {
+        captureBaseSize();
+      }
+      return clampZoom(Number((current + ZOOM_STEP).toFixed(2)));
+    });
+  }, [captureBaseSize]);
 
-  const resetZoom = useCallback(() => {
-    setZoom(1);
-  }, []);
+  const handleReset = useCallback(() => {
+    resetView();
+    captureBaseSize();
+  }, [captureBaseSize, resetView]);
 
   const displayError = externalError ?? error;
+  const isDefaultView = zoom === 1 && pan.x === 0 && pan.y === 0;
+  const useCanvasMode = !isDefaultView;
+
+  const stageStyle: CSSProperties = {
+    transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+    transformOrigin: "top left",
+    width:
+      useCanvasMode && baseSize.width > 0 ? baseSize.width : "100%",
+  };
+
+  const endDrag = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    dragRef.current = null;
+    setIsDragging(false);
+    if (viewportRef.current?.hasPointerCapture(event.pointerId)) {
+      viewportRef.current.releasePointerCapture(event.pointerId);
+    }
+  }, []);
+
+  const handlePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (loading || event.button !== 0) return;
+      if (isDefaultView) {
+        captureBaseSize();
+      }
+      event.preventDefault();
+      viewportRef.current?.setPointerCapture(event.pointerId);
+      dragRef.current = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        panX: pan.x,
+        panY: pan.y,
+      };
+      setIsDragging(true);
+    },
+    [captureBaseSize, isDefaultView, loading, pan.x, pan.y]
+  );
+
+  const handlePointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+      event.preventDefault();
+      setPan({
+        x: drag.panX + (event.clientX - drag.startX),
+        y: drag.panY + (event.clientY - drag.startY),
+      });
+    },
+    []
+  );
 
   if (!mounted) {
     return (
@@ -144,11 +266,12 @@ export function MermaidPreview({
         <button
           type="button"
           className={classes.resetBtn}
-          onClick={resetZoom}
-          disabled={zoom === 1 || loading}
+          onClick={handleReset}
+          disabled={isDefaultView || loading}
         >
           Reset
         </button>
+        <span className={classes.panHint}>Drag to pan</span>
       </div>
 
       {loading ? (
@@ -157,10 +280,20 @@ export function MermaidPreview({
 
       {displayError ? <div className={classes.error}>{displayError}</div> : null}
 
-      <div className={classes.viewport}>
+      <div
+        ref={viewportRef}
+        className={`${classes.viewport} ${isDragging ? classes.viewportDragging : ""}`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onPointerLeave={endDrag}
+        role="presentation"
+        aria-label="Diagram preview canvas. Drag to pan, use zoom controls to scale."
+      >
         <div
-          className={classes.scaledLayer}
-          style={{ zoom } as CSSProperties}
+          className={`${classes.stage} ${useCanvasMode ? classes.stageCanvas : classes.stageFit}`}
+          style={stageStyle}
         >
           <div ref={ref} className={classes.canvas} />
         </div>

@@ -1081,7 +1081,7 @@ export const LibraryPage = () => {
               <input type="hidden" name="intent" value="academic-search" />
               <Button
                 type="submit"
-                size="compact-xs"
+                size="xs"
                 loading={academicFetcher.state !== "idle"}
                 disabled={!academicQuery.trim()}
               >
@@ -1098,7 +1098,7 @@ export const LibraryPage = () => {
               <input type="hidden" name="intent" value="policy-search" />
               <Button
                 type="submit"
-                size="compact-xs"
+                size="xs"
                 loading={policyFetcher.state !== "idle"}
                 disabled={!policyQuery.trim()}
               >

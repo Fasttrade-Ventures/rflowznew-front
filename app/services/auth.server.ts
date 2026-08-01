@@ -20,6 +20,7 @@ export interface User {
   created_at: string;
   updated_at: string;
   subscription_status: string | null;
+  plan_key?: string | null;
 }
 
 // Create an instance of the authenticator, pass a generic with what
@@ -117,21 +118,22 @@ export async function updateUserScale(
 
 export async function updateUserSubscriptionStatus(
   request: Request,
-  subscriptionStatus: string | null
+  subscriptionStatus: string | null,
+  planKey?: string | null
 ) {
-  console.log("Updating subscription statuszzz 🔥🔥🔥🔥");
   const session = await sessionStorage.getSession(
     request.headers.get("Cookie")
   );
   const user = session.get("user") as User | undefined;
 
   if (user) {
-    console.log("User 🔥🔥🔥🔥", user);
     user.subscription_status = subscriptionStatus;
+    if (planKey !== undefined) {
+      user.plan_key = planKey;
+    }
     session.set("user", user);
     return sessionStorage.commitSession(session);
   }
-  console.log("NO userrr 🔥🔥🔥🔥");
 
   return null;
 }

@@ -34,31 +34,11 @@
 }
 
 .exportActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
 }
 
-.exportBtn {
-  background: var(--rz-background);
-  border: 1px solid var(--rz-border);
-  border-radius: var(--rz-radius-md);
-  color: var(--rz-foreground);
-  cursor: pointer;
-  font-size: 9px;
-  font-weight: 600;
-  padding: 5px 10px;
-}
-
-.exportBtnPrimary {
-  background: #e7f5ff;
-  border-color: var(--rz-primary);
-  color: var(--rz-primary);
-}
-
-.exportBtn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
+.historyActions {
+  align-items: center;
 }
 
 .body {
@@ -109,19 +89,6 @@
   font-size: 9px;
   font-weight: 600;
   padding: 3px 8px;
-}
-
-.stitchBanner {
-  align-items: flex-start;
-  background: #e7f5ff;
-  border: 1px solid var(--rz-primary);
-  border-radius: var(--rz-radius-md);
-  color: var(--rz-foreground);
-  display: flex;
-  font-size: 9px;
-  gap: 8px;
-  line-height: 1.45;
-  padding: 8px 10px;
 }
 
 .statusPanel {
@@ -350,10 +317,6 @@
   line-height: 1.45;
 }
 
-.exportBtnFailed {
-  color: #c92a2a;
-}
-
 .historyTitle {
   border-top: 1px solid var(--rz-border);
   font-size: 10px;
@@ -399,12 +362,6 @@
   border-radius: 999px;
   font-weight: 700;
   padding: 2px 6px;
-}
-
-.historyActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
 }
 
 @media (max-width: 900px) {

@@ -91,10 +91,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     isCustomized: formattingRes.data?.is_customized ?? false,
   };
 
-  if (user.subscription_status !== userRes.data?.subscription_status) {
+  if (
+    user.subscription_status !== userRes.data?.subscription_status ||
+    user.plan_key !== userRes.data?.plan_key
+  ) {
     const newCookie = await updateUserSubscriptionStatus(
       request,
-      userRes.data?.subscription_status || null
+      userRes.data?.subscription_status || null,
+      userRes.data?.plan_key ?? null
     );
     if (newCookie) {
       return redirectWithToast(
@@ -253,7 +257,7 @@ const marks = [
 
 function ProfileV2() {
   const navigation = useNavigation();
-  const { user, subscription, formatting } = useLoaderData<typeof loader>();
+  const { user, subscription, timeZone, formatting } = useLoaderData<typeof loader>();
   const profileFetcher = useFetcher<typeof action>();
   const actionData = useActionData<typeof action>();
   const manageSubscriptionLoading =
@@ -296,6 +300,16 @@ function ProfileV2() {
                 <span className={classes.kvLabel}>Status</span>
                 <span className={classes.kvValue}>{subscription.status}</span>
               </div>
+              {subscription.current_period_end ? (
+                <div className={classes.kvRow}>
+                  <span className={classes.kvLabel}>Renews</span>
+                  <span className={classes.kvValue}>
+                    {dayjs(subscription.current_period_end)
+                      .tz(timeZone)
+                      .format("DD MMM YYYY")}
+                  </span>
+                </div>
+              ) : null}
               <div className={classes.kvRow}>
                 <span className={classes.kvLabel}>Proposal limit</span>
                 <span className={classes.kvValue}>
@@ -319,14 +333,7 @@ function ProfileV2() {
             </V2Card>
           )}
 
-          <div
-            className={classes.v2Card}
-            style={{
-              alignItems: "center",
-              flexDirection: "row",
-              justifyContent: "space-between",
-            }}
-          >
+          <div className={`${classes.v2Card} ${classes.profileSubscriptionRow}`}>
             <div>
               <div className={classes.v2CardTitle}>Subscription</div>
               <div className={classes.v2CardSub}>
@@ -367,7 +374,7 @@ function ProfileV2() {
 
         <Stack gap={10}>
           <V2Card title="Profile" subtitle="Your account information">
-            <Group gap={10} align="flex-start" wrap="nowrap">
+            <Group gap={10} align="flex-start" wrap="wrap">
               <Box
                 style={{
                   alignItems: "center",
@@ -400,7 +407,7 @@ function ProfileV2() {
           <ChangePasswordCard actionData={actionData ?? undefined} />
 
           <V2Card title="Appearance" subtitle="Theme color and font size">
-            <Group justify="space-between">
+            <Group justify="space-between" wrap="wrap" gap="sm">
               <Text size="sm" fw={600}>
                 Theme
               </Text>
@@ -426,11 +433,11 @@ function ProfileV2() {
               </Button.Group>
             </Group>
             <CDivider darkColor="var(--rz-border)" />
-            <Group justify="space-between" align="center" wrap="nowrap">
+            <Group justify="space-between" align="center" wrap="wrap" gap="sm">
               <Text size="sm" fw={600}>
                 Font size
               </Text>
-              <Box style={{ flex: 1, maxWidth: 180 }}>
+              <Box style={{ flex: 1, minWidth: 140, maxWidth: "100%" }}>
                 <Slider
                   defaultValue={
                     marks.findIndex((mark) => mark.label === user?.scale) * 25

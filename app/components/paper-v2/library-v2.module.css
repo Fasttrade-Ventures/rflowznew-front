@@ -109,7 +109,7 @@
 }
 
 .searchRow {
-  align-items: flex-end;
+  align-items: stretch;
   display: flex;
   gap: 8px;
 }
@@ -118,10 +118,14 @@
   background: var(--rz-background);
   border: 1px solid var(--rz-border);
   border-radius: var(--rz-radius-sm);
+  box-sizing: border-box;
   flex: 1;
   font-size: 11px;
+  height: var(--rz-control-height, 32px);
+  line-height: normal;
+  min-height: var(--rz-control-height, 32px);
   min-width: 0;
-  padding: 8px 10px;
+  padding: 0 10px;
 }
 
 .hint {
@@ -240,6 +244,19 @@
 
 @media (max-width: 62em) {
   .dualBody {
+    grid-template-columns: 1fr;
+  }
+
+  .pageHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .headerActions {
+    width: 100%;
+  }
+
+  .statsRow {
     grid-template-columns: 1fr;
   }
 }

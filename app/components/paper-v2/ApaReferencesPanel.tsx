@@ -3,6 +3,7 @@ import {
   formatApaReference,
   getCitedLibraryEntries,
 } from "#app/utils/format-library-reference";
+import { Button } from "@mantine/core";
 import { Link } from "@remix-run/react";
 
 import classes from "./review-proposal-v2.module.css";
@@ -37,9 +38,9 @@ export function ApaReferencesPanel({
             {webCount} web/policy/media
           </div>
         </div>
-        <Link to={`/paper/${paperId}/library`} className={classes.exportBtn}>
+        <Button component={Link} to={`/paper/${paperId}/library`} variant="outline" size="xs">
           Manage library
-        </Link>
+        </Button>
       </div>
 
       {cited.length === 0 ? (

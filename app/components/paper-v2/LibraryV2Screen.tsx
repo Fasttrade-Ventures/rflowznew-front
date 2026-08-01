@@ -156,7 +156,7 @@ export function LibraryV2Screen({
             <span className={classes.badge}>Academic RAG</span>
           </div>
           <span className={classes.prefillNote}>Prefilled from refined statement</span>
-          <div className={classes.searchRow}>
+          <div className={`${classes.searchRow} inputButtonRow`}>
             <input
               className={classes.searchInput}
               name="q"
@@ -237,7 +237,7 @@ export function LibraryV2Screen({
           <span className={classes.prefillNote}>
             {paperTitle ? "Prefilled from project title" : "Prefilled from topic"}
           </span>
-          <div className={classes.searchRow}>
+          <div className={`${classes.searchRow} inputButtonRow`}>
             <input
               className={classes.searchInput}
               name="q"

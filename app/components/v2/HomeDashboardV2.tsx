@@ -2,6 +2,13 @@ import { Button, Progress, Text } from "@mantine/core";
 import { Link } from "@remix-run/react";
 
 import { Icon } from "#app/components/icon";
+import {
+  currentStepLabel,
+  formatActivityWhen,
+  type DashboardActivity,
+  type DashboardStats,
+} from "#app/utils/home-dashboard";
+import { displayFirstName } from "#app/utils/plan";
 import { StatCard } from "./PaperScreen";
 import { PageBreadcrumb } from "./V2UIKit";
 import classes from "./v2.module.css";
@@ -13,49 +20,47 @@ type PaperListItem = {
   created_at: string;
 };
 
-type DashboardStats = {
-  activeProjects: number;
-  citationsSaved: number;
-  avgCompletion: number;
-};
-
-const RECENT_ACTIVITY = [
-  "Added citations to a project",
-  "Generated problem statement",
-  "Updated methodology section",
-  "Exported DOCX proposal",
-] as const;
-
-function stepLabel(progress: number): string {
-  if (progress >= 100) return "Review Proposal · Complete";
-  if (progress >= 75) return "Frameworks · Step 8/9";
-  if (progress >= 60) return "Methodology · Step 7/9";
-  if (progress >= 45) return "Philosophy · Step 6/9";
-  if (progress >= 30) return "Research Questions · Step 5/9";
-  if (progress >= 15) return "Problem Statement · Step 4/9";
-  return "Source Library · Step 3/9";
-}
-
 export function HomeDashboardV2({
   papers,
   stats,
+  activity,
   userName,
-  isPro,
+  userEmail,
 }: {
   papers?: PaperListItem[];
   stats: DashboardStats;
+  activity: DashboardActivity[];
   userName?: string;
-  isPro?: boolean;
+  userEmail?: string;
 }) {
   const list = papers ?? [];
-  const firstName = userName?.split(" ")[0] ?? "there";
+  const firstName = displayFirstName(userName, userEmail);
   const inProgress = list
-    .filter((p) => p.overall_progress < 100)
+    .filter((paper) => paper.overall_progress < 100)
     .sort(
       (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )
     .slice(0, 3);
+
+  const projectsSub =
+    stats.projectsThisMonth > 0
+      ? `${stats.projectsThisMonth} created this month`
+      : stats.totalProjects > 0
+        ? `${stats.totalProjects} total`
+        : "Start your first project";
+
+  const citationsSub =
+    stats.citationsThisWeek > 0
+      ? `${stats.citationsThisWeek} added this week`
+      : stats.citationsSaved > 0
+        ? "Across all projects"
+        : "Save sources from your library";
+
+  const completionSub =
+    stats.totalProjects > 0
+      ? `${stats.completedProjects} completed`
+      : "No projects yet";
 
   return (
     <div className={classes.dashboard}>
@@ -86,25 +91,25 @@ export function HomeDashboardV2({
         <StatCard
           label="Active projects"
           value={stats.activeProjects}
-          sub="+1 this month"
+          sub={projectsSub}
           accent
         />
         <StatCard
           label="Citations saved"
           value={stats.citationsSaved}
-          sub="+12 this week"
+          sub={citationsSub}
           accent
         />
         <StatCard
           label="Avg completion"
           value={`${stats.avgCompletion}%`}
-          sub="Across projects"
+          sub={completionSub}
           accent
         />
         <StatCard
           label="AI generations"
-          value={isPro ? "36" : "—"}
-          sub={isPro ? "Pro plan" : "Upgrade to Pro"}
+          value={stats.aiRemaining}
+          sub={stats.aiSub}
           accent
         />
       </div>
@@ -141,7 +146,7 @@ export function HomeDashboardV2({
                     </div>
                   </div>
                   <Text size="xs" c="dimmed">
-                    {stepLabel(paper.overall_progress)}
+                    {currentStepLabel(paper.overall_progress)}
                   </Text>
                   <Progress
                     size="xs"
@@ -199,14 +204,31 @@ export function HomeDashboardV2({
 
           <div className={`${classes.dashboardPanel} ${classes.activityPanel}`}>
             <div className={classes.panelHeading}>Recent activity</div>
-            <ul className={classes.activityList}>
-              {RECENT_ACTIVITY.map((item) => (
-                <li key={item} className={classes.activityItem}>
-                  <span className={classes.activityDot} />
-                  {item}
-                </li>
-              ))}
-            </ul>
+            {activity.length === 0 ? (
+              <Text size="xs" c="dimmed">
+                Activity from your projects and library will appear here.
+              </Text>
+            ) : (
+              <ul className={classes.activityList}>
+                {activity.map((item) => (
+                  <li key={item.id} className={classes.activityItem}>
+                    <span className={classes.activityDot} />
+                    <span className={classes.activityContent}>
+                      {item.href ? (
+                        <Link to={item.href} className={classes.activityLink}>
+                          {item.label}
+                        </Link>
+                      ) : (
+                        item.label
+                      )}
+                      <span className={classes.activityWhen}>
+                        {formatActivityWhen(item.occurredAt)}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </div>

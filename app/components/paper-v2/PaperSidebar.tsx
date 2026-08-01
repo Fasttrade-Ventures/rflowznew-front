@@ -12,6 +12,7 @@ type PaperSidebarProps = Pick<
 > & {
   paperTitle?: string;
   overallProgress?: number;
+  onNavigate?: () => void;
 };
 
 export function PaperSidebar({
@@ -19,6 +20,7 @@ export function PaperSidebar({
   paperTitle,
   progress,
   overallProgress = 0,
+  onNavigate,
 }: PaperSidebarProps) {
   return (
     <aside className={classes.sidebar}>
@@ -29,6 +31,7 @@ export function PaperSidebar({
           color="gray"
           component={Link}
           to="/"
+          onClick={onNavigate}
           leftSection={
             <Icon
               name="arrow-narrow-left-outline"
@@ -61,6 +64,7 @@ export function PaperSidebar({
                   <RemixNavLink
                     key={item.path}
                     to={href}
+                    onClick={onNavigate}
                     style={{ textDecoration: "none" }}
                   >
                     {({ isActive }) => (
@@ -102,6 +106,7 @@ export function PaperSidebar({
       <div className={classes.sidebarFooter}>
         <RemixNavLink
           to={`/paper/${paperId}/settings`}
+          onClick={onNavigate}
           style={{ textDecoration: "none" }}
         >
           {({ isActive }) => (

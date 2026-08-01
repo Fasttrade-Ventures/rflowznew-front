@@ -2,6 +2,7 @@ import NavbarAvatar from "#app/components/ui/NavbarAvatar";
 import { ThemeSwitch } from "#app/routes/resources+/theme-switch";
 import { loader as rootLoader } from "#app/root.tsx";
 import { useIsPending } from "#app/utils/misc";
+import { displayFirstName, getPlanDisplayLabel } from "#app/utils/plan";
 import { Badge, Group, Loader, Menu, rem, Stack, Text } from "@mantine/core";
 import { Form, Link, useRouteLoaderData } from "@remix-run/react";
 
@@ -24,28 +25,33 @@ export function AppHeaderV2() {
     month: "long",
     year: "numeric",
   });
-  const greet = `${greetingForHour(now.getHours())}, ${user?.name?.split(" ")[0] ?? "there"}`;
+  const firstName = displayFirstName(user?.name, user?.email);
+  const greet = `${greetingForHour(now.getHours())}, ${firstName}`;
+  const planLabel = getPlanDisplayLabel(
+    user?.plan_key,
+    user?.subscription_status
+  );
 
   return (
     <header className={classes.header}>
-      <Stack gap={2}>
+      <Stack gap={2} className={classes.headerIntro}>
         <Text className={classes.headerDate}>{dateLabel}</Text>
         <Text className={classes.headerGreet}>{greet}</Text>
       </Stack>
 
-      <Group gap={8}>
-        <Badge size="sm" variant="light" color="blue">
-          {user?.subscription_status === "active" ? "Pro Plan" : "Free"}
+      <Group gap={8} wrap="nowrap" className={classes.headerActions}>
+        <Badge size="sm" variant="light" color="blue" className={classes.planBadge}>
+          {planLabel}
         </Badge>
 
         <Menu shadow="md" width={200} position="bottom-end">
           <Menu.Target>
             <button type="button" className={classes.profileBtn}>
               <NavbarAvatar username={user?.name ?? ""} />
-              <Text size="xs" fw={500}>
-                {user?.name?.split(" ")[0]}
+              <Text size="xs" fw={500} className={classes.profileName}>
+                {firstName}
               </Text>
-              <Text size="xs" c="dimmed">
+              <Text size="xs" c="dimmed" className={classes.profileCaret}>
                 ▾
               </Text>
             </button>

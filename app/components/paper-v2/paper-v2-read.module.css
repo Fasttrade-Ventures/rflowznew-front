@@ -1,0 +1,11 @@
+.root {
+  color: var(--rz-foreground);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.empty {
+  color: var(--rz-muted-foreground);
+}

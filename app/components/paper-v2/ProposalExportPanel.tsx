@@ -1,6 +1,7 @@
 import type { GeneratedDocument } from "#app/services/paper.server";
 import type { ProjectMetadataIssue } from "#app/utils/project-metadata-export";
 import { projectMetadataWarningMessage } from "#app/utils/project-metadata-export";
+import { Button, Group } from "@mantine/core";
 import { Form, Link } from "@remix-run/react";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
@@ -71,36 +72,38 @@ function FormatButton({
 
   if (status === "completed" && url) {
     return (
-      <Link
-        className={classes.exportBtn}
-        reloadDocument
+      <Button
+        component={Link}
         to={downloadPath(format, url, dateSlug)}
+        reloadDocument
+        variant="outline"
+        size="xs"
       >
         {label}
-      </Link>
+      </Button>
     );
   }
 
   if (status === "pending") {
     return (
-      <button type="button" className={classes.exportBtn} disabled>
+      <Button variant="outline" size="xs" disabled>
         {label}…
-      </button>
+      </Button>
     );
   }
 
   if (status === "failed") {
     return (
-      <button type="button" className={`${classes.exportBtn} ${classes.exportBtnFailed}`} disabled>
+      <Button variant="outline" size="xs" color="red" disabled>
         {label} failed
-      </button>
+      </Button>
     );
   }
 
   return (
-    <button type="button" className={classes.exportBtn} disabled>
+    <Button variant="outline" size="xs" disabled>
       {label}
-    </button>
+    </Button>
   );
 }
 
@@ -160,7 +163,7 @@ export function ProposalExportPanel({
             {exportPptx ? ", and PPTX" : ""} from your assembled sections.
           </div>
         </div>
-        <div className={classes.exportActions}>
+        <Group gap={6} wrap="wrap" className={classes.exportActions}>
           <FormatButton
             format="docx"
             doc={latest}
@@ -183,17 +186,18 @@ export function ProposalExportPanel({
           ) : null}
           <Form method="post">
             <input type="hidden" name="paperId" value={paperId} />
-            <button
+            <Button
               type="submit"
               name="intent"
               value="generate-documents"
-              className={`${classes.exportBtn} ${classes.exportBtnPrimary}`}
+              size="xs"
               disabled={!canGenerate || isPending || hasPending}
+              loading={isPending || hasPending}
             >
-              {isPending || hasPending ? "Generating…" : "New version"}
-            </button>
+              New version
+            </Button>
           </Form>
-        </div>
+        </Group>
       </div>
 
       <div className={classes.exportMeta}>
@@ -229,7 +233,7 @@ export function ProposalExportPanel({
                 </span>
                 <span>{formatDate(doc.created_at, timeZone)}</span>
               </div>
-              <div className={classes.historyActions}>
+              <Group gap={6} wrap="wrap" className={classes.historyActions}>
                 <FormatButton
                   format="docx"
                   doc={doc}
@@ -250,7 +254,7 @@ export function ProposalExportPanel({
                     label="PPTX"
                   />
                 ) : null}
-              </div>
+              </Group>
             </div>
           ))}
         </div>

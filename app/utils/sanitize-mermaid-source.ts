@@ -68,6 +68,13 @@ function sanitizeQuotedSubgraphLabels(text: string): string {
   });
 }
 
+function formatRectLabel(cleaned: string): string {
+  if (!cleaned) return "[]";
+  const escaped = cleaned.replace(/"/g, "'");
+  if (/[,;:()\/&]/.test(escaped)) return `["${escaped}"]`;
+  return `[${escaped}]`;
+}
+
 function sanitizeNodeLabels(text: string): string {
   return text.replace(
     /(\[\[[^\]]*\]\]|\[[^\]]*\]|\{[^}]*\}|\([^)]*\))/g,
@@ -75,13 +82,24 @@ function sanitizeNodeLabels(text: string): string {
       if (segment.startsWith("((")) {
         return `((${truncateLabel(sanitizeLabelText(segment.slice(2, -2)))}))`;
       }
-      if (segment.startsWith("(")) {
-        return `(${truncateLabel(sanitizeLabelText(segment.slice(1, -1)))})`;
+      if (segment.startsWith("(") && !segment.startsWith("((")) {
+        const inner = segment.slice(1, -1);
+        const cleaned = truncateLabel(sanitizeLabelText(inner));
+        if (/[,;:()\/&]/.test(cleaned)) {
+          return `["${cleaned.replace(/"/g, "'")}"]`;
+        }
+        return `(${cleaned})`;
       }
-      const open = segment.startsWith("[[") ? "[[" : segment[0];
-      const close = segment.startsWith("[[") ? "]]" : segment[segment.length - 1];
-      const inner = segment.slice(open.length, segment.length - close.length);
-      return `${open}${truncateLabel(sanitizeLabelText(inner))}${close}`;
+      if (segment.startsWith("{")) {
+        const cleaned = truncateLabel(sanitizeLabelText(segment.slice(1, -1)));
+        return `{${cleaned}}`;
+      }
+      if (segment.startsWith("[[")) {
+        const cleaned = truncateLabel(sanitizeLabelText(segment.slice(2, -2)));
+        return `[[${cleaned}]]`;
+      }
+      const cleaned = truncateLabel(sanitizeLabelText(segment.slice(1, -1)));
+      return formatRectLabel(cleaned);
     }
   );
 }
@@ -128,12 +146,46 @@ function fixLinesWithUnbalancedQuotes(text: string): string {
 }
 
 function simplifyBracketLabels(text: string): string {
-  return text.replace(/\["([^"\[\]]+)"\]/g, (_, label: string) => {
+  let output = text.replace(/\["([^"\[\]]+)"\]/g, (_, label: string) => {
     const cleaned = truncateLabel(sanitizeLabelText(label));
     if (!cleaned) return "[]";
-    if (/[,;:()\/]/.test(cleaned)) return `["${cleaned}"]`;
-    return `[${cleaned}]`;
+    return formatRectLabel(cleaned);
   });
+
+  output = output.replace(/(?<!\[)\[([^\[\]]+)\](?!\])/g, (_, label: string) => {
+    const cleaned = truncateLabel(sanitizeLabelText(label));
+    return formatRectLabel(cleaned);
+  });
+
+  return output;
+}
+
+/** Insert arrows between node definitions glued on one line: `]B[` → `] --> B[`. */
+function fixGluedNodes(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => {
+      if (/^subgraph\b/i.test(line.trim()) || /^end\b/i.test(line.trim())) {
+        return line;
+      }
+
+      let fixed = line.replace(
+        /([\]\)])\s*([A-Za-z_][\w]*)\s*(?=(\[\[|\[|\{|\(|\(\())/g,
+        "$1 --> $2"
+      );
+
+      fixed = fixed.replace(
+        /(\]\]|])\s*(?=(\[\[|\[))/g,
+        (match, closing, _lookahead, offset, whole) => {
+          const before = whole.slice(0, offset).trimEnd();
+          if (/-->$|---->|-\.->$/.test(before)) return match;
+          return `${closing} --> `;
+        }
+      );
+
+      return fixed;
+    })
+    .join("\n");
 }
 
 /** Split node IDs glued to closing brackets/parens: `Users]G -->` → `Users]\nG -->`. */
@@ -141,9 +193,10 @@ function splitDenseEdgeLines(text: string): string {
   return text
     .split("\n")
     .flatMap((line) => {
-      if (!/-->|---|-\.->/.test(line)) return [line];
+      let fixed = fixGluedNodes(line);
+      if (!/-->|---|-\.->/.test(fixed)) return [fixed];
 
-      let fixed = line
+      fixed = fixed
         .replace(
           /\]\s*([A-Za-z_][\w]*)\s*(-->|---|-\.->)/g,
           "]\n$1 $2"
@@ -156,6 +209,8 @@ function splitDenseEdgeLines(text: string): string {
           /(-->|---|-\.->)\s*([A-Za-z][\w]*)\s+([A-Za-z_][\w]*)\s*\[/g,
           "$1 $3["
         );
+
+      fixed = fixGluedNodes(fixed);
 
       return fixed.split("\n").map((part) => part.trim()).filter(Boolean);
     })
@@ -256,12 +311,14 @@ export function sanitizeMermaidSource(raw: string): string {
   let text = stripMarkdownFences(raw);
   text = ensureDiagramHeader(text);
   text = fixBrokenQuotes(text);
+  text = fixGluedNodes(text);
   text = splitDenseEdgeLines(text);
   text = fixUnclosedBracketLabels(text);
   text = fixSubgraphs(text);
   text = fixQuotedEdgeLabels(text);
   text = fixMalformedQuotedEdges(text);
   text = simplifyBracketLabels(text);
+  text = fixGluedNodes(text);
   text = sanitizeQuotedSubgraphLabels(text);
   text = sanitizeNodeLabels(text);
   text = sanitizeEdgeLabels(text);
@@ -276,6 +333,7 @@ export function sanitizeMermaidSource(raw: string): string {
 export function repairMermaidSource(raw: string): string {
   let text = sanitizeMermaidSource(raw);
   text = removeUnsupportedDirectives(text);
+  text = fixGluedNodes(text);
   text = splitDenseEdgeLines(text);
   text = fixUnclosedBracketLabels(text);
   text = fixMalformedQuotedEdges(text);

@@ -1,7 +1,9 @@
-import { Badge, Button, Collapse, Group, Text, Textarea } from "@mantine/core";
+import { Badge, Button, Collapse, Group, Text } from "@mantine/core";
 import { useState } from "react";
 
 import { FrameworkDiagramPanel } from "#app/components/paper-v2/FrameworkDiagramPanel";
+import { AskProfZButton } from "#app/components/paper-v2/AskProfZButton";
+import { RichTextEditorShell } from "#app/components/paper-v2/RichTextEditorShell";
 import type { ProposalSection } from "#app/services/proposal-assembly.server";
 import classes from "./proposal-accordion.module.css";
 
@@ -42,7 +44,7 @@ const SECTION_ORDER: Array<{
   {
     key: "references",
     label: "References (APA 7)",
-    hint: "From Library · Stitched · 0 tokens",
+    hint: "From Library · Stitched · 0 tokens · ✎ editable",
   },
   {
     key: "diagram",
@@ -76,6 +78,7 @@ export function ProposalAccordion({
 }: ProposalAccordionProps) {
   const [openKey, setOpenKey] = useState<string>("introduction");
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [focusedKey, setFocusedKey] = useState<string | null>(null);
 
   return (
     <div className={classes.wrap}>
@@ -114,12 +117,23 @@ export function ProposalAccordion({
                     imageUrl={section.image_url}
                   />
                 ) : section.editable ? (
-                  <Textarea
-                    minRows={6}
-                    autosize
+                  <RichTextEditorShell
                     value={content}
-                    onChange={(e) =>
-                      setDrafts((d) => ({ ...d, [key]: e.currentTarget.value }))
+                    onChange={(text) =>
+                      setDrafts((d) => ({ ...d, [key]: text }))
+                    }
+                    active={focusedKey === key}
+                    minRows={key === "references" ? 8 : 6}
+                    disabled={regeneratingKey === key}
+                    placeholder={
+                      key === "references"
+                        ? "APA 7 references — one entry per paragraph"
+                        : `Edit ${label.toLowerCase()}…`
+                    }
+                    hint="✎ Click to edit"
+                    onFocus={() => setFocusedKey(key)}
+                    onBlur={() =>
+                      setFocusedKey((current) => (current === key ? null : current))
                     }
                   />
                 ) : (
@@ -128,7 +142,14 @@ export function ProposalAccordion({
                   </Text>
                 )}
                 {section.editable && key !== "diagram" && (
-                  <Group mt={8} gap={8}>
+                  <Group
+                    mt={8}
+                    gap={8}
+                    align="center"
+                    className={
+                      regeneratable ? classes.actionsWithProfZ : undefined
+                    }
+                  >
                     <Button
                       size="xs"
                       loading={savingKey === key}
@@ -137,14 +158,11 @@ export function ProposalAccordion({
                       Save section
                     </Button>
                     {regeneratable && onRegenerate ? (
-                      <Button
-                        size="xs"
-                        variant="light"
-                        loading={regeneratingKey === key}
+                      <AskProfZButton
                         onClick={() => onRegenerate(key)}
-                      >
-                        Regenerate (AI)
-                      </Button>
+                        loading={regeneratingKey === key}
+                        disabled={regeneratingKey === key}
+                      />
                     ) : null}
                   </Group>
                 )}

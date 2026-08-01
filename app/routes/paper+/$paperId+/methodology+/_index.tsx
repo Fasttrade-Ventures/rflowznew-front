@@ -13,6 +13,7 @@ import { Button, Group, Stack, Text, Title } from "@mantine/core";
 import { json, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import CDivider from "#app/components/ui/CDivider";
+import { V2ReadContent } from "#app/components/paper-v2/V2ReadContent";
 import { FormattedText } from "#app/components/ui/FormattedText";
 
 dayjs.extend(utc);
@@ -105,7 +106,7 @@ export const MethodologyIndexPage = () => {
       {sections.map((section, index) =>
         isV2 ? (
           <PaperPanel key={section.title} title={section.title}>
-            <FormattedText content={section.content} />
+            <V2ReadContent content={section.content} />
           </PaperPanel>
         ) : (
           <Stack key={section.title}>
