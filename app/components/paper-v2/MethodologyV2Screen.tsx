@@ -8,7 +8,6 @@ import {
   METHODOLOGY_COLLECTION_OPTIONS,
   METHODOLOGY_DESIGN_OPTIONS,
   suggestedDesignKey,
-  type MethodologyDesignKey,
   type MethodologyV2FormValues,
 } from "#app/utils/methodology-v2";
 import { Alert, Button, Textarea } from "@mantine/core";
@@ -178,7 +177,7 @@ Coherence Engine only fires when your selections don't match your philosophy`}
           <section className={classes.coherenceEngine}>
             <div className={classes.coherenceHeader}>
               <span className={classes.coherenceTitle}>
-                ⚠ Your SELECT doesn't match your philosophy
+                ⚠ Your SELECT doesn&apos;t match your philosophy
               </span>
               <span className={classes.mismatchBadge}>Review needed</span>
             </div>

@@ -19,7 +19,7 @@ export const NoSubscriptionEmptyState = () => {
                 No Active Subscription
               </Text>
               <Text c="dimmed" ta="center" size="sm">
-                You currently don't have an active subscription. Subscribe now
+                You currently don&apos;t have an active subscription. Subscribe now
                 to access all features!
               </Text>
             </Stack>

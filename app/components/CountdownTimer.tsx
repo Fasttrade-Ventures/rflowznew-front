@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Button, Image, Stack, Text, Title } from "@mantine/core";
+import { Box, Button, Stack, Text, Title } from "@mantine/core";
 import classes from "./CountdownTimer.module.css";
 import { Link } from "@remix-run/react";
 
@@ -91,7 +91,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
           </Stack>
           {formatTime(timeRemaining)}
           <Text size="lg" fw={500} c="var(--mantine-primary-color-9)">
-            Get it before it's too late!
+            Get it before it&apos;s too late!
           </Text>
           {showButton ? (
             <Box>

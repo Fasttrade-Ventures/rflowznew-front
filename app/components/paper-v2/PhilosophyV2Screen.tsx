@@ -8,7 +8,6 @@ import {
   readPhilosophyChoice,
   writePhilosophyChoice,
   type PhilosophyAnswers,
-  type PhilosophyStepKey,
 } from "#app/utils/philosophy-dialogue";
 import { Button } from "@mantine/core";
 import Ably from "ably";

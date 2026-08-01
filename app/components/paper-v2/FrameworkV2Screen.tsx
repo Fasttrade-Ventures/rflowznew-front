@@ -47,7 +47,6 @@ export function FrameworkV2Screen({
   paperId,
   libraryEntries,
   initial,
-  renderedPngUrl,
   saving,
   rendering,
   saveError,
