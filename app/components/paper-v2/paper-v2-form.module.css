@@ -1,0 +1,51 @@
+.formFooter {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+  padding-top: 8px;
+  width: 100%;
+}
+
+@media (min-width: 901px) {
+  .formFooter {
+    align-items: flex-end;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 62em) {
+  .formFooter {
+    margin-top: 8px;
+    padding: 12px 0 8px;
+  }
+
+  .formFooter > :global(.mantine-Button-root) {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+.formActions {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-top: 8px;
+  width: 100%;
+}
+
+@media (max-width: 62em) {
+  .formActions {
+    flex-direction: column;
+    padding: 12px 0 8px;
+  }
+
+  .formActions > :global(.mantine-Button-root) {
+    max-width: 100%;
+    width: 100%;
+  }
+}

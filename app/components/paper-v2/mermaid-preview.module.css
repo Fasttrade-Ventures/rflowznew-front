@@ -18,6 +18,12 @@
   font-weight: 600;
 }
 
+.panHint {
+  color: var(--rz-muted-foreground);
+  font-size: 9px;
+  margin-left: auto;
+}
+
 .zoomBtn {
   align-items: center;
   background: var(--rz-background);
@@ -33,6 +39,8 @@
   line-height: 1;
   min-width: 24px;
   padding: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .zoomBtn:disabled {
@@ -57,6 +65,8 @@
   font-size: 9px;
   font-weight: 600;
   padding: 4px 8px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .resetBtn:disabled {
@@ -79,24 +89,56 @@
   background: #fff;
   border: 1px solid var(--rz-border);
   border-radius: 6px;
+  cursor: grab;
   max-height: 280px;
   min-height: 160px;
-  overflow: auto;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  position: relative;
+  touch-action: none;
+  user-select: none;
   width: 100%;
 }
 
-.scaledLayer {
+.viewportDragging {
+  cursor: grabbing;
+}
+
+.stage {
   display: inline-block;
-  min-width: 100%;
   padding: 8px;
+  transform-origin: top left;
+  will-change: transform;
+}
+
+.stageFit {
+  display: block;
+  width: 100%;
+}
+
+.stageFit .canvas :global(svg) {
+  max-width: 100%;
+  width: 100%;
+}
+
+.stageCanvas .canvas :global(svg) {
+  max-width: none;
+  width: auto;
 }
 
 .canvas {
+  pointer-events: none;
   width: 100%;
 }
 
 .canvas :global(svg) {
   display: block;
   height: auto;
-  max-width: 100%;
+}
+
+@media (max-width: 62em) {
+  .panHint {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
 }

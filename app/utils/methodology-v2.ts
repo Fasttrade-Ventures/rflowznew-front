@@ -52,8 +52,7 @@ export const METHODOLOGY_ANALYSIS_OPTIONS = [
   { key: "ipa_4_stage", label: "IPA 4-stage cycle" },
 ] as const;
 
-export const DEFAULT_SAMPLING =
-  "Sampling: ~15–18 residents · 2–3 PPR blocks · purposive";
+export const DEFAULT_SAMPLING = "";
 
 export function designLabel(key?: MethodologyDesignKey): string {
   return (

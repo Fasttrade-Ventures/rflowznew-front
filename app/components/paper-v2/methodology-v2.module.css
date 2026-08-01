@@ -377,3 +377,13 @@
   justify-content: flex-end;
   padding-top: 4px;
 }
+
+@media (max-width: 62em) {
+  .designOptions {
+    grid-template-columns: 1fr;
+  }
+
+  .pillRow {
+    gap: 6px;
+  }
+}

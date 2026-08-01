@@ -13,13 +13,16 @@ import {
   type RqFormValues,
   type RqSlotConfig,
 } from "#app/utils/research-questions-v2";
-import { Alert, Button, Textarea } from "@mantine/core";
+import { Alert, Textarea } from "@mantine/core";
 import { useFetcher } from "@remix-run/react";
 import Ably from "ably";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSpinDelay } from "spin-delay";
 
+import { FormSaveFooter } from "./FormSaveFooter";
+import { V2ReadContent } from "./V2ReadContent";
 import classes from "./research-questions-v2.module.css";
+import { AskProfZButton } from "./AskProfZButton";
 
 function RqCard({
   slot,
@@ -122,15 +125,11 @@ function RqCard({
             ) : null}
           </div>
         </div>
-        <button
-          type="button"
-          className={classes.askProfZ}
+        <AskProfZButton
           onClick={askProfZ}
           disabled={isGenerating || aiFetcher.state !== "idle"}
-        >
-          <span className={classes.profAvatar} aria-hidden />
-          Ask Prof Z
-        </button>
+          loading={isGenerating || aiFetcher.state !== "idle"}
+        />
       </div>
 
       <div
@@ -284,11 +283,9 @@ export function ResearchQuestionsV2Screen({
           </div>
         </div>
 
-        <div className={classes.footer}>
-          <Button type="submit" size="compact-sm" loading={isDelayedPending}>
-            Save research questions
-          </Button>
-        </div>
+        <FormSaveFooter loading={isDelayedPending}>
+          Save research questions
+        </FormSaveFooter>
       </fetcher.Form>
     </div>
   );
@@ -323,9 +320,7 @@ export function ResearchQuestionsV2Read({
                 </div>
               </div>
             </div>
-            <div className={classes.readText}>
-              {readRqFromSlot(values, slot.slot) || "—"}
-            </div>
+            <V2ReadContent content={readRqFromSlot(values, slot.slot)} />
           </section>
         ))}
         <div className={classes.engineMap}>

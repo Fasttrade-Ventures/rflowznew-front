@@ -27,6 +27,7 @@ import classes from "./PaperForm.module.css";
 import toClasses from "./TangibleOutputRadioGroup.module.css";
 import { Icon } from "#app/components/icon";
 import { NewPaperData } from "#app/routes/paper+/new+/_index";
+import { normalizeKeywords } from "#app/utils/normalize-keywords";
 
 // Define the tangible output type
 type TangibleOutput =
@@ -91,7 +92,10 @@ export const paperSchema = z.object({
       })
     )
     .min(1),
-  keywords: z.array(z.string().min(1)).min(1),
+  keywords: z.preprocess(
+    (value) => normalizeKeywords(value),
+    z.array(z.string().min(1)).min(1)
+  ),
   affiliations: z
     .array(
       z.object({
@@ -614,7 +618,7 @@ export const PaperForm: React.FC<PaperFormPropsWithConditionalPaperId> = ({
               size="md"
               defaultValue={
                 isEditing
-                  ? (fields.keywords.initialValue as string[]) ?? []
+                  ? normalizeKeywords(fields.keywords.initialValue)
                   : []
               }
               splitChars={[","]}

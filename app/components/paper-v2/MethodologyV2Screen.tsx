@@ -2,7 +2,6 @@ import useAbly from "#app/components/hooks/useAbly";
 import { RichTextEditorShell } from "#app/components/paper-v2/RichTextEditorShell";
 import {
   buildMethodologyParagraph,
-  DEFAULT_SAMPLING,
   designLabel,
   evaluateCoherenceClient,
   METHODOLOGY_ANALYSIS_OPTIONS,
@@ -15,7 +14,9 @@ import { Alert, Button, Textarea } from "@mantine/core";
 import Ably from "ably";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { FormSaveFooter } from "./FormSaveFooter";
 import classes from "./methodology-v2.module.css";
+import { AskProfZButton } from "./AskProfZButton";
 
 export function MethodologyV2Screen({
   paperId,
@@ -37,6 +38,7 @@ export function MethodologyV2Screen({
   const [values, setValues] = useState<MethodologyV2FormValues>(initial);
   const [showOverride, setShowOverride] = useState(false);
   const [draftFocused, setDraftFocused] = useState(false);
+  const [samplingFocused, setSamplingFocused] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const streamRef = useRef("");
   const ablyEventName = "methodology-paragraph";
@@ -320,9 +322,17 @@ Coherence Engine only fires when your selections don't match your philosophy`}
                 );
               })}
             </div>
-            <div className={classes.samplingHint}>
-              {values.meta.sampling ?? DEFAULT_SAMPLING}
-            </div>
+            <div className={classes.rowTitle}>Sampling</div>
+            <RichTextEditorShell
+              value={values.meta.sampling ?? ""}
+              onChange={(text) => setMeta({ sampling: text })}
+              active={samplingFocused}
+              minRows={2}
+              placeholder="Describe your sample size, selection criteria, and setting"
+              hint="✎ Click to edit"
+              onFocus={() => setSamplingFocused(true)}
+              onBlur={() => setSamplingFocused(false)}
+            />
           </div>
 
           <div>
@@ -366,15 +376,7 @@ Coherence Engine only fires when your selections don't match your philosophy`}
             <span className={classes.writeTitle}>
               Proposed Methodology & Analysis
             </span>
-            <button
-              type="button"
-              className={classes.askProfZ}
-              onClick={askProfZ}
-              disabled={isGenerating}
-            >
-              <span className={classes.profAvatar} aria-hidden />
-              Ask Prof Z
-            </button>
+            <AskProfZButton onClick={askProfZ} disabled={isGenerating} loading={isGenerating} />
           </div>
           <RichTextEditorShell
             value={values.methodology_paragraph}
@@ -397,20 +399,20 @@ Coherence Engine only fires when your selections don't match your philosophy`}
           </div>
         </section>
 
-        <div className={classes.footer}>
-          {saveError ? (
-            <Alert color="red" variant="light">
-              {saveError}
-            </Alert>
-          ) : null}
-          <Button
-            size="compact-sm"
-            loading={saving}
-            onClick={() => onSave(values)}
-          >
-            Save methodology
-          </Button>
-        </div>
+        <FormSaveFooter
+          type="button"
+          loading={saving}
+          onClick={() => onSave(values)}
+          before={
+            saveError ? (
+              <Alert color="red" variant="light">
+                {saveError}
+              </Alert>
+            ) : null
+          }
+        >
+          Save methodology
+        </FormSaveFooter>
       </div>
     </div>
   );

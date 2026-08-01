@@ -13,7 +13,7 @@ import type { ProposalSections } from "#app/services/proposal-assembly.server";
 import type { GeneratedDocument } from "#app/services/paper.server";
 import type { ProjectMetadataIssue } from "#app/utils/project-metadata-export";
 import { computeProposalReadiness } from "#app/utils/proposal-readiness";
-import { Badge, Checkbox, Group, Text } from "@mantine/core";
+import { Badge, Button, Checkbox, Group, Text } from "@mantine/core";
 import { Form, useRouteLoaderData } from "@remix-run/react";
 import * as Ably from "ably";
 import type { Message } from "ably";
@@ -234,16 +234,6 @@ export function ReviewProposalV2({
                 </span>
               </div>
 
-              <div className={classes.stitchBanner}>
-                <span>⚡</span>
-                <span>
-                  Stitch mode: §1, §3, §4, §5, References, and Diagram are
-                  assembled from saved artifacts (0 AI tokens). §2 and §6 use 1
-                  AI call each on first visit; methodology is method-adaptive
-                  (propositions, not IV/DV).
-                </span>
-              </div>
-
               <ProposalAccordion
                 paperId={paperId}
                 sections={sections}
@@ -330,17 +320,18 @@ export function ReviewProposalV2({
             </Group>
             <Form method="post">
               <input type="hidden" name="paperId" value={paperId} />
-              <button
+              <Button
                 type="submit"
                 name="intent"
                 value="run-integrity"
-                className={classes.exportBtn}
+                size="xs"
                 disabled={isPending}
+                loading={isPending}
               >
                 {integrity.overall === "not_run"
                   ? "Run integrity check"
                   : "Re-run integrity check"}
-              </button>
+              </Button>
             </Form>
           </div>
         )}
@@ -364,8 +355,8 @@ export function ReviewProposalV2({
           <div className={classes.profTitle}>Prof Z</div>
           <div className={classes.profText}>
             Run the integrity check before export. Stitched sections cost 0
-            tokens; only regenerate §2 Literature Review or §6 Benefits when you
-            need a fresh AI draft.
+            tokens; use Ask Prof Z on §2 Literature Review or §6 Benefits when
+            you need a fresh AI draft.
           </div>
         </div>
       </footer>

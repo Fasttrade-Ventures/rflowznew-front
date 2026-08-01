@@ -70,13 +70,6 @@ export default function NewProjectPurpose() {
           <Button component={Link} to="/home/projects" variant="outline" size="xs">
             Cancel
           </Button>
-          <Button
-            component={Link}
-            to={`/paper/new/topic?purpose=masters&rqCount=3`}
-            size="xs"
-          >
-            Continue
-          </Button>
         </div>
       </div>
     </WizardShell>

@@ -1,6 +1,7 @@
 import { AppHeaderV2 } from "#app/components/v2/AppHeaderV2";
 import { Burger, Group } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { useLocation } from "@remix-run/react";
 import { useEffect, useMemo, type ReactNode } from "react";
 
 import { PaperSidebar } from "./PaperSidebar";
@@ -22,10 +23,11 @@ export function PaperWorkspaceLayout({
   children,
 }: PaperWorkspaceLayoutComponentProps) {
   const [opened, { toggle, close }] = useDisclosure();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     close();
-  }, [paperId, close]);
+  }, [pathname, paperId, close]);
 
   const resolvedOverallProgress = useMemo(
     () =>
@@ -38,6 +40,15 @@ export function PaperWorkspaceLayout({
 
   return (
     <div className={`rz-v2 ${classes.workspace}`}>
+      {opened ? (
+        <button
+          type="button"
+          className={classes.sidebarBackdrop}
+          aria-label="Close menu"
+          onClick={close}
+        />
+      ) : null}
+
       <div
         className={classes.sidebarWrap}
         data-open={opened || undefined}
@@ -47,6 +58,7 @@ export function PaperWorkspaceLayout({
           paperTitle={paperTitle}
           progress={progress}
           overallProgress={resolvedOverallProgress}
+          onNavigate={close}
         />
       </div>
 

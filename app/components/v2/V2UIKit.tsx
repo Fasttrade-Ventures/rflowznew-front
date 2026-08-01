@@ -80,7 +80,8 @@ export function DataTable({
   emptyMessage?: string;
 }) {
   return (
-    <div className={classes.dataTable}>
+    <div className={classes.dataTableScroll}>
+      <div className={`${classes.dataTable} ${classes.dataTableDesktop}`}>
       <div className={classes.dataTableHeader}>
         {columns.map((col) => (
           <div
@@ -115,6 +116,7 @@ export function DataTable({
           </div>
         ))
       )}
+    </div>
     </div>
   );
 }
@@ -244,7 +246,7 @@ export function ToolbarRow({
 }) {
   return (
     <div className={classes.toolbarRow}>
-      <div>{left}</div>
+      <div className={classes.toolbarLeft}>{left}</div>
       <div className={classes.toolbarRight}>{right}</div>
     </div>
   );

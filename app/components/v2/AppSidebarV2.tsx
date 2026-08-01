@@ -35,7 +35,7 @@ function SidebarIcon({ name }: { name: "dashboard" | "projects" | "library" }) {
   return <span className={classes.navIcon}>{paths[name]}</span>;
 }
 
-export function AppSidebarV2() {
+export function AppSidebarV2({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
   const isDashboard = pathname === "/";
   const isProjects =
@@ -49,6 +49,7 @@ export function AppSidebarV2() {
       <NavLink
         to="/"
         end
+        onClick={onNavigate}
         className={() =>
           `${classes.navLink}${isDashboard ? ` ${classes.navLinkActive}` : ""}`
         }
@@ -69,6 +70,7 @@ export function AppSidebarV2() {
 
       <NavLink
         to="/home/projects"
+        onClick={onNavigate}
         className={({ isActive }) =>
           `${classes.navSubLink}${isActive ? ` ${classes.navSubLinkActive}` : ""}`
         }
@@ -77,6 +79,7 @@ export function AppSidebarV2() {
       </NavLink>
       <NavLink
         to="/paper/new/purpose"
+        onClick={onNavigate}
         className={({ isActive }) =>
           `${classes.navSubLink}${isActive ? ` ${classes.navSubLinkActive}` : ""}`
         }
@@ -93,14 +96,13 @@ export function AppSidebarV2() {
       </div>
       <NavLink
         to="/home/library"
+        onClick={onNavigate}
         className={({ isActive }) =>
           `${classes.navSubLink}${isActive ? ` ${classes.navSubLinkActive}` : ""}`
         }
       >
         All citations
       </NavLink>
-
-      <div className={classes.helpBox}>Need help? Docs & support</div>
     </aside>
   );
 }

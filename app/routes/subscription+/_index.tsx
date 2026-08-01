@@ -60,10 +60,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const userRes = await getCurrentUser({ request });
   const subscriptionRes = await getCurrentUserSubscription({ request });
 
-  if (user.subscription_status !== userRes.data?.subscription_status) {
+  if (
+    user.subscription_status !== userRes.data?.subscription_status ||
+    user.plan_key !== userRes.data?.plan_key
+  ) {
     const newCookie = await updateUserSubscriptionStatus(
       request,
-      userRes.data?.subscription_status || null
+      userRes.data?.subscription_status || null,
+      userRes.data?.plan_key ?? null
     );
     if (newCookie) {
       return redirectWithToast(

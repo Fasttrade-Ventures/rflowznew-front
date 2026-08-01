@@ -1,10 +1,10 @@
-import { Button, Group, Progress, Text } from "@mantine/core";
+import { Button, Progress, Text } from "@mantine/core";
 import { Link } from "@remix-run/react";
 import { useMemo, useState } from "react";
 
 import { Icon } from "#app/components/icon";
 import { StatCard } from "./PaperScreen";
-import { PageBreadcrumb, PageTitleBlock, ToolbarRow } from "./V2UIKit";
+import { PageBreadcrumb, PageTitleBlock } from "./V2UIKit";
 import classes from "./v2.module.css";
 
 type PaperListItem = {
@@ -14,22 +14,28 @@ type PaperListItem = {
   created_at: string;
 };
 
-export function HomeProjectsV2({ papers }: { papers?: PaperListItem[] }) {
+export function HomeProjectsV2({
+  papers,
+  citationsSaved = 0,
+}: {
+  papers?: PaperListItem[];
+  citationsSaved?: number;
+}) {
   const [query, setQuery] = useState("");
   const list = papers ?? [];
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return list;
-    return list.filter((p) => p.title.toLowerCase().includes(q));
+    return list.filter((paper) => paper.title.toLowerCase().includes(q));
   }, [list, query]);
 
-  const inProgress = list.filter((p) => p.overall_progress < 100).length;
-  const completed = list.filter((p) => p.overall_progress >= 100).length;
+  const inProgress = list.filter((paper) => paper.overall_progress < 100).length;
+  const completed = list.filter((paper) => paper.overall_progress >= 100).length;
   const avgCompletion =
     list.length > 0
       ? Math.round(
-          list.reduce((sum, p) => sum + p.overall_progress, 0) / list.length
+          list.reduce((sum, paper) => sum + paper.overall_progress, 0) / list.length
         )
       : 0;
 
@@ -37,12 +43,9 @@ export function HomeProjectsV2({ papers }: { papers?: PaperListItem[] }) {
     <div className={classes.dashboard}>
       <PageBreadcrumb>Home → Projects</PageBreadcrumb>
 
-      <div
-        className={classes.statsRow}
-        style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
-      >
+      <div className={`${classes.statsRow} ${classes.statsRowThree}`}>
         <StatCard label="Active projects" value={inProgress} accent />
-        <StatCard label="Library citations" value={list.length} />
+        <StatCard label="Library citations" value={citationsSaved} />
         <StatCard
           label="Completion"
           value={`${avgCompletion}%`}
@@ -51,30 +54,22 @@ export function HomeProjectsV2({ papers }: { papers?: PaperListItem[] }) {
       </div>
 
       <div className={classes.gridWrap}>
-        <ToolbarRow
-          left={
-            <div>
-              <PageTitleBlock
-                title="Your research projects"
-                subtitle="Manage your research proposals"
-              />
-            </div>
-          }
-          right={
-            <Group gap={6}>
-              <input
-                className={classes.searchInput}
-                placeholder="Search projects..."
-                value={query}
-                onChange={(e) => setQuery(e.currentTarget.value)}
-                style={{ width: 180 }}
-              />
-              <Button component={Link} to="/paper/new/purpose" size="xs">
-                New project
-              </Button>
-            </Group>
-          }
-        />
+        <div className={classes.projectsToolbar}>
+          <PageTitleBlock
+            title="Your research projects"
+            subtitle="Manage your research proposals"
+          />
+          <Button component={Link} to="/paper/new/purpose" size="xs">
+            New project
+          </Button>
+          <input
+            className={classes.searchInput}
+            placeholder="Search projects..."
+            value={query}
+            onChange={(e) => setQuery(e.currentTarget.value)}
+            aria-label="Search projects"
+          />
+        </div>
 
         <div className={classes.projectGrid}>
           <Link
@@ -129,9 +124,11 @@ export function HomeProjectsV2({ papers }: { papers?: PaperListItem[] }) {
           ))}
         </div>
 
-        <p className={classes.projectHint}>
-          Tip: click a project card to open workspace · create new from + button
-        </p>
+        {filtered.length === 0 && query ? (
+          <Text size="xs" c="dimmed">
+            No projects match your search.
+          </Text>
+        ) : null}
       </div>
     </div>
   );

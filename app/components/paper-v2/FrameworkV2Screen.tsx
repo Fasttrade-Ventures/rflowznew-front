@@ -17,7 +17,9 @@ import * as Ably from "ably";
 import type { Message } from "ably";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { FormSaveFooter } from "./FormSaveFooter";
 import classes from "./framework-v2.module.css";
+import { AskProfZButton } from "./AskProfZButton";
 
 export type FrameworkV2FormValues = {
   theoretical_framework: string;
@@ -357,17 +359,11 @@ export function FrameworkV2Screen({
                   </div>
                 </div>
                 {onAskProfZTheoretical ? (
-                  <button
-                    type="button"
-                    className={classes.askProfZ}
+                  <AskProfZButton
                     onClick={askProfZTheoretical}
-                    disabled={
-                      isGeneratingTheoretical || libraryEntries.length === 0
-                    }
-                  >
-                    <span className={classes.profAvatar} aria-hidden />
-                    Ask Prof Z
-                  </button>
+                    disabled={isGeneratingTheoretical || libraryEntries.length === 0}
+                    loading={isGeneratingTheoretical}
+                  />
                 ) : null}
               </div>
               <RichTextEditorShell
@@ -400,15 +396,11 @@ export function FrameworkV2Screen({
                   </div>
                 </div>
                 {onAskProfZMermaid ? (
-                  <button
-                    type="button"
-                    className={classes.askProfZ}
+                  <AskProfZButton
                     onClick={askProfZMermaid}
                     disabled={isGeneratingMermaid || libraryEntries.length === 0}
-                  >
-                    <span className={classes.profAvatar} aria-hidden />
-                    Ask Prof Z
-                  </button>
+                    loading={isGeneratingMermaid}
+                  />
                 ) : null}
               </div>
               <RichTextEditorShell
@@ -516,23 +508,22 @@ export function FrameworkV2Screen({
             </section>
           </div>
         </div>
-
-        {saveError ? (
-          <Alert color="red" variant="light">
-            {saveError}
-          </Alert>
-        ) : null}
       </div>
 
-      <div className={classes.footer}>
-        <Button
-          size="compact-sm"
-          loading={saving}
-          onClick={() => onSave(values)}
-        >
-          Save framework
-        </Button>
-      </div>
+      <FormSaveFooter
+        type="button"
+        loading={saving}
+        onClick={() => onSave(values)}
+        before={
+          saveError ? (
+            <Alert color="red" variant="light">
+              {saveError}
+            </Alert>
+          ) : null
+        }
+      >
+        Save framework
+      </FormSaveFooter>
     </div>
   );
 }

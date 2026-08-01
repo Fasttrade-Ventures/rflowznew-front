@@ -4,7 +4,7 @@ import type { loader as rootLoader } from "#app/root";
 import { purposeLabel } from "#app/utils/new-project-wizard";
 import { useIsPending } from "#app/utils/misc";
 import { PageBreadcrumb, PageTitleBlock } from "#app/components/v2/V2UIKit";
-import { getFormProps, getInputProps, useForm } from "@conform-to/react";
+import { getFormProps, useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
 import {
   Button,
@@ -21,7 +21,9 @@ import React, { useState } from "react";
 import { z } from "zod";
 
 import v2Classes from "#app/components/v2/v2.module.css";
+import { normalizeKeywords } from "#app/utils/normalize-keywords";
 import classes from "./project-settings-v2.module.css";
+import formClasses from "./paper-v2-form.module.css";
 
 const LANGUAGE_LABELS: Record<string, string> = {
   en: "English",
@@ -64,13 +66,17 @@ export function ProjectSettingsV2Screen({
   const isPending = useIsPending();
 
   const [form, fields] = useForm({
+    id: "project-settings-form",
     onValidate({ formData }) {
       return parseWithZod(formData, { schema: paperSchema });
     },
     shouldValidate: "onSubmit",
     shouldRevalidate: "onBlur",
     lastResult: actionData?.lastResult,
-    defaultValue: initialData,
+    defaultValue: {
+      ...initialData,
+      keywords: normalizeKeywords(initialData.keywords),
+    },
   });
 
   const authors = fields.authors.getFieldList();
@@ -97,11 +103,9 @@ export function ProjectSettingsV2Screen({
   });
 
   const handleAddAuthor = () => {
-    const currentAuthors = fields.authors.getFieldList();
-    form.update({
+    form.insert({
       name: fields.authors.name,
-      index: currentAuthors.length,
-      value: { first_name: "", last_name: "" },
+      defaultValue: { first_name: "", last_name: "" },
     });
   };
 
@@ -140,23 +144,14 @@ export function ProjectSettingsV2Screen({
   };
 
   const handleAddAffiliation = () => {
-    const currentAffiliations = fields.affiliations.getFieldList();
-    form.update({
+    const nextIndex = fields.affiliations.getFieldList().length;
+    form.insert({
       name: fields.affiliations.name,
-      value: currentAffiliations
-        .map((affiliation) => {
-          const affiliationFields = affiliation.getFieldset();
-          return {
-            name: affiliationFields.name.value ?? "",
-            location: affiliationFields.location.value ?? "",
-            authors: affiliationFields.authors.value ?? [],
-          };
-        })
-        .concat({ name: "", location: "", authors: [] }),
+      defaultValue: { name: "", location: "", authors: [] },
     });
     setAffiliationAuthors((prev) => ({
       ...prev,
-      [currentAffiliations.length]: [],
+      [nextIndex]: [],
     }));
   };
 
@@ -198,6 +193,10 @@ export function ProjectSettingsV2Screen({
     });
   };
 
+  const keywordValues = normalizeKeywords(
+    fields.keywords.initialValue ?? initialData.keywords
+  );
+
   const profileBadges = [
     paperMeta?.purpose
       ? `${purposeLabel(paperMeta.purpose)} · ${paperMeta.rqCount ?? 1} RQ`
@@ -218,7 +217,8 @@ export function ProjectSettingsV2Screen({
           <Button
             type="submit"
             form="project-settings-form"
-            size="xs"
+            size="sm"
+            className={classes.headerSave}
             disabled={isPending}
           >
             Save changes
@@ -257,7 +257,6 @@ export function ProjectSettingsV2Screen({
       <Form
         method="post"
         {...getFormProps(form)}
-        id="project-settings-form"
         className={`${v2Classes.paperFormV2} ${classes.form}`}
       >
         <input type="hidden" name="id" value={initialData.id} />
@@ -277,7 +276,7 @@ export function ProjectSettingsV2Screen({
         ) : null}
 
         <div className={classes.grid}>
-          <section className={classes.panel}>
+          <section className={`${classes.panel} ${classes.citationPanel}`}>
             <div>
               <div className={classes.panelTitle}>Citation metadata</div>
               <div className={classes.panelSub}>
@@ -291,7 +290,9 @@ export function ProjectSettingsV2Screen({
               </label>
               <TextInput
                 size="xs"
+                id={fields.title.id}
                 name={fields.title.name}
+                key={fields.title.key}
                 defaultValue={fields.title.initialValue}
                 error={fields.title.errors}
                 placeholder="Running title"
@@ -312,7 +313,10 @@ export function ProjectSettingsV2Screen({
               </label>
               <TextInput
                 size="xs"
-                {...getInputProps(fields.context, { type: "text" })}
+                id={fields.context.id}
+                name={fields.context.name}
+                key={fields.context.key}
+                defaultValue={fields.context.initialValue}
                 placeholder="Public universities in Malaysia"
                 error={fields.context.errors}
               />
@@ -324,16 +328,17 @@ export function ProjectSettingsV2Screen({
                 description="Press Enter or use commas to add keywords"
                 placeholder="Enter keywords"
                 name={fields.keywords.name}
+                key={fields.keywords.key}
+                defaultValue={keywordValues}
                 error={fields.keywords.errors}
                 size="xs"
-                defaultValue={(fields.keywords.initialValue as string[]) ?? []}
                 splitChars={[","]}
                 classNames={{ input: v2Classes.setupTagsInput }}
               />
             </div>
           </section>
 
-          <section className={classes.panel}>
+          <section className={`${classes.panel} ${classes.authorsPanel}`}>
             <div>
               <div className={classes.panelTitle}>Authors & affiliations</div>
               <div className={classes.panelSub}>
@@ -522,16 +527,16 @@ export function ProjectSettingsV2Screen({
           </section>
         </div>
 
-        <div className={classes.actions}>
+        <div className={`${classes.actions} ${formClasses.formActions}`}>
           <Button
             component={Link}
             to={`/paper/${paperId}/library`}
             variant="outline"
-            size="xs"
+            size="sm"
           >
             Back to workspace
           </Button>
-          <Button type="submit" size="xs" disabled={isPending}>
+          <Button type="submit" size="sm" disabled={isPending}>
             Save changes
           </Button>
         </div>

@@ -91,7 +91,7 @@ const LabelWithActions: React.FC<LabelWithActionsProps> = ({
                     ? "Try again"
                     : isGenerating
                     ? "Thinking..."
-                    : "Ask Prof Z ✨"}
+                    : "Ask Prof Z"}
                 </span>
               </Button>
             </Box>

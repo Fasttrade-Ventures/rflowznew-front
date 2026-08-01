@@ -4,12 +4,14 @@ import { PaperProblemStatementSchema } from "#app/routes/paper+/$paperId+/proble
 import useAbly from "#app/components/hooks/useAbly";
 import { getFormProps, useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
-import { Alert, Anchor, Button, Textarea } from "@mantine/core";
+import { Alert, Anchor, Textarea } from "@mantine/core";
 import { useFetcher } from "@remix-run/react";
 import Ably from "ably";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSpinDelay } from "spin-delay";
 
+import { AskProfZButton } from "./AskProfZButton";
+import { FormSaveFooter } from "./FormSaveFooter";
 import classes from "./problem-statement-v2.module.css";
 
 type ProblemField =
@@ -187,16 +189,11 @@ function LegEditor({
         </div>
         <div className={classes.legActions}>
           <span className={classes.sourcesBadge}>{sourcesLabel}</span>
-          <button
-            type="button"
-            className={classes.askProfZ}
+          <AskProfZButton
             onClick={askProfZ}
             disabled={isGenerating || aiFetcher.state !== "idle"}
-          >
-            <span className={classes.profAvatar} aria-hidden />
-            Ask Prof Z
-            <span aria-hidden>✨✨✨</span>
-          </button>
+            loading={isGenerating || aiFetcher.state !== "idle"}
+          />
         </div>
       </div>
 
@@ -382,11 +379,9 @@ export function ProblemStatementV2Screen({
           />
         ))}
 
-        <div className={classes.footer}>
-          <Button type="submit" size="compact-sm" loading={isDelayedPending}>
-            Save problem statement
-          </Button>
-        </div>
+        <FormSaveFooter loading={isDelayedPending}>
+          Save problem statement
+        </FormSaveFooter>
       </fetcher.Form>
     </div>
   );

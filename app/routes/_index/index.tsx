@@ -3,6 +3,12 @@ import {
   requireAuth,
 } from "#app/services/authentication.server";
 import { getLibraryEntries } from "#app/services/library.server";
+import type { LibraryEntry } from "#app/services/library.server";
+import { getCurrentUserSubscription } from "#app/services/subscription.server";
+import {
+  buildDashboardActivity,
+  computeDashboardStats,
+} from "#app/utils/home-dashboard";
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { json, Link, useLoaderData, useRouteLoaderData } from "@remix-run/react";
 import { z } from "zod";
@@ -42,28 +48,34 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const res = await getPapers({ request });
   const papers = res.data?.papers ?? [];
 
-  const citationGroups = await Promise.all(
-    papers.map(async (paper) => {
-      const libraryRes = await getLibraryEntries({
-        request,
-        paperId: String(paper.id),
-      });
-      return libraryRes.data?.entries?.length ?? 0;
-    })
-  );
-  const citationsSaved = citationGroups.reduce((sum, n) => sum + n, 0);
-  const activeProjects = papers.filter((p) => p.overall_progress < 100).length;
-  const avgCompletion =
-    papers.length > 0
-      ? Math.round(
-          papers.reduce((sum, p) => sum + p.overall_progress, 0) / papers.length
-        )
-      : 0;
+  const [libraryResults, subscriptionRes] = await Promise.all([
+    Promise.all(
+      papers.map(async (paper) => {
+        const libraryRes = await getLibraryEntries({
+          request,
+          paperId: String(paper.id),
+        });
+        return libraryRes.data?.entries ?? [];
+      })
+    ),
+    getCurrentUserSubscription({ request }),
+  ]);
 
-  if (user.subscription_status !== userRes.data?.subscription_status) {
+  const libraryEntries: LibraryEntry[] = libraryResults.flat();
+  const stats = computeDashboardStats({
+    papers,
+    libraryEntries,
+    subscription: subscriptionRes.data?.subscription,
+    features: subscriptionRes.data?.features,
+  });
+  const activity = buildDashboardActivity(papers, libraryEntries);
+
+  if (user.subscription_status !== userRes.data?.subscription_status ||
+    user.plan_key !== userRes.data?.plan_key) {
     const newCookie = await updateUserSubscriptionStatus(
       request,
-      userRes.data?.subscription_status || null
+      userRes.data?.subscription_status || null,
+      userRes.data?.plan_key ?? null
     );
     if (newCookie) {
       return redirectWithToast(
@@ -84,19 +96,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return json({
       user: userRes.data,
       papers,
-      stats: { activeProjects, citationsSaved, avgCompletion },
+      stats,
+      activity,
     });
   }
 
   return json({
     papers,
     user: userRes.data,
-    stats: { activeProjects, citationsSaved, avgCompletion },
+    stats,
+    activity,
   });
 };
 
 export default function Index() {
-  const { papers, user, stats } = useLoaderData<typeof loader>();
+  const { papers, user, stats, activity } = useLoaderData<typeof loader>();
   const rootData = useRouteLoaderData<typeof rootLoader>("root");
 
   if (rootData?.paperV2Flow) {
@@ -104,8 +118,9 @@ export default function Index() {
       <HomeDashboardV2
         papers={papers}
         stats={stats}
+        activity={activity}
         userName={user?.name}
-        isPro={user?.subscription_status === "active"}
+        userEmail={user?.email}
       />
     );
   }

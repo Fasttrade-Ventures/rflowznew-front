@@ -12,6 +12,14 @@
   height: 100%;
 }
 
+.sidebarBackdrop {
+  background: rgb(15 23 42 / 45%);
+  border: none;
+  inset: 0;
+  position: fixed;
+  z-index: 190;
+}
+
 @media (max-width: 62em) {
   .sidebarWrap {
     background: var(--rz-sidebar);
@@ -176,4 +184,14 @@
   gap: 8px;
   line-height: 1.4;
   padding: 8px 10px;
+}
+
+@media (max-width: 62em) {
+  .mainHeader {
+    padding: 8px;
+  }
+
+  .mainContent {
+    padding: 8px;
+  }
 }

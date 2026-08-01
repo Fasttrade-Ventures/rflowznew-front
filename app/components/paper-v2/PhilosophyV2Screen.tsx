@@ -13,7 +13,9 @@ import { Button } from "@mantine/core";
 import Ably from "ably";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { FormSaveFooter } from "./FormSaveFooter";
 import classes from "./philosophy-v2.module.css";
+import { AskProfZButton } from "./AskProfZButton";
 
 function firstIncompleteStep(answers: PhilosophyAnswers): number {
   const index = PHILOSOPHY_DIALOGUE_STEPS.findIndex(
@@ -266,15 +268,11 @@ export function PhilosophyV2Screen({
               ) : null}
             </div>
             {onAskProfZ ? (
-              <button
-                type="button"
-                className={classes.askProfZ}
+              <AskProfZButton
                 onClick={askProfZ}
                 disabled={isGenerating || completedCount < 3}
-              >
-                <span className={classes.profAvatar} aria-hidden />
-                Ask Prof Z
-              </button>
+                loading={isGenerating}
+              />
             ) : null}
           </div>
           <RichTextEditorShell
@@ -304,15 +302,13 @@ export function PhilosophyV2Screen({
           </section>
         ) : null}
 
-        <div className={classes.footer}>
-          <Button
-            size="compact-sm"
-            loading={saving}
-            onClick={() => onSave(data)}
-          >
-            Save philosophy
-          </Button>
-        </div>
+        <FormSaveFooter
+          type="button"
+          loading={saving}
+          onClick={() => onSave(data)}
+        >
+          Save philosophy
+        </FormSaveFooter>
       </div>
     </div>
   );

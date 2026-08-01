@@ -1,0 +1,6 @@
+/* Shared mobile rules for paper workspace screens (class names from CSS modules). */
+@media (max-width: 62em) {
+  .rz-v2 .mainContent {
+    padding: 8px;
+  }
+}
