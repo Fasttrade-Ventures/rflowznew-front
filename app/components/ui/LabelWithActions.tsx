@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { Icon } from "#app/components/icon";
 import {
   ActionIcon,

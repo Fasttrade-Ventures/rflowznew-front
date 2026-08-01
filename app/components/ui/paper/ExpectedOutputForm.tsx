@@ -31,7 +31,6 @@ export const ExpectedOutputForm: React.FC<ExpectedOutputFormProps> = ({
     [section.field]: true,
   });
 
-  console.log(section);
   return (
     <FormSection
       section={section}
@@ -39,6 +38,8 @@ export const ExpectedOutputForm: React.FC<ExpectedOutputFormProps> = ({
       actionData={actionData}
       schema={pickedSchema}
       generateUrl={generateUrl}
+      ablyEventName="expected-output"
+      aiIntentName="generateAiResponse"
     />
   );
 };

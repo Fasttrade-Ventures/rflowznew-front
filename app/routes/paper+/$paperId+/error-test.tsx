@@ -1,6 +1,7 @@
 import { GeneralErrorBoundary } from "#app/components/error-boundary";
 import { invariantResponse } from "@epic-web/invariant";
 import { json, LoaderFunctionArgs } from "@remix-run/node";
+import { Paper } from "@mantine/core";
 
 export const loader = ({ request }: LoaderFunctionArgs) => {
   // throw new Error("Unexpected error");
