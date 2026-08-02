@@ -300,7 +300,6 @@ function SubscriptionV2({
                   </Button>
                 )
               }
-              footer={undefined}
             />
           );
         })}
