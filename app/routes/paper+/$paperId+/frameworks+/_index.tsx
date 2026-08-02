@@ -16,6 +16,12 @@ import { useFetcher, useLoaderData } from "@remix-run/react";
 import { notifications } from "@mantine/notifications";
 import { useEffect, useMemo, useState } from "react";
 import { repairMermaidSource } from "#app/utils/sanitize-mermaid-source";
+import {
+  getApiErrorMessage,
+  getAskProfZErrorTitle,
+  isPlanLimitError,
+  showAskProfZNotification,
+} from "#app/utils/api-error";
 
 const DEFAULT_MERMAID = `flowchart TD
   A[Problem Context] --> B[Constructs]
@@ -91,22 +97,40 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   }
 
   if (intent === "generate-theoretical") {
-    await generateFrameworkTheoreticalAi({
-      request,
-      paperId,
-      ablyEventName: formData.get("ablyEvent") as string,
-    });
-    return json({ ok: true, streaming: true });
+    try {
+      await generateFrameworkTheoreticalAi({
+        request,
+        paperId,
+        ablyEventName: formData.get("ablyEvent") as string,
+      });
+      return json({ ok: true, streaming: true });
+    } catch (error) {
+      return json({
+        ok: false,
+        serverError: getApiErrorMessage(error),
+        planLimit: isPlanLimitError(error),
+        errorTitle: getAskProfZErrorTitle(error),
+      });
+    }
   }
 
   if (intent === "generate-mermaid") {
-    await generateFrameworkMermaidAi({
-      request,
-      paperId,
-      ablyEventName: formData.get("ablyEvent") as string,
-      theoreticalFramework: formData.get("theoretical_framework") as string,
-    });
-    return json({ ok: true, streaming: true });
+    try {
+      await generateFrameworkMermaidAi({
+        request,
+        paperId,
+        ablyEventName: formData.get("ablyEvent") as string,
+        theoreticalFramework: formData.get("theoretical_framework") as string,
+      });
+      return json({ ok: true, streaming: true });
+    } catch (error) {
+      return json({
+        ok: false,
+        serverError: getApiErrorMessage(error),
+        planLimit: isPlanLimitError(error),
+        errorTitle: getAskProfZErrorTitle(error),
+      });
+    }
   }
 
   return json({ ok: false });
@@ -157,6 +181,21 @@ export default function FrameworksRoute() {
       ? fetcher.data.serverError
       : null;
 
+  const generationError =
+    fetcher.data &&
+    "ok" in fetcher.data &&
+    fetcher.data.ok === false &&
+    "serverError" in fetcher.data &&
+    typeof fetcher.data.serverError === "string"
+      ? fetcher.data.serverError
+      : null;
+
+  const generationPlanLimit =
+    fetcher.data &&
+    "planLimit" in fetcher.data
+      ? Boolean(fetcher.data.planLimit)
+      : false;
+
   useEffect(() => {
     if (fetcher.state !== "idle" || !fetcher.data) return;
     const data = fetcher.data;
@@ -203,6 +242,24 @@ export default function FrameworksRoute() {
           color: "red",
         });
       }
+      return;
+    }
+
+    if (
+      "ok" in data &&
+      data.ok === false &&
+      "serverError" in data &&
+      typeof data.serverError === "string" &&
+      data.serverError
+    ) {
+      showAskProfZNotification({
+        message: data.serverError,
+        planLimit: "planLimit" in data ? Boolean(data.planLimit) : false,
+        title:
+          "errorTitle" in data && typeof data.errorTitle === "string"
+            ? data.errorTitle
+            : undefined,
+      });
     }
   }, [fetcher.data, fetcher.state]);
 
@@ -215,6 +272,8 @@ export default function FrameworksRoute() {
       saving={isSaving}
       rendering={isRendering}
       saveError={saveError}
+      generationError={generationError}
+      generationPlanLimit={generationPlanLimit}
       onAskProfZTheoretical={(ablyEvent) => {
         const fd = new FormData();
         fd.set("intent", "generate-theoretical");

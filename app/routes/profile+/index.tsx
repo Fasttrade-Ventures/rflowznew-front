@@ -316,9 +316,15 @@ function ProfileV2({
                 </span>
               </div>
               <div className={classes.kvRow}>
-                <span className={classes.kvLabel}>AI generations</span>
+                <span className={classes.kvLabel}>Ask Prof Z left</span>
                 <span className={classes.kvValue}>
-                  {subscription.ai_limit_remaining ?? "—"}
+                  {subscription.ai_limit_remaining == null
+                    ? "Unlimited"
+                    : `${subscription.ai_limit_remaining}${
+                        subscription.ai_original_monthly_limit != null
+                          ? ` / ${subscription.ai_original_monthly_limit}`
+                          : ""
+                      }`}
                 </span>
               </div>
               <div className={classes.kvRow}>

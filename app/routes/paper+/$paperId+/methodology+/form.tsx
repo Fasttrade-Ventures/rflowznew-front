@@ -26,6 +26,12 @@ import {
 import { useActionData, useFetcher, useLoaderData, useParams } from "@remix-run/react";
 import { generateAiMethodology } from "#app/services/ai.server";
 import { MethodologyForm } from "#app/components/ui/paper/MethodologyForm";
+import {
+  getApiErrorMessage,
+  getAskProfZErrorTitle,
+  isPlanLimitError,
+  showAskProfZNotification,
+} from "#app/utils/api-error";
 import { useDisclosure } from "@mantine/hooks";
 import React, { useEffect, useMemo } from "react";
 import { notifications } from "@mantine/notifications";
@@ -169,14 +175,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         },
       });
     } catch (error) {
+      const message = getApiErrorMessage(error);
       return json({
         lastResult: submission.reply(),
-        serverError: "Error generating AI response",
+        serverError: message,
         success: false,
+        planLimit: isPlanLimitError(error),
         toast: {
           type: "error",
-          title: `Error`,
-          description: `Error generating AI response`,
+          title: getAskProfZErrorTitle(error),
+          description: message,
         },
       });
     }
@@ -338,22 +346,41 @@ export const PaperNewMethodologyPage = () => {
   ] = useDisclosure(false);
 
   useEffect(() => {
-    if (fetcher.state !== "idle" || !fetcher.data || !("saveOk" in fetcher.data)) {
+    if (fetcher.state !== "idle" || !fetcher.data) return;
+
+    if ("saveOk" in fetcher.data) {
+      if (fetcher.data.saveOk) {
+        notifications.show({
+          title: "Saved",
+          message: "Methodology saved successfully",
+          color: "green",
+        });
+        return;
+      }
+      if ("serverError" in fetcher.data && fetcher.data.serverError) {
+        notifications.show({
+          title: "Error",
+          message: fetcher.data.serverError,
+          color: "red",
+        });
+      }
       return;
     }
-    if (fetcher.data.saveOk) {
-      notifications.show({
-        title: "Saved",
-        message: "Methodology saved successfully",
-        color: "green",
-      });
-      return;
-    }
-    if ("serverError" in fetcher.data && fetcher.data.serverError) {
-      notifications.show({
-        title: "Error",
+
+    if (
+      "success" in fetcher.data &&
+      fetcher.data.success === false &&
+      "serverError" in fetcher.data &&
+      fetcher.data.serverError
+    ) {
+      showAskProfZNotification({
         message: fetcher.data.serverError,
-        color: "red",
+        planLimit:
+          "planLimit" in fetcher.data ? Boolean(fetcher.data.planLimit) : false,
+        title:
+          "toast" in fetcher.data && fetcher.data.toast
+            ? fetcher.data.toast.title
+            : undefined,
       });
     }
   }, [fetcher.data, fetcher.state]);
@@ -382,6 +409,21 @@ export const PaperNewMethodologyPage = () => {
       ? fetcher.data.serverError
       : null;
 
+  const generationError =
+    fetcher.data &&
+    "success" in fetcher.data &&
+    fetcher.data.success === false &&
+    "serverError" in fetcher.data &&
+    typeof fetcher.data.serverError === "string"
+      ? fetcher.data.serverError
+      : null;
+
+  const generationPlanLimit =
+    fetcher.data &&
+    "planLimit" in fetcher.data
+      ? Boolean(fetcher.data.planLimit)
+      : false;
+
   if (!loaderData.hasActiveSubscription) {
     return <NoSubscriptionEmptyState />;
   }
@@ -394,6 +436,8 @@ export const PaperNewMethodologyPage = () => {
         initial={initialValues}
         saving={isSaving}
         saveError={saveError}
+        generationError={generationError}
+        generationPlanLimit={generationPlanLimit}
         onAskProfZ={(ablyEvent) => {
           const fd = new FormData();
           fd.set("intent", "generateAiResponse");

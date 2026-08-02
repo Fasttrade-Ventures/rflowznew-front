@@ -14,6 +14,7 @@ import {
   type RqSlotConfig,
 } from "#app/utils/research-questions-v2";
 import { Alert, Textarea } from "@mantine/core";
+import { showAskProfZNotification } from "#app/utils/api-error";
 import { useFetcher } from "@remix-run/react";
 import Ably from "ably";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -23,6 +24,7 @@ import { FormSaveFooter } from "./FormSaveFooter";
 import { V2ReadContent } from "./V2ReadContent";
 import classes from "./research-questions-v2.module.css";
 import { AskProfZButton } from "./AskProfZButton";
+import { PlanLimitAlert } from "./PlanLimitAlert";
 
 function RqCard({
   slot,
@@ -67,11 +69,33 @@ function RqCard({
 
   useAbly(paperId, ablyEventName, handleMessage);
 
+  const aiError =
+    aiFetcher.data &&
+    "serverError" in aiFetcher.data &&
+    typeof aiFetcher.data.serverError === "string"
+      ? aiFetcher.data.serverError
+      : null;
+  const aiPlanLimit =
+    aiFetcher.data &&
+    "planLimit" in aiFetcher.data &&
+    Boolean(aiFetcher.data.planLimit);
+
   useEffect(() => {
-    if (aiFetcher.data?.serverError) {
+    if (aiError) {
       setIsGenerating(false);
+      showAskProfZNotification({
+        message: aiError,
+        planLimit: aiPlanLimit,
+        title:
+          aiFetcher.data &&
+          "toast" in aiFetcher.data &&
+          aiFetcher.data.toast &&
+          typeof aiFetcher.data.toast.title === "string"
+            ? aiFetcher.data.toast.title
+            : undefined,
+      });
     }
-  }, [aiFetcher.data]);
+  }, [aiError, aiPlanLimit, aiFetcher.data]);
 
   const askProfZ = () => {
     streamRef.current = "";
@@ -131,6 +155,8 @@ function RqCard({
           loading={isGenerating || aiFetcher.state !== "idle"}
         />
       </div>
+
+      <PlanLimitAlert message={aiError} planLimit={aiPlanLimit} />
 
       <div
         className={`${classes.editorShell} ${active ? classes.editorShellActive : ""}`}

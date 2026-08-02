@@ -18,6 +18,7 @@ import type { Message } from "ably";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { FormSaveFooter } from "./FormSaveFooter";
+import { PlanLimitAlert } from "./PlanLimitAlert";
 import classes from "./framework-v2.module.css";
 import { AskProfZButton } from "./AskProfZButton";
 
@@ -34,6 +35,8 @@ type FrameworkV2ScreenProps = {
   saving?: boolean;
   rendering?: boolean;
   saveError?: string | null;
+  generationError?: string | null;
+  generationPlanLimit?: boolean;
   onSave: (values: FrameworkV2FormValues) => void;
   onGenerateDiagram: (values: FrameworkV2FormValues, svgData?: string) => void;
   onAskProfZTheoretical?: (ablyEvent: string) => void;
@@ -50,6 +53,8 @@ export function FrameworkV2Screen({
   saving,
   rendering,
   saveError,
+  generationError,
+  generationPlanLimit,
   onSave,
   onGenerateDiagram,
   onAskProfZTheoretical,
@@ -219,6 +224,13 @@ export function FrameworkV2Screen({
     handleMermaidMessage,
   ]);
 
+  useEffect(() => {
+    if (generationError) {
+      setGeneratingTarget(null);
+      generatingTargetRef.current = null;
+    }
+  }, [generationError]);
+
   const askProfZTheoretical = () => {
     if (!onAskProfZTheoretical) return;
     theoreticalStreamRef.current = "";
@@ -317,6 +329,11 @@ export function FrameworkV2Screen({
           <span>→ feeds Prof Z for both narrative and Mermaid diagram</span>
           {libraryNames ? <span>({libraryNames}…)</span> : null}
         </div>
+
+        <PlanLimitAlert
+          message={generationError}
+          planLimit={generationPlanLimit}
+        />
 
         <div className={classes.layout}>
           <aside className={classes.libraryPanel}>

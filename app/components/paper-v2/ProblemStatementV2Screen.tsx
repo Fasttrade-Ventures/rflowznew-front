@@ -5,12 +5,14 @@ import useAbly from "#app/components/hooks/useAbly";
 import { getFormProps, useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
 import { Alert, Anchor, Textarea } from "@mantine/core";
+import { showAskProfZNotification } from "#app/utils/api-error";
 import { useFetcher } from "@remix-run/react";
 import Ably from "ably";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSpinDelay } from "spin-delay";
 
 import { AskProfZButton } from "./AskProfZButton";
+import { PlanLimitAlert } from "./PlanLimitAlert";
 import { FormSaveFooter } from "./FormSaveFooter";
 import classes from "./problem-statement-v2.module.css";
 
@@ -166,11 +168,33 @@ function LegEditor({
     );
   };
 
+  const aiError =
+    aiFetcher.data &&
+    "serverError" in aiFetcher.data &&
+    typeof aiFetcher.data.serverError === "string"
+      ? aiFetcher.data.serverError
+      : null;
+  const aiPlanLimit =
+    aiFetcher.data &&
+    "planLimit" in aiFetcher.data &&
+    Boolean(aiFetcher.data.planLimit);
+
   useEffect(() => {
-    if (aiFetcher.data?.serverError) {
+    if (aiError) {
       setIsGenerating(false);
+      showAskProfZNotification({
+        message: aiError,
+        planLimit: aiPlanLimit,
+        title:
+          aiFetcher.data &&
+          "toast" in aiFetcher.data &&
+          aiFetcher.data.toast &&
+          typeof aiFetcher.data.toast.title === "string"
+            ? aiFetcher.data.toast.title
+            : undefined,
+      });
     }
-  }, [aiFetcher.data]);
+  }, [aiError, aiPlanLimit, aiFetcher.data]);
 
   const sourcesLabel =
     leg.evidenceKind === "academic"
@@ -196,6 +220,8 @@ function LegEditor({
           />
         </div>
       </div>
+
+      <PlanLimitAlert message={aiError} planLimit={aiPlanLimit} />
 
       <div className={classes.editorShell}>
         <div className={classes.editorToolbar}>

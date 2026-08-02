@@ -129,7 +129,7 @@ export function HomeDashboardV2({
           accent
         />
         <StatCard
-          label="AI generations"
+          label="Ask Prof Z"
           value={stats.aiRemaining}
           sub={stats.aiSub}
           accent

@@ -15,6 +15,7 @@ import Ably from "ably";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { FormSaveFooter } from "./FormSaveFooter";
+import { PlanLimitAlert } from "./PlanLimitAlert";
 import classes from "./methodology-v2.module.css";
 import { AskProfZButton } from "./AskProfZButton";
 
@@ -24,6 +25,8 @@ export function MethodologyV2Screen({
   initial,
   saving,
   saveError,
+  generationError,
+  generationPlanLimit,
   onSave,
   onAskProfZ,
 }: {
@@ -32,6 +35,8 @@ export function MethodologyV2Screen({
   initial: MethodologyV2FormValues;
   saving?: boolean;
   saveError?: string | null;
+  generationError?: string | null;
+  generationPlanLimit?: boolean;
   onSave: (values: MethodologyV2FormValues) => void;
   onAskProfZ?: (ablyEvent: string) => void;
 }) {
@@ -135,6 +140,12 @@ export function MethodologyV2Screen({
   }, []);
 
   useAbly(paperId, ablyEventName, handleMessage);
+
+  useEffect(() => {
+    if (generationError) {
+      setIsGenerating(false);
+    }
+  }, [generationError]);
 
   const askProfZ = () => {
     if (!onAskProfZ) return;
@@ -378,6 +389,10 @@ Coherence Engine only fires when your selections don't match your philosophy`}
             </span>
             <AskProfZButton onClick={askProfZ} disabled={isGenerating} loading={isGenerating} />
           </div>
+          <PlanLimitAlert
+            message={generationError}
+            planLimit={generationPlanLimit}
+          />
           <RichTextEditorShell
             value={values.methodology_paragraph}
             onChange={(text) =>

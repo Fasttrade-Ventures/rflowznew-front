@@ -30,6 +30,11 @@ import {
 } from "#app/services/ai.server";
 import { isPaperV2FlowEnabled } from "#app/utils/feature-flags.server";
 import { getHints } from "#app/utils/client-hints";
+import {
+  getApiErrorMessage,
+  getAskProfZErrorTitle,
+  isPlanLimitError,
+} from "#app/utils/api-error";
 import { invariant } from "@epic-web/invariant";
 import {
   Alert,
@@ -189,32 +194,42 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const section = formData.get("section") as string;
     const ablyEventName = formData.get("ably_event_name") as string;
 
-    if (section === "lit_review") {
-      await generateAiLiteratureReview({ request, paperId, ablyEventName });
-      return json({ message: "Regenerating literature review…" });
-    }
+    try {
+      if (section === "lit_review") {
+        await generateAiLiteratureReview({ request, paperId, ablyEventName });
+        return json({ message: "Regenerating literature review…" });
+      }
 
-    if (section === "benefits-practical") {
-      await generateAiResearchSignificant({
-        request,
-        paperId,
-        field: "practical_contribution",
-        ablyEventName,
+      if (section === "benefits-practical") {
+        await generateAiResearchSignificant({
+          request,
+          paperId,
+          field: "practical_contribution",
+          ablyEventName,
+        });
+        return json({ message: "Regenerating practical contribution…" });
+      }
+
+      if (section === "benefits-research") {
+        await generateAiResearchSignificant({
+          request,
+          paperId,
+          field: "research_contribution",
+          ablyEventName,
+        });
+        return json({ message: "Regenerating research contribution…" });
+      }
+
+      return json({ message: "Unknown section" }, { status: 400 });
+    } catch (error) {
+      return json({
+        message: getApiErrorMessage(error),
+        serverError: getApiErrorMessage(error),
+        planLimit: isPlanLimitError(error),
+        errorTitle: getAskProfZErrorTitle(error),
+        success: false,
       });
-      return json({ message: "Regenerating practical contribution…" });
     }
-
-    if (section === "benefits-research") {
-      await generateAiResearchSignificant({
-        request,
-        paperId,
-        field: "research_contribution",
-        ablyEventName,
-      });
-      return json({ message: "Regenerating research contribution…" });
-    }
-
-    return json({ message: "Unknown section" }, { status: 400 });
   }
 
   if (intent === "generate-documents") {
