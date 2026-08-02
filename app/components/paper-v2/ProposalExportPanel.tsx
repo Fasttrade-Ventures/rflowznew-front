@@ -97,12 +97,11 @@ function FormatButton({
   if (status === "completed" && url) {
     return (
       <Button
-        component="a"
-        href={downloadPath(format, url, dateSlug, titleSlug)}
-        target="_blank"
-        rel="noopener noreferrer"
         variant="outline"
         size="xs"
+        onClick={() => {
+          window.location.href = downloadPath(format, url, dateSlug, titleSlug);
+        }}
       >
         {label}
       </Button>
