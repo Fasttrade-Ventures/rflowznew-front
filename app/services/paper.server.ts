@@ -1281,7 +1281,21 @@ const createOrUpdateTrustworthiness = async ({
   return res;
 };
 
+const deletePaper = async ({
+  paperId,
+  request,
+}: {
+  paperId: string;
+  request: Request;
+}) =>
+  customFetch<{ message: string }>({
+    request,
+    url: `/api/papers/${paperId}`,
+    method: "delete",
+  });
+
 export {
+  deletePaper,
   createNewPaper,
   updatePaper,
   getPaper,

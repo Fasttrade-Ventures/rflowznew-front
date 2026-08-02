@@ -9,7 +9,7 @@ import {
   writePhilosophyChoice,
   type PhilosophyAnswers,
 } from "#app/utils/philosophy-dialogue";
-import { Button } from "@mantine/core";
+import { Button, Group } from "@mantine/core";
 import Ably from "ably";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -147,6 +147,38 @@ export function PhilosophyV2Screen({
     }
   };
 
+  const applyQualitativePreset = () => {
+    const preset: PhilosophyAnswers = {
+      ontology_answers: writePhilosophyChoice({
+        choice: "b",
+        text: "Reality can be multiple and socially constructed",
+        summary: "multiple/constructed",
+      }),
+      epistemology_answers: writePhilosophyChoice({
+        choice: "b",
+        text: "Knowledge is co-created with participants",
+        summary: "co-create",
+      }),
+      axiology_answers: writePhilosophyChoice({
+        choice: "b",
+        text: "Researcher values and positionality should be acknowledged",
+        summary: "values acknowledged",
+      }),
+      paradigm: "",
+      draft_philosophy: data.draft_philosophy,
+    };
+    const mapped = mapParadigm(preset);
+    const withParadigm: PhilosophyAnswers = {
+      ...preset,
+      paradigm: mapped.paradigm,
+      draft_philosophy:
+        preset.draft_philosophy.trim() ||
+        buildDraftPhilosophy({ ...preset, paradigm: mapped.paradigm }),
+    };
+    setData(withParadigm);
+    setActiveStep(2);
+  };
+
   const askProfZ = () => {
     if (!onAskProfZ) return;
     streamRef.current = "";
@@ -171,6 +203,17 @@ export function PhilosophyV2Screen({
             {completedCount} of {PHILOSOPHY_DIALOGUE_STEPS.length} complete
           </span>
         </div>
+
+        <Group gap="xs" mb="xs">
+          <Button
+            size="compact-xs"
+            variant="light"
+            color="teal"
+            onClick={applyQualitativePreset}
+          >
+            Fill for qualitative research
+          </Button>
+        </Group>
 
         <div className={classes.stepsRow}>
           {PHILOSOPHY_DIALOGUE_STEPS.map((step, index) => {

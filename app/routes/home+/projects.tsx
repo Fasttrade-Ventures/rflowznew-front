@@ -1,7 +1,12 @@
 import { getLibraryEntries } from "#app/services/library.server";
 import { requireAuth } from "#app/services/authentication.server";
-import { getPapers } from "#app/services/paper.server";
-import { json, LoaderFunctionArgs } from "@remix-run/node";
+import { deletePaper, getPapers } from "#app/services/paper.server";
+import { invariant } from "@epic-web/invariant";
+import {
+  ActionFunctionArgs,
+  json,
+  LoaderFunctionArgs,
+} from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 
 import { HomeProjectsV2 } from "#app/components/v2/HomeProjectsV2";
@@ -25,6 +30,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     papers,
     citationsSaved: libraryResults.flat().length,
   });
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  await requireAuth({ request });
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "delete-paper") {
+    const paperId = formData.get("paperId");
+    invariant(typeof paperId === "string" && paperId, "paperId is required");
+    await deletePaper({ paperId, request });
+    return json({ ok: true });
+  }
+
+  return json({ ok: false }, { status: 400 });
 };
 
 export default function HomeProjectsPage() {

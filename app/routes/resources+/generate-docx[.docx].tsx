@@ -1,5 +1,6 @@
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { invariant } from "@epic-web/invariant";
+import { Link } from "@remix-run/react";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
@@ -7,8 +8,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const date = url.searchParams.get("date");
   invariant(docxUrl, "DOCX URL is required");
 
-  const response = await fetch(docxUrl);
-  invariant(response.ok, `Failed to fetch DOCX: ${response.statusText}`);
+  let response: Response;
+  try {
+    response = await fetch(docxUrl);
+  } catch {
+    throw new Response("Could not reach the document storage server.", {
+      status: 502,
+    });
+  }
+
+  if (!response.ok) {
+    throw new Response(
+      `The DOCX file could not be retrieved (${response.statusText}). Please regenerate the document and try again.`,
+      { status: 404 }
+    );
+  }
 
   return new Response(response.body, {
     headers: {
@@ -17,4 +31,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
       "Content-Disposition": `attachment; filename="rflowz-document-${date}.docx"`,
     },
   });
+}
+
+export function ErrorBoundary() {
+  return (
+    <div style={{ padding: "2rem", maxWidth: 480, margin: "4rem auto", fontFamily: "sans-serif" }}>
+      <h2 style={{ marginBottom: "0.5rem" }}>Document unavailable</h2>
+      <p style={{ color: "#555", marginBottom: "1.5rem" }}>
+        The DOCX file could not be downloaded — the file may have expired or
+        not yet finished generating. Please go back and regenerate the document.
+      </p>
+      <Link to="/" style={{ color: "#228be6" }}>← Back to home</Link>
+    </div>
+  );
 }

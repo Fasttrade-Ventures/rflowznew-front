@@ -1,5 +1,5 @@
 import { Button, Progress, Text } from "@mantine/core";
-import { Link } from "@remix-run/react";
+import { Link, useFetcher } from "@remix-run/react";
 import { useMemo, useState } from "react";
 
 import { Icon } from "#app/components/icon";
@@ -13,6 +13,39 @@ type PaperListItem = {
   overall_progress: number;
   created_at: string;
 };
+
+function DeleteProjectButton({ paperId }: { paperId: string }) {
+  const fetcher = useFetcher();
+  const isDeleting = fetcher.state !== "idle";
+
+  return (
+    <fetcher.Form
+      method="post"
+      action="/home/projects"
+      onSubmit={(e) => {
+        if (
+          !window.confirm(
+            "Delete this project? Your saved library citations will be kept in the Library tab."
+          )
+        ) {
+          e.preventDefault();
+        }
+      }}
+    >
+      <input type="hidden" name="intent" value="delete-paper" />
+      <input type="hidden" name="paperId" value={paperId} />
+      <button
+        type="submit"
+        disabled={isDeleting}
+        className={classes.deletePaperBtn}
+        aria-label="Delete project"
+        title="Delete project"
+      >
+        <Icon name="pika-delete-paper" width={14} height={14} />
+      </button>
+    </fetcher.Form>
+  );
+}
 
 export function HomeProjectsV2({
   papers,
@@ -100,6 +133,7 @@ export function HomeProjectsV2({
                 >
                   <Icon name="settings-outline" width={14} height={14} />
                 </Link>
+                <DeleteProjectButton paperId={paper.id} />
               </div>
               <div className={classes.projectCardMeta}>
                 <Text size="xs" c="dimmed">
