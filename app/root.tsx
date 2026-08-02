@@ -46,6 +46,11 @@ import { useNonce } from "./utils/nonce-provider";
 import { getTheme, Theme } from "./utils/theme.server";
 import { getAblyKey } from "./utils/env.server";
 import { getToast } from "./utils/toast.server";
+import {
+  getAppearanceCssVars,
+  getScaleMultiplier,
+  type FontScale,
+} from "./utils/appearance";
 
 export const handle: BreadcrumbHandle = {
   breadcrumb: "Home",
@@ -117,27 +122,20 @@ function Document({
   children,
   nonce,
   theme = "light",
-  selectedTheme = "grape",
+  selectedTheme = "blue",
   scale = "md",
 }: {
   children: React.ReactNode;
   nonce: string;
   theme?: Theme;
   selectedTheme?: string;
-  scale?: "xs" | "sm" | "md" | "lg" | "xl";
+  scale?: FontScale;
   env?: Record<string, string>;
   allowIndexing?: boolean;
 }) {
-  const userScale =
-    scale === "xs"
-      ? 1
-      : scale === "sm"
-      ? 1.05625
-      : scale === "md"
-      ? 1.1125
-      : scale === "lg"
-      ? 1.16875
-      : 1.225;
+  const userScale = getScaleMultiplier(scale);
+  const resolvedScheme: Theme = theme === "dark" ? "dark" : "light";
+  const appearanceVars = getAppearanceCssVars(selectedTheme, resolvedScheme);
   const mantineTheme = createTheme({
     scale: userScale,
     fontFamily: "Poppins, sans-serif",
@@ -150,7 +148,13 @@ function Document({
   });
 
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      style={{
+        ...appearanceVars,
+        fontSize: `${16 * userScale}px`,
+      }}
+    >
       <head>
         <ClientHintCheck nonce={nonce} />
         <Meta />

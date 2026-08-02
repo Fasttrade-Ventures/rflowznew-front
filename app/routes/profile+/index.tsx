@@ -1,5 +1,4 @@
 import { Icon } from "#app/components/icon";
-import CDivider from "#app/components/ui/CDivider";
 import { FormattingPanel } from "#app/components/formatting-panel";
 import {
   updateUserScale,
@@ -35,7 +34,6 @@ import {
   Box,
   Button,
   Group,
-  Slider,
   Stack,
   Text,
   TextInput,
@@ -45,24 +43,43 @@ import {
   json,
   LoaderFunctionArgs,
   redirect,
+  type SerializeFrom,
 } from "@remix-run/node";
 import {
   Form,
   Link,
   useActionData,
-  useFetcher,
   useLoaderData,
   useNavigation,
   useRouteLoaderData,
 } from "@remix-run/react";
 
 import { ChangePasswordCard, changePasswordSchema } from "#app/components/v2/ChangePasswordCard";
+import { AppearanceCard } from "#app/components/v2/AppearanceCard";
 import { PageBreadcrumb, PageTitleBlock, V2Card } from "#app/components/v2/V2UIKit";
 import { loader as rootLoader } from "#app/root";
 import { BreadcrumbHandle } from "../_index";
 import classes from "#app/components/v2/v2.module.css";
 import legacyClasses from "./profile.module.css";
 import { parseWithZod } from "@conform-to/zod";
+import type { SubmissionResult } from "@conform-to/react";
+
+function getChangePasswordActionData(
+  actionData:
+    | {
+        passwordResult?: SubmissionResult<string[]>;
+        passwordServerError?: string | null;
+      }
+    | { message: string }
+    | { color?: string; scale?: string }
+    | null
+    | undefined
+) {
+  if (!actionData || !("passwordResult" in actionData)) {
+    return undefined;
+  }
+  return actionData;
+}
 
 export const handle: BreadcrumbHandle = {
   icon: (
@@ -247,39 +264,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return null;
 };
 
-const marks = [
-  { value: 0, label: "xs" },
-  { value: 25, label: "sm" },
-  { value: 50, label: "md" },
-  { value: 75, label: "lg" },
-  { value: 100, label: "xl" },
-];
-
-function ProfileV2() {
-  const navigation = useNavigation();
-  const { user, subscription, timeZone, formatting } = useLoaderData<typeof loader>();
-  const profileFetcher = useFetcher<typeof action>();
-  const actionData = useActionData<typeof action>();
-  const manageSubscriptionLoading =
-    navigation.state !== "idle" &&
-    navigation.formData?.get("actionType") === "manageSubscription";
-
-  const handleThemeChange = (color: string) => {
-    const formData = new FormData();
-    formData.append("color", color);
-    formData.append("actionType", "color-switch");
-    formData.append("userId", user?.id?.toString() || "");
-    profileFetcher.submit(formData, { method: "post" });
-  };
-
-  const handleScaleChange = (value: number) => {
-    const formData = new FormData();
-    formData.append("scale", marks[value / 25].label);
-    formData.append("actionType", "scale-switch");
-    formData.append("userId", user?.id?.toString() || "");
-    profileFetcher.submit(formData, { method: "post" });
-  };
-
+function ProfileV2({
+  user,
+  subscription,
+  timeZone,
+  formatting,
+  actionData,
+  manageSubscriptionLoading,
+}: {
+  user: SerializeFrom<typeof loader>["user"];
+  subscription: SerializeFrom<typeof loader>["subscription"];
+  timeZone: string;
+  formatting: SerializeFrom<typeof loader>["formatting"];
+  actionData: ReturnType<typeof useActionData<typeof action>>;
+  manageSubscriptionLoading: boolean;
+}) {
   return (
     <div className={classes.dashboard}>
       <PageBreadcrumb>Home → Profile</PageBreadcrumb>
@@ -404,53 +403,15 @@ function ProfileV2() {
             <TextInput label="Email" value={user?.email ?? ""} size="xs" readOnly />
           </V2Card>
 
-          <ChangePasswordCard actionData={actionData ?? undefined} />
+          <ChangePasswordCard
+            actionData={getChangePasswordActionData(actionData)}
+          />
 
-          <V2Card title="Appearance" subtitle="Theme color and font size">
-            <Group justify="space-between" wrap="wrap" gap="sm">
-              <Text size="sm" fw={600}>
-                Theme
-              </Text>
-              <Button.Group>
-                {(["pink", "teal", "blue", "orange"] as const).map((color) => (
-                  <Button
-                    key={color}
-                    variant="default"
-                    className={legacyClasses.themeButton}
-                    mod={user?.color_theme === color ? "selected" : undefined}
-                    onClick={() => handleThemeChange(color)}
-                  >
-                    <div
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        backgroundColor: `var(--mantine-color-${color}-5)`,
-                      }}
-                    />
-                  </Button>
-                ))}
-              </Button.Group>
-            </Group>
-            <CDivider darkColor="var(--rz-border)" />
-            <Group justify="space-between" align="center" wrap="wrap" gap="sm">
-              <Text size="sm" fw={600}>
-                Font size
-              </Text>
-              <Box style={{ flex: 1, minWidth: 140, maxWidth: "100%" }}>
-                <Slider
-                  defaultValue={
-                    marks.findIndex((mark) => mark.label === user?.scale) * 25
-                  }
-                  label={(val) => marks.find((mark) => mark.value === val)!.label}
-                  step={25}
-                  marks={marks}
-                  styles={{ markLabel: { display: "none" } }}
-                  onChange={handleScaleChange}
-                />
-              </Box>
-            </Group>
-          </V2Card>
+          <AppearanceCard
+            userId={user?.id}
+            colorTheme={user?.color_theme}
+            fontScale={user?.scale}
+          />
         </Stack>
       </div>
     </div>
@@ -459,31 +420,26 @@ function ProfileV2() {
 
 export const ProfilePage = () => {
   const rootData = useRouteLoaderData<typeof rootLoader>("root");
-  if (rootData?.paperV2Flow) {
-    return <ProfileV2 />;
-  }
-
   const navigation = useNavigation();
   const { user, subscription, timeZone, formatting } =
     useLoaderData<typeof loader>();
-  const profileFetcher = useFetcher<typeof action>();
   const actionData = useActionData<typeof action>();
+  const manageSubscriptionLoading =
+    navigation.state !== "idle" &&
+    navigation.formData?.get("actionType") === "manageSubscription";
 
-  const handleThemeChange = (color: string, userId?: number) => {
-    const formData = new FormData();
-    formData.append("color", color);
-    formData.append("actionType", "color-switch");
-    formData.append("userId", userId?.toString() || "");
-    profileFetcher.submit(formData, { method: "post" });
-  };
-
-  const handleScaleChange = (scale: string, userId?: number) => {
-    const formData = new FormData();
-    formData.append("scale", scale);
-    formData.append("actionType", "scale-switch");
-    formData.append("userId", userId?.toString() || "");
-    profileFetcher.submit(formData, { method: "post" });
-  };
+  if (rootData?.paperV2Flow) {
+    return (
+      <ProfileV2
+        user={user}
+        subscription={subscription}
+        timeZone={timeZone}
+        formatting={formatting}
+        actionData={actionData}
+        manageSubscriptionLoading={manageSubscriptionLoading}
+      />
+    );
+  }
 
   return (
     <Stack gap="sm">
@@ -515,47 +471,23 @@ export const ProfilePage = () => {
           </Box>
         </Group>
       </div>
-      <Group justify="space-between">
-        <Text size="sm" fw={700}>
-          Theme
-        </Text>
-        <Button.Group>
-          {(["pink", "teal", "blue", "orange"] as const).map((color) => (
-            <Button
-              key={color}
-              variant="default"
-              className={legacyClasses.themeButton}
-              mod={user?.color_theme === color ? "selected" : undefined}
-              onClick={() => handleThemeChange(color, user?.id)}
-            >
-              <div
-                style={{
-                  width: 25,
-                  height: 25,
-                  borderRadius: "50%",
-                  backgroundColor: `var(--mantine-color-${color}-5)`,
-                }}
-              />
-            </Button>
-          ))}
-        </Button.Group>
-      </Group>
-      <CDivider darkColor="var(--mantine-color-dark-5)" />
-      <Slider
-        defaultValue={marks.findIndex((mark) => mark.label === user?.scale) * 25}
-        step={25}
-        marks={marks}
-        onChange={(value) =>
-          handleScaleChange(marks[value / 25].label, user?.id)
-        }
-      />
+      <div className={legacyClasses.container}>
+        <AppearanceCard
+          variant="legacy"
+          userId={user?.id}
+          colorTheme={user?.color_theme}
+          fontScale={user?.scale}
+        />
+      </div>
       {formatting.preferences && (
         <FormattingPanel
           preferences={formatting.preferences}
           isCustomized={formatting.isCustomized}
         />
       )}
-      <ChangePasswordCard actionData={actionData ?? undefined} />
+      <ChangePasswordCard
+        actionData={getChangePasswordActionData(actionData)}
+      />
     </Stack>
   );
 };

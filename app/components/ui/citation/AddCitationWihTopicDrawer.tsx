@@ -123,23 +123,25 @@ export const AddCitationWithTopicDrawer = ({
   };
 
   const onCiteSelected = (statementIndex: number, cites: Cite[]) => {
-    if (currentCiteStatementIndex !== null) {
-      const { topicIndex } = currentCiteStatementIndex;
+    if (currentCiteStatementIndex === null) return;
 
-      form.update({
-        name: fields.topics.getFieldList()[topicIndex].getFieldset().statements
-          .name,
-        index: statementIndex,
-        value: {
-          ...fields.topics
-            .getFieldList()
-            [topicIndex].getFieldset()
-            .statements.getFieldList()[statementIndex].value,
-          cites,
-        },
-      });
-      closeCiteModal();
-    }
+    const { topicIndex } = currentCiteStatementIndex;
+    const topicList = fields.topics.getFieldList();
+    const topicFieldset = topicList[topicIndex]?.getFieldset();
+    const statementsList = topicFieldset?.statements.getFieldList();
+    const statementValue = statementsList?.[statementIndex]?.value;
+
+    if (!topicFieldset || !statementValue) return;
+
+    form.update({
+      name: topicFieldset.statements.name,
+      index: statementIndex,
+      value: {
+        ...statementValue,
+        cites,
+      },
+    });
+    closeCiteModal();
   };
 
   const handleRemoveCiteForIndex = (
@@ -147,12 +149,15 @@ export const AddCitationWithTopicDrawer = ({
     statementIndex: number,
     citeIndex: number
   ) => {
+    const topicList = fields.topics.getFieldList();
+    const topicFieldset = topicList[topicIndex]?.getFieldset();
+    const statementsList = topicFieldset?.statements.getFieldList();
+    const statementFieldset = statementsList?.[statementIndex]?.getFieldset();
+
+    if (!statementFieldset) return;
+
     form.remove({
-      name: fields.topics
-        .getFieldList()
-        [topicIndex].getFieldset()
-        .statements.getFieldList()
-        [statementIndex].getFieldset().cites.name,
+      name: statementFieldset.cites.name,
       index: citeIndex,
     });
   };
@@ -213,7 +218,7 @@ export const AddCitationWithTopicDrawer = ({
       <AddCiteModal
         opened={citeModalOpened}
         onClose={closeCiteModal}
-        currentCiteStatementIndex={currentCiteStatementIndex?.statementIndex!}
+        currentCiteStatementIndex={currentCiteStatementIndex?.statementIndex ?? 0}
         key={currentCiteStatementIndex?.topicIndex}
         onCiteSelected={onCiteSelected}
         paperId={paperId}
@@ -246,6 +251,7 @@ export const AddCitationWithTopicDrawer = ({
               {topics.map((topic, topicIndex) => {
                 const topicFields = topic.getFieldset();
                 const statements = topicFields.statements.getFieldList();
+                const statementsFieldName = topicFields.statements.name;
 
                 const noCitesYetErrors = statements.some((statement) => {
                   const statementFields = statement.getFieldset();
@@ -290,7 +296,6 @@ export const AddCitationWithTopicDrawer = ({
                         <Grid align="center">
                           <Grid.Col span="auto">
                             <TextInput
-                              autoFocus
                               data-autofocus
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -363,13 +368,10 @@ export const AddCitationWithTopicDrawer = ({
                         {statements.map((statement, statementIndex) => {
                           const statementFields = statement.getFieldset();
 
-                          const noCitesYetErrorsTwo = statements.some(
-                            (statement) => {
-                              return statementFields.cites.errors?.some(
-                                (error) => error.includes("Cites is empty")
-                              );
-                            }
-                          );
+                          const noCitesYetErrorsTwo =
+                            statementFields.cites.errors?.some((error) =>
+                              error.includes("Cites is empty")
+                            ) ?? false;
 
                           const hasCiteTitleRequiredErrorTwo =
                             statementFields.cites
@@ -456,10 +458,7 @@ export const AddCitationWithTopicDrawer = ({
                                           color="red"
                                           type="submit"
                                           {...form.remove.getButtonProps({
-                                            name: fields.topics
-                                              .getFieldList()
-                                              [topicIndex].getFieldset()
-                                              .statements.name,
+                                            name: statementsFieldName,
                                             index: statementIndex,
                                           })}
                                         >
@@ -519,7 +518,6 @@ export const AddCitationWithTopicDrawer = ({
                                   <Textarea
                                     placeholder="Paste your statement here"
                                     data-autofocus
-                                    autoFocus
                                     size="xs"
                                     autosize
                                     minRows={3}
