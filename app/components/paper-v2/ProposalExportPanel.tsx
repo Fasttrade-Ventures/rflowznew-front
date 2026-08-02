@@ -97,9 +97,10 @@ function FormatButton({
   if (status === "completed" && url) {
     return (
       <Button
-        component={Link}
-        to={downloadPath(format, url, dateSlug, titleSlug)}
-        reloadDocument
+        component="a"
+        href={downloadPath(format, url, dateSlug, titleSlug)}
+        target="_blank"
+        rel="noopener noreferrer"
         variant="outline"
         size="xs"
       >
