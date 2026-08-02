@@ -2,6 +2,7 @@ import useAbly from "#app/components/hooks/useAbly";
 import { RichTextEditorShell } from "#app/components/paper-v2/RichTextEditorShell";
 import {
   buildDraftPhilosophy,
+  buildQualitativePreset,
   completedDialogueCount,
   mapParadigm,
   PHILOSOPHY_DIALOGUE_STEPS,
@@ -44,22 +45,34 @@ export function PhilosophyV2Screen({
   onSave: (data: PhilosophyAnswers) => void;
   onAskProfZ?: (step: string, ablyEvent: string) => void;
 }) {
-  const [data, setData] = useState<PhilosophyAnswers>({
-    ontology_answers: initial.ontology_answers ?? null,
-    epistemology_answers: initial.epistemology_answers ?? null,
-    axiology_answers: initial.axiology_answers ?? null,
-    paradigm: initial.paradigm ?? "",
-    draft_philosophy: initial.draft_philosophy ?? "",
-  });
-  const [activeStep, setActiveStep] = useState(() =>
-    firstIncompleteStep({
+  // If the user has never answered the dialogue, pre-fill qualitative (option B)
+  // so the page never shows an empty prompt asking them to choose.
+  const hasNoAnswers =
+    !initial.ontology_answers &&
+    !initial.epistemology_answers &&
+    !initial.axiology_answers;
+
+  const [data, setData] = useState<PhilosophyAnswers>(() =>
+    hasNoAnswers
+      ? buildQualitativePreset(initial.draft_philosophy ?? "")
+      : {
+          ontology_answers: initial.ontology_answers ?? null,
+          epistemology_answers: initial.epistemology_answers ?? null,
+          axiology_answers: initial.axiology_answers ?? null,
+          paradigm: initial.paradigm ?? "",
+          draft_philosophy: initial.draft_philosophy ?? "",
+        }
+  );
+  const [activeStep, setActiveStep] = useState(() => {
+    if (hasNoAnswers) return PHILOSOPHY_DIALOGUE_STEPS.length - 1; // land on axiology (last)
+    return firstIncompleteStep({
       ontology_answers: initial.ontology_answers ?? null,
       epistemology_answers: initial.epistemology_answers ?? null,
       axiology_answers: initial.axiology_answers ?? null,
       paradigm: initial.paradigm ?? "",
       draft_philosophy: initial.draft_philosophy ?? "",
-    })
-  );
+    });
+  });
   const [pendingChoice, setPendingChoice] = useState<"a" | "b" | null>(null);
   const [draftFocused, setDraftFocused] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -71,13 +84,21 @@ export function PhilosophyV2Screen({
   const paradigmInfo = useMemo(() => mapParadigm(data), [data]);
 
   useEffect(() => {
-    setData({
-      ontology_answers: initial.ontology_answers ?? null,
-      epistemology_answers: initial.epistemology_answers ?? null,
-      axiology_answers: initial.axiology_answers ?? null,
-      paradigm: initial.paradigm ?? "",
-      draft_philosophy: initial.draft_philosophy ?? "",
-    });
+    const noAnswers =
+      !initial.ontology_answers &&
+      !initial.epistemology_answers &&
+      !initial.axiology_answers;
+    setData(
+      noAnswers
+        ? buildQualitativePreset(initial.draft_philosophy ?? "")
+        : {
+            ontology_answers: initial.ontology_answers ?? null,
+            epistemology_answers: initial.epistemology_answers ?? null,
+            axiology_answers: initial.axiology_answers ?? null,
+            paradigm: initial.paradigm ?? "",
+            draft_philosophy: initial.draft_philosophy ?? "",
+          }
+    );
   }, [
     initial.ontology_answers,
     initial.epistemology_answers,
