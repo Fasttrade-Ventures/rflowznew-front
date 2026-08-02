@@ -81,7 +81,7 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   const intent = formData.get("intent");
 
   if (intent === "academic-search") {
-    const q = formData.get("q");
+    const q = (formData.get("academic_q") ?? formData.get("q")) as string | null;
     invariant(typeof q === "string" && q.trim(), "q is required");
     const res = await searchOpenAlexCitations({ request, paperId, q });
 
@@ -93,7 +93,7 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   }
 
   if (intent === "policy-search") {
-    const q = formData.get("q");
+    const q = (formData.get("policy_q") ?? formData.get("q")) as string | null;
     invariant(typeof q === "string" && q.trim(), "q is required");
     const res = await researchSearch({ request, paperId, query: q });
 
