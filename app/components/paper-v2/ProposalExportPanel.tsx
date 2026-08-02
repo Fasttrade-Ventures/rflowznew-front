@@ -1,11 +1,12 @@
 import type { GeneratedDocument } from "#app/services/paper.server";
 import type { ProjectMetadataIssue } from "#app/utils/project-metadata-export";
 import { projectMetadataWarningMessage } from "#app/utils/project-metadata-export";
-import { Button, Group } from "@mantine/core";
+import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import { Form, Link } from "@remix-run/react";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+import { useState } from "react";
 
 import classes from "./review-proposal-v2.module.css";
 
@@ -14,6 +15,7 @@ dayjs.extend(timezone);
 
 type ProposalExportPanelProps = {
   paperId: string;
+  paperTitle?: string;
   generatedDocuments: GeneratedDocument[];
   timeZone: string;
   exportPptx: boolean;
@@ -23,6 +25,7 @@ type ProposalExportPanelProps = {
   exportLimitRemaining?: number;
   unlimitedExport?: boolean;
   watermarkExports?: boolean;
+  documentVersionLimit?: number | null;
   isPending: boolean;
 };
 
@@ -48,9 +51,24 @@ function urlFor(doc: GeneratedDocument, format: FormatKey) {
   return doc.pptx_url;
 }
 
-function downloadPath(format: FormatKey, url: string, date: string) {
+function slugifyTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 80);
+}
+
+function downloadPath(
+  format: FormatKey,
+  url: string,
+  date: string,
+  titleSlug?: string
+) {
   const ext = format === "docx" ? "docx" : format === "pdf" ? "pdf" : "pptx";
-  return `/resources/generate-${ext}.${ext}?url=${url}&date=${date}`;
+  const base = `/resources/generate-${ext}.${ext}?url=${encodeURIComponent(url)}&date=${date}`;
+  return titleSlug ? `${base}&title=${encodeURIComponent(titleSlug)}` : base;
 }
 
 function FormatButton({
@@ -58,11 +76,13 @@ function FormatButton({
   doc,
   timeZone,
   label,
+  titleSlug,
 }: {
   format: FormatKey;
   doc: GeneratedDocument | undefined;
   timeZone: string;
   label: string;
+  titleSlug?: string;
 }) {
   const status = doc ? statusFor(doc, format) : null;
   const url = doc ? urlFor(doc, format) : null;
@@ -74,7 +94,7 @@ function FormatButton({
     return (
       <Button
         component={Link}
-        to={downloadPath(format, url, dateSlug)}
+        to={downloadPath(format, url, dateSlug, titleSlug)}
         reloadDocument
         variant="outline"
         size="xs"
@@ -109,6 +129,7 @@ function FormatButton({
 
 export function ProposalExportPanel({
   paperId,
+  paperTitle,
   generatedDocuments,
   timeZone,
   exportPptx,
@@ -118,12 +139,21 @@ export function ProposalExportPanel({
   exportLimitRemaining,
   unlimitedExport,
   watermarkExports,
+  documentVersionLimit,
   isPending,
 }: ProposalExportPanelProps) {
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const latest = generatedDocuments[0];
+  const titleSlug = paperTitle ? slugifyTitle(paperTitle) : undefined;
+
+  const atVersionLimit =
+    documentVersionLimit != null &&
+    generatedDocuments.length >= documentVersionLimit;
+
   const canGenerate =
     exportAllowed &&
     hasActiveSubscription &&
+    !atVersionLimit &&
     (unlimitedExport || (exportLimitRemaining ?? 0) > 0);
   const hasPending = generatedDocuments.some(
     (doc) =>
@@ -134,6 +164,40 @@ export function ProposalExportPanel({
   const metadataWarning = projectMetadataWarningMessage(metadataIssues);
 
   return (
+    <>
+    <Modal
+      opened={upgradeModalOpen}
+      onClose={() => setUpgradeModalOpen(false)}
+      title="Upgrade to generate more versions"
+      centered
+      size="sm"
+    >
+      <Stack gap="md">
+        <Text size="sm">
+          Your current plan allows <strong>{documentVersionLimit} document version</strong> per
+          project. Upgrade to a paid plan to generate unlimited versions and
+          unlock additional features.
+        </Text>
+        <Group justify="flex-end" gap="xs">
+          <Button
+            variant="default"
+            size="xs"
+            onClick={() => setUpgradeModalOpen(false)}
+          >
+            Maybe later
+          </Button>
+          <Button
+            component={Link}
+            to="/subscription"
+            size="xs"
+            color="orange"
+            onClick={() => setUpgradeModalOpen(false)}
+          >
+            View plans
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
     <div className={classes.exportPanel}>
       {metadataWarning ? (
         <div className={classes.metadataWarning}>
@@ -164,39 +228,60 @@ export function ProposalExportPanel({
           </div>
         </div>
         <Group gap={6} wrap="wrap" className={classes.exportActions}>
-          <FormatButton
-            format="docx"
-            doc={latest}
-            timeZone={timeZone}
-            label="DOCX"
-          />
-          <FormatButton
-            format="pdf"
-            doc={latest}
-            timeZone={timeZone}
-            label="PDF"
-          />
-          {exportPptx ? (
-            <FormatButton
-              format="pptx"
-              doc={latest}
-              timeZone={timeZone}
-              label="PPTX"
-            />
-          ) : null}
-          <Form method="post">
-            <input type="hidden" name="paperId" value={paperId} />
+          {latest ? (
+            <>
+              <FormatButton
+                format="docx"
+                doc={latest}
+                timeZone={timeZone}
+                label="DOCX"
+                titleSlug={titleSlug}
+              />
+              <FormatButton
+                format="pdf"
+                doc={latest}
+                timeZone={timeZone}
+                label="PDF"
+                titleSlug={titleSlug}
+              />
+              {exportPptx ? (
+                <FormatButton
+                  format="pptx"
+                  doc={latest}
+                  timeZone={timeZone}
+                  label="PPTX"
+                  titleSlug={titleSlug}
+                />
+              ) : null}
+            </>
+          ) : (
+            <span className={classes.exportNoVersionHint}>
+              Click <strong>New version</strong> to generate your documents
+            </span>
+          )}
+          {atVersionLimit ? (
             <Button
-              type="submit"
-              name="intent"
-              value="generate-documents"
               size="xs"
-              disabled={!canGenerate || isPending || hasPending}
-              loading={isPending || hasPending}
+              color="orange"
+              onClick={() => setUpgradeModalOpen(true)}
             >
               New version
             </Button>
-          </Form>
+          ) : (
+            <Form method="post">
+              <input type="hidden" name="paperId" value={paperId} />
+              <Button
+                type="submit"
+                name="intent"
+                value="generate-documents"
+                size="xs"
+                disabled={!canGenerate || isPending || hasPending}
+                loading={isPending || hasPending}
+              >
+                New version
+              </Button>
+            </Form>
+          )}
         </Group>
       </div>
 
@@ -239,12 +324,14 @@ export function ProposalExportPanel({
                   doc={doc}
                   timeZone={timeZone}
                   label="DOCX"
+                  titleSlug={titleSlug}
                 />
                 <FormatButton
                   format="pdf"
                   doc={doc}
                   timeZone={timeZone}
                   label="PDF"
+                  titleSlug={titleSlug}
                 />
                 {exportPptx ? (
                   <FormatButton
@@ -252,6 +339,7 @@ export function ProposalExportPanel({
                     doc={doc}
                     timeZone={timeZone}
                     label="PPTX"
+                    titleSlug={titleSlug}
                   />
                 ) : null}
               </Group>
@@ -260,5 +348,6 @@ export function ProposalExportPanel({
         </div>
       )}
     </div>
+    </>
   );
 }

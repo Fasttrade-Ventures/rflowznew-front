@@ -135,6 +135,7 @@ export interface PlanFeatures {
   unlimited_export: boolean;
   unlimited_proposals?: boolean;
   unlimited_ai?: boolean;
+  document_version_limit?: number | null;
 }
 
 const getCurrentUserSubscription = async ({

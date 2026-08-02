@@ -3,7 +3,8 @@ import { OpenAlexCite } from "#app/services/openalex.server";
 
 export interface LibraryEntry {
   id: number;
-  paper_id: string;
+  user_id: number | null;
+  paper_id: string | null;
   kind: "academic" | "web";
   title: string;
   source: string | null;
@@ -72,6 +73,13 @@ const getLibraryEntries = async ({
   customFetch<LibraryListResponse>({
     request,
     url: `/api/papers/${paperId}/library`,
+    method: "get",
+  });
+
+const getUserLibraryEntries = async ({ request }: { request: Request }) =>
+  customFetch<LibraryListResponse>({
+    request,
+    url: `/api/library`,
     method: "get",
   });
 
@@ -199,6 +207,7 @@ const runIntegrityCheck = async ({
 
 export {
   getLibraryEntries,
+  getUserLibraryEntries,
   saveLibraryEntry,
   removeLibraryEntry,
   toggleLibraryEntryCite,

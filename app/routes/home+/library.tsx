@@ -1,9 +1,11 @@
 import {
   getLibraryEntries,
+  getUserLibraryEntries,
   removeLibraryEntry,
   type LibraryEntry,
 } from "#app/services/library.server";
 import { requireAuth } from "#app/services/authentication.server";
+import customFetch from "#app/utils/customFetch";
 import { getPapers } from "#app/services/paper.server";
 import { invariant } from "@epic-web/invariant";
 import { ActionIcon, Badge, Button, Group, Pagination, Text, Tooltip } from "@mantine/core";
@@ -48,26 +50,41 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const papersRes = await getPapers({ request });
   const papers = papersRes.data?.papers ?? [];
 
-  const entriesByPaper = await Promise.all(
-    papers.map(async (paper) => {
-      const res = await getLibraryEntries({
-        request,
-        paperId: String(paper.id),
-      });
-      return {
-        paperId: paper.id,
-        paperTitle: paper.title,
-        entries: res.data?.entries ?? [],
-      };
-    })
+  const [entriesByPaper, orphanedRes] = await Promise.all([
+    Promise.all(
+      papers.map(async (paper) => {
+        const res = await getLibraryEntries({
+          request,
+          paperId: String(paper.id),
+        });
+        return {
+          paperId: paper.id,
+          paperTitle: paper.title,
+          entries: res.data?.entries ?? [],
+        };
+      })
+    ),
+    getUserLibraryEntries({ request }),
+  ]);
+
+  const linkedIds = new Set(
+    entriesByPaper.flatMap((g) => g.entries.map((e) => e.id))
   );
 
-  const entries: AggregatedEntry[] = entriesByPaper.flatMap((group) =>
+  const orphanedEntries: AggregatedEntry[] = (
+    orphanedRes.data?.entries ?? []
+  )
+    .filter((e) => e.paper_id === null && !linkedIds.has(e.id))
+    .map((entry) => ({ ...entry, paperTitle: "(unlinked)" }));
+
+  const linkedEntries: AggregatedEntry[] = entriesByPaper.flatMap((group) =>
     group.entries.map((entry) => ({
       ...entry,
       paperTitle: group.paperTitle,
     }))
   );
+
+  const entries: AggregatedEntry[] = [...linkedEntries, ...orphanedEntries];
 
   return json({
     entries,
@@ -87,10 +104,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "remove") {
     const paperId = formData.get("paperId");
     const entryId = formData.get("entryId");
-    invariant(typeof paperId === "string" && paperId, "paperId is required");
     invariant(typeof entryId === "string" && entryId, "entryId is required");
 
-    await removeLibraryEntry({ request, paperId, entryId });
+    if (typeof paperId === "string" && paperId) {
+      await removeLibraryEntry({ request, paperId, entryId });
+    } else {
+      // Orphaned entry — delete directly via admin-style endpoint
+      await customFetch({ request, url: `/api/library/${entryId}`, method: "delete" });
+    }
     return json({ ok: true, intent: "remove" as const });
   }
 

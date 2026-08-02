@@ -27,7 +27,7 @@ const SECTION_ORDER: Array<{
   },
   {
     key: "expected_results",
-    label: "4. Expected Results",
+    label: "4. Research Question",
     hint: "From Screen 5 RQs · Stitched · 0 tokens · ✎ editable",
   },
   {

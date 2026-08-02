@@ -317,6 +317,11 @@
   line-height: 1.45;
 }
 
+.exportNoVersionHint {
+  color: var(--rz-muted-foreground);
+  font-size: 11px;
+}
+
 .historyTitle {
   border-top: 1px solid var(--rz-border);
   font-size: 10px;

@@ -149,6 +149,34 @@ export function mapParadigm(answers: PhilosophyAnswers): {
   };
 }
 
+/**
+ * Returns fully-filled qualitative (option B) answers, ready to be used as
+ * a default PhilosophyAnswers state so users never see an empty dialogue.
+ */
+export function buildQualitativePreset(existingDraft = ""): PhilosophyAnswers {
+  const preset: PhilosophyAnswers = {
+    ontology_answers: writePhilosophyChoice({
+      choice: "b",
+      text: "Reality can be multiple and socially constructed",
+      summary: "multiple/constructed",
+    }),
+    epistemology_answers: writePhilosophyChoice({
+      choice: "b",
+      text: "Knowledge is co-created with participants",
+      summary: "co-create",
+    }),
+    axiology_answers: writePhilosophyChoice({
+      choice: "b",
+      text: "Researcher values and positionality should be acknowledged",
+      summary: "values acknowledged",
+    }),
+    paradigm: "",
+    draft_philosophy: existingDraft,
+  };
+  const mapped = mapParadigm(preset);
+  return { ...preset, paradigm: mapped.paradigm };
+}
+
 export function buildDraftPhilosophy(
   answers: PhilosophyAnswers,
   topicHint = "this study"

@@ -40,6 +40,7 @@ type ReviewProposalV2Props = {
   metadataOverride: boolean;
   onMetadataOverride: (v: boolean) => void;
   exportPptx: boolean;
+  documentVersionLimit?: number | null;
   hasActiveSubscription: boolean;
   exportLimitRemaining?: number;
   unlimitedExport?: boolean;
@@ -68,6 +69,7 @@ export function ReviewProposalV2({
   metadataOverride,
   onMetadataOverride,
   exportPptx,
+  documentVersionLimit,
   hasActiveSubscription,
   exportLimitRemaining,
   unlimitedExport,
@@ -244,6 +246,7 @@ export function ReviewProposalV2({
 
               <ProposalExportPanel
                 paperId={paperId}
+                paperTitle={paperTitle}
                 generatedDocuments={generatedDocuments}
                 timeZone={timeZone}
                 exportPptx={exportPptx}
@@ -253,6 +256,7 @@ export function ReviewProposalV2({
                 exportLimitRemaining={exportLimitRemaining}
                 unlimitedExport={unlimitedExport}
                 watermarkExports={watermarkExports}
+                documentVersionLimit={documentVersionLimit}
                 isPending={isPending}
               />
             </div>
