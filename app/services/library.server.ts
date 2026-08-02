@@ -1,5 +1,22 @@
 import customFetch from "#app/utils/customFetch";
-import { OpenAlexCite } from "#app/services/openalex.server";
+import type { OpenAlexAuthor } from "#app/services/openalex.server";
+
+export type LibraryCite = {
+  authors: OpenAlexAuthor[];
+  year: number | null;
+  title: string;
+  source: string | null;
+  doi?: string | null;
+  openalex_id?: string | null;
+  reference_type?: "openalex" | "manual" | "web" | string;
+  month?: number | null;
+  day?: number | null;
+  url?: string | null;
+  volume?: string | null;
+  issue?: string | null;
+  first_page?: string | null;
+  last_page?: string | null;
+};
 
 export interface LibraryEntry {
   id: number;
@@ -11,7 +28,7 @@ export interface LibraryEntry {
   url: string | null;
   year: number | null;
   openalex_id: string | null;
-  cite: OpenAlexCite | null;
+  cite: LibraryCite | null;
   summary: string | null;
   is_cited: boolean;
   created_at: string;
@@ -35,6 +52,7 @@ interface LibraryListResponse {
 interface LibraryStoreResponse {
   success: boolean;
   entry: LibraryEntry;
+  message?: string;
 }
 
 interface ResearchSearchResponse {
@@ -90,13 +108,37 @@ const saveLibraryEntry = async ({
 }: {
   request: Request;
   paperId: string;
-  entry: Partial<LibraryEntry>;
+  entry: Partial<LibraryEntry> & Record<string, unknown>;
 }) =>
   customFetch<LibraryStoreResponse>({
     request,
     url: `/api/papers/${paperId}/library`,
     method: "post",
     data: JSON.stringify(entry),
+  });
+
+const updateLibraryEntry = async ({
+  request,
+  paperId,
+  entryId,
+  patch,
+}: {
+  request: Request;
+  paperId: string;
+  entryId: number | string;
+  patch: Record<string, unknown>;
+}) =>
+  customFetch<{
+    success: boolean;
+    entry: LibraryEntry;
+    formatted_reference?: string;
+    message?: string;
+    errors?: Record<string, string[]>;
+  }>({
+    request,
+    url: `/api/papers/${paperId}/library/${entryId}/update`,
+    method: "post",
+    data: JSON.stringify(patch),
   });
 
 const removeLibraryEntry = async ({
@@ -209,6 +251,7 @@ export {
   getLibraryEntries,
   getUserLibraryEntries,
   saveLibraryEntry,
+  updateLibraryEntry,
   removeLibraryEntry,
   toggleLibraryEntryCite,
   attachLibraryEntry,

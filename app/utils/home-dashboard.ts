@@ -1,6 +1,6 @@
 import type { LibraryEntry } from "#app/services/library.server";
 import type { UserSubscription } from "#app/services/subscription.server";
-import { hasPlanAccess } from "#app/utils/plan";
+import { getAskProfZPlanDisplay } from "#app/utils/ask-prof-z-plan-label";
 
 type PaperSummary = {
   id: string;
@@ -65,6 +65,7 @@ export function computeDashboardStats({
   libraryEntries: LibraryEntry[];
   subscription: UserSubscription | null | undefined;
   features?: {
+    plan_key?: string;
     unlimited_ai?: boolean;
     ai_limit_remaining?: number;
     ai_original_monthly_limit?: number;
@@ -92,43 +93,9 @@ export function computeDashboardStats({
         )
       : 0;
 
-  const unlimitedAi =
-    features?.unlimited_ai === true ||
-    (subscription?.ai_limit_remaining == null &&
-      subscription?.ai_original_monthly_limit == null &&
-      hasPlanAccess(subscription?.status));
-
-  // Counts each Ask Prof Z / AI draft call (problem statement, RQ, philosophy, etc.)
-  let aiRemaining = "—";
-  let aiSub = "Ask Prof Z uses 1 each";
-
-  if (unlimitedAi) {
-    aiRemaining = "Unlimited";
-    aiSub = "Ask Prof Z included";
-  } else if (
-    typeof subscription?.ai_limit_remaining === "number" ||
-    typeof features?.ai_limit_remaining === "number"
-  ) {
-    const remaining =
-      features?.ai_limit_remaining ?? subscription?.ai_limit_remaining ?? 0;
-    const limit =
-      subscription?.ai_original_monthly_limit ??
-      features?.ai_original_monthly_limit;
-    if (typeof limit === "number" && limit > 0) {
-      aiRemaining = `${remaining} left`;
-      const used = Math.max(0, limit - remaining);
-      aiSub =
-        remaining === 0
-          ? `${limit} used · upgrade for more`
-          : `${used} of ${limit} used this month`;
-    } else {
-      aiRemaining = `${remaining} left`;
-      aiSub = "Remaining this month";
-    }
-  } else if (subscription?.plan_key === "free" || !subscription) {
-    aiRemaining = "Limited";
-    aiSub = "Ask Prof Z · upgrade for more";
-  }
+  const planKey =
+    features?.plan_key ?? subscription?.plan_key ?? (subscription ? undefined : "free");
+  const askProfZ = getAskProfZPlanDisplay(planKey);
 
   return {
     activeProjects,
@@ -138,8 +105,8 @@ export function computeDashboardStats({
     citationsThisWeek,
     avgCompletion,
     completedProjects,
-    aiRemaining,
-    aiSub,
+    aiRemaining: askProfZ.value,
+    aiSub: askProfZ.sub,
   };
 }
 

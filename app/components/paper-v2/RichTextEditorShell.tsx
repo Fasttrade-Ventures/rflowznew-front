@@ -1,6 +1,6 @@
 import { Box, SegmentedControl, Textarea, type TextareaProps } from "@mantine/core";
 import Markdown from "react-markdown";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import classes from "./rich-text-editor-shell.module.css";
 
@@ -17,6 +17,7 @@ type RichTextEditorShellProps = {
   maxHeight?: number;
   toolbarLabel?: string;
   previewable?: boolean;
+  defaultMode?: "edit" | "preview";
   onFocus?: () => void;
   onBlur?: () => void;
 } & Pick<TextareaProps, "placeholder" | "disabled" | "error" | "autosize">;
@@ -34,6 +35,7 @@ export function RichTextEditorShell({
   maxHeight = 720,
   toolbarLabel,
   previewable = false,
+  defaultMode = "edit",
   placeholder,
   disabled,
   error,
@@ -42,8 +44,12 @@ export function RichTextEditorShell({
   onBlur,
 }: RichTextEditorShellProps) {
   const [height, setHeight] = useState(initialHeight);
-  const [mode, setMode] = useState<"edit" | "preview">("edit");
+  const [mode, setMode] = useState<"edit" | "preview">(defaultMode);
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null);
+
+  useEffect(() => {
+    setMode(defaultMode);
+  }, [defaultMode]);
 
   const clampHeight = useCallback(
     (next: number) => Math.min(maxHeight, Math.max(minHeight, next)),

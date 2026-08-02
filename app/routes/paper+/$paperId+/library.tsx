@@ -1,9 +1,11 @@
 import { Icon } from "#app/components/icon";
+import { EditCitationModal } from "#app/components/paper-v2/EditCitationModal";
 import { LibraryV2Screen } from "#app/components/paper-v2/LibraryV2Screen";
 import libraryClasses from "#app/components/paper-v2/library-v2.module.css";
 import { loader as paperLayoutLoader } from "#app/routes/paper+/$paperId+/_layout";
 import CDivider from "#app/components/ui/CDivider";
 import { usePaperV2Flow } from "#app/utils/use-paper-v2-flow";
+import { formatApaReference } from "#app/utils/format-library-reference";
 import {
   attachLibraryEntry,
   getLibraryEntries,
@@ -11,6 +13,7 @@ import {
   researchSearch,
   saveLibraryEntry,
   toggleLibraryEntryCite,
+  updateLibraryEntry,
   type LibraryEntry,
   type WebSearchResult,
 } from "#app/services/library.server";
@@ -29,12 +32,10 @@ import {
   Grid,
   Group,
   Modal,
-  SegmentedControl,
   Select,
   Stack,
   Tabs,
   Text,
-  Textarea,
   TextInput,
   Title,
   Tooltip,
@@ -51,7 +52,7 @@ import {
   useRevalidator,
   useRouteLoaderData,
 } from "@remix-run/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const ATTACH_SECTIONS = [
   { value: "background_study", label: "Background study" },
@@ -105,10 +106,26 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   }
 
   if (intent === "save") {
-    const entry = JSON.parse(formData.get("entry") as string);
-    await saveLibraryEntry({ request, paperId, entry });
+    try {
+      const entry = JSON.parse(formData.get("entry") as string);
+      const res = await saveLibraryEntry({ request, paperId, entry });
 
-    return json({ intent: "save" as const });
+      return json({
+        intent: "save" as const,
+        success: res.data?.success ?? false,
+        entry: res.data?.entry,
+        failed: !(res.data?.success ?? false),
+        message: res.data?.message,
+      });
+    } catch (error) {
+      return json({
+        intent: "save" as const,
+        success: false,
+        failed: true,
+        message:
+          error instanceof Error ? error.message : "Could not add citation.",
+      });
+    }
   }
 
   if (intent === "save-and-cite") {
@@ -175,6 +192,42 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     return json({ intent: "remove" as const });
   }
 
+  if (intent === "update") {
+    const entryId = formData.get("entryId");
+    const patch = JSON.parse(formData.get("patch") as string);
+    invariant(typeof entryId === "string", "entryId is required");
+
+    try {
+      const res = await updateLibraryEntry({
+        request,
+        paperId,
+        entryId,
+        patch,
+      });
+
+      return json({
+        intent: "update" as const,
+        success: res.data?.success ?? false,
+        entry: res.data?.entry,
+        formatted_reference: res.data?.formatted_reference,
+        failed: !(res.data?.success ?? false),
+        message: res.data?.message,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not update citation. Restart the API server if you just pulled new code.";
+
+      return json({
+        intent: "update" as const,
+        success: false,
+        failed: true,
+        message,
+      });
+    }
+  }
+
   if (intent === "attach") {
     const entryId = formData.get("entryId");
     const section = formData.get("section");
@@ -226,11 +279,9 @@ const academicEntryPayload = (work: OpenAlexWork) => ({
 const webEntryPayload = (result: WebSearchResult) => ({
   kind: "web",
   title: result.title,
-  source: hostOf(result.url),
   url: result.url,
-  year: result.published_date
-    ? Number(result.published_date.slice(0, 4)) || null
-    : null,
+  published_date: result.published_date,
+  author: result.author,
   summary: result.summary,
 });
 
@@ -249,6 +300,51 @@ const parseAuthors = (authors: string) =>
         last_name: parts[parts.length - 1],
       };
     });
+
+const buildSavePayload = (
+  kind: LibraryEntry["kind"],
+  patch: Record<string, unknown>
+) => {
+  if (kind === "web") {
+    return {
+      kind: "web",
+      title: patch.title,
+      url: patch.url,
+      author: patch.author,
+      year: patch.year,
+      month: patch.month,
+      day: patch.day,
+      summary: patch.summary,
+    };
+  }
+
+  const authorList = parseAuthors(String(patch.authors ?? ""));
+  const doiValue = patch.doi ? String(patch.doi) : null;
+
+  return {
+    kind: "academic",
+    title: patch.title,
+    source: patch.source,
+    url: patch.url,
+    year: patch.year,
+    openalex_id: null,
+    cite: {
+      authors: authorList.length
+        ? authorList
+        : [{ first_name: null, last_name: "Unknown" }],
+      year: patch.year,
+      title: patch.title,
+      source: patch.source,
+      doi: doiValue,
+      volume: patch.volume ?? null,
+      issue: patch.issue ?? null,
+      first_page: patch.first_page ?? null,
+      last_page: patch.last_page ?? null,
+      reference_type: "manual",
+      openalex_id: null,
+    },
+  };
+};
 
 function CiteCheckbox({
   active,
@@ -314,6 +410,7 @@ function CiteToggleControl({
 }) {
   const fetcher = useFetcher<typeof action>();
   const revalidator = useRevalidator();
+  const handledRef = useRef(false);
   const [optimisticCited, setOptimisticCited] = useState<boolean | null>(null);
   const canCite =
     entry.kind === "web" || (entry.kind === "academic" && !!entry.cite);
@@ -321,9 +418,20 @@ function CiteToggleControl({
   const displayedCited = optimisticCited ?? isCited;
 
   useEffect(() => {
+    if (fetcher.state === "submitting") {
+      handledRef.current = false;
+      return;
+    }
+
     if (fetcher.state !== "idle" || fetcher.data?.intent !== "toggle-cite") {
       return;
     }
+
+    if (handledRef.current) {
+      return;
+    }
+
+    handledRef.current = true;
 
     if (fetcher.data.success) {
       setOptimisticCited(null);
@@ -369,14 +477,26 @@ function SaveAndCiteControl({
 }) {
   const fetcher = useFetcher<typeof action>();
   const revalidator = useRevalidator();
+  const handledRef = useRef(false);
   const [optimisticCited, setOptimisticCited] = useState(false);
   const pending = fetcher.state !== "idle";
   const displayedCited = isCited || optimisticCited;
 
   useEffect(() => {
+    if (fetcher.state === "submitting") {
+      handledRef.current = false;
+      return;
+    }
+
     if (fetcher.state !== "idle" || fetcher.data?.intent !== "save-and-cite") {
       return;
     }
+
+    if (handledRef.current) {
+      return;
+    }
+
+    handledRef.current = true;
 
     if (fetcher.data.success) {
       setOptimisticCited(false);
@@ -464,165 +584,17 @@ function WebResultCiteControl({
   );
 }
 
-function ManualCitationModal({
-  paperId,
-  opened,
-  onClose,
+function EditCitationButton({
+  entry,
+  onEdit,
 }: {
-  paperId: string;
-  opened: boolean;
-  onClose: () => void;
+  entry: LibraryEntry;
+  onEdit: (entry: LibraryEntry) => void;
 }) {
-  const fetcher = useFetcher<typeof action>();
-  const revalidator = useRevalidator();
-  const [kind, setKind] = useState<"academic" | "web">("academic");
-  const [title, setTitle] = useState("");
-  const [authors, setAuthors] = useState("");
-  const [year, setYear] = useState("");
-  const [source, setSource] = useState("");
-  const [url, setUrl] = useState("");
-  const [summary, setSummary] = useState("");
-
-  const reset = () => {
-    setKind("academic");
-    setTitle("");
-    setAuthors("");
-    setYear("");
-    setSource("");
-    setUrl("");
-    setSummary("");
-  };
-
-  useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data?.intent === "save") {
-      reset();
-      onClose();
-      revalidator.revalidate();
-    }
-  }, [fetcher.state, fetcher.data, onClose, revalidator]);
-
-  const buildPayload = () => {
-    const parsedYear = year.trim() ? Number(year) : null;
-
-    if (kind === "web") {
-      return {
-        kind: "web",
-        title: title.trim(),
-        source: source.trim() || hostOf(url.trim() || null),
-        url: url.trim() || null,
-        year: parsedYear,
-        summary: summary.trim() || null,
-      };
-    }
-
-    const authorList = parseAuthors(authors);
-    return {
-      kind: "academic",
-      title: title.trim(),
-      source: source.trim() || null,
-      url: url.trim() || null,
-      year: parsedYear,
-      openalex_id: null,
-      cite: {
-        authors: authorList.length
-          ? authorList
-          : [{ first_name: null, last_name: "Unknown" }],
-        year: parsedYear,
-        title: title.trim(),
-        source: source.trim() || null,
-        doi: url.includes("doi.org") ? url.trim() : null,
-        reference_type: "manual",
-        openalex_id: null,
-      },
-    };
-  };
-
-  const canSubmit = title.trim().length > 0;
-
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!canSubmit) return;
-    const formData = new FormData();
-    formData.set("intent", "save");
-    formData.set("entry", JSON.stringify(buildPayload()));
-    fetcher.submit(formData, {
-      method: "post",
-      action: `/paper/${paperId}/library`,
-    });
-  };
-
   return (
-    <Modal opened={opened} onClose={onClose} title="Add manual citation" size="md">
-      <form onSubmit={handleSubmit}>
-        <Stack gap="sm">
-          <SegmentedControl
-            value={kind}
-            onChange={(value) => setKind(value as "academic" | "web")}
-            data={[
-              { label: "Academic", value: "academic" },
-              { label: "Web / policy", value: "web" },
-            ]}
-          />
-          <TextInput
-            label="Title"
-            value={title}
-            onChange={(e) => setTitle(e.currentTarget.value)}
-            required
-          />
-          {kind === "academic" && (
-            <TextInput
-              label="Authors"
-              placeholder="Last, First or Doe, John"
-              value={authors}
-              onChange={(e) => setAuthors(e.currentTarget.value)}
-            />
-          )}
-          <Group grow>
-            <TextInput
-              label="Year"
-              value={year}
-              onChange={(e) => setYear(e.currentTarget.value)}
-              placeholder="2024"
-            />
-            <TextInput
-              label={kind === "academic" ? "Venue / source" : "Publisher / source"}
-              value={source}
-              onChange={(e) => setSource(e.currentTarget.value)}
-            />
-          </Group>
-          <TextInput
-            label={kind === "academic" ? "DOI or URL" : "URL"}
-            value={url}
-            onChange={(e) => setUrl(e.currentTarget.value)}
-            placeholder={
-              kind === "academic"
-                ? "https://doi.org/10.1234/example"
-                : "https://example.com/article"
-            }
-          />
-          {kind === "web" && (
-            <Textarea
-              label="Summary (optional)"
-              value={summary}
-              onChange={(e) => setSummary(e.currentTarget.value)}
-              minRows={2}
-            />
-          )}
-          <Group justify="flex-end">
-            <Button variant="subtle" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={!canSubmit}
-              loading={fetcher.state !== "idle"}
-            >
-              Add to library
-            </Button>
-          </Group>
-        </Stack>
-      </form>
-    </Modal>
+    <Button size="compact-xs" variant="light" onClick={() => onEdit(entry)}>
+      Edit
+    </Button>
   );
 }
 
@@ -723,7 +695,12 @@ export const LibraryPage = () => {
   const academicFetcher = useFetcher<typeof action>();
   const policyFetcher = useFetcher<typeof action>();
   const removeFetcher = useFetcher();
-  const [manualCitationOpened, manualCitationHandlers] = useDisclosure(false);
+  const saveFetcher = useFetcher<typeof action>();
+  const updateFetcher = useFetcher<typeof action>();
+  const [citationModalMode, setCitationModalMode] = useState<
+    "create" | "edit" | null
+  >(null);
+  const [editingEntry, setEditingEntry] = useState<LibraryEntry | null>(null);
 
   const [academicQuery, setAcademicQuery] = useState("");
   const [policyQuery, setPolicyQuery] = useState("");
@@ -761,6 +738,119 @@ export const LibraryPage = () => {
 
   const academicEntries = entries.filter((e) => e.kind === "academic");
   const webEntries = entries.filter((e) => e.kind === "web");
+
+  const revalidator = useRevalidator();
+  const updateHandledRef = useRef(false);
+  const saveHandledRef = useRef(false);
+
+  const closeCitationModal = () => {
+    setCitationModalMode(null);
+    setEditingEntry(null);
+  };
+
+  const openCreateCitation = () => {
+    setEditingEntry(null);
+    setCitationModalMode("create");
+  };
+
+  const openEditCitation = (entry: LibraryEntry) => {
+    setEditingEntry(entry);
+    setCitationModalMode("edit");
+  };
+
+  useEffect(() => {
+    if (updateFetcher.state === "submitting") {
+      updateHandledRef.current = false;
+      return;
+    }
+
+    if (
+      updateFetcher.state !== "idle" ||
+      updateFetcher.data?.intent !== "update" ||
+      !updateFetcher.data.success ||
+      updateHandledRef.current
+    ) {
+      return;
+    }
+
+    updateHandledRef.current = true;
+    closeCitationModal();
+    revalidator.revalidate();
+  }, [updateFetcher.state, updateFetcher.data, revalidator]);
+
+  useEffect(() => {
+    if (saveFetcher.state === "submitting") {
+      saveHandledRef.current = false;
+      return;
+    }
+
+    if (
+      saveFetcher.state !== "idle" ||
+      saveFetcher.data?.intent !== "save" ||
+      saveHandledRef.current
+    ) {
+      return;
+    }
+
+    saveHandledRef.current = true;
+    closeCitationModal();
+    revalidator.revalidate();
+  }, [saveFetcher.state, saveFetcher.data, revalidator]);
+
+  const handleCitationSubmit = (
+    patch: Record<string, unknown>,
+    kind: LibraryEntry["kind"]
+  ) => {
+    if (citationModalMode === "create") {
+      const formData = new FormData();
+      formData.set("intent", "save");
+      formData.set("entry", JSON.stringify(buildSavePayload(kind, patch)));
+      saveFetcher.submit(formData, {
+        method: "post",
+        action: `/paper/${paperId}/library`,
+      });
+      return;
+    }
+
+    if (!editingEntry) return;
+
+    const formData = new FormData();
+    formData.set("intent", "update");
+    formData.set("entryId", String(editingEntry.id));
+    formData.set("patch", JSON.stringify(patch));
+    updateFetcher.submit(formData, {
+      method: "post",
+      action: `/paper/${paperId}/library`,
+    });
+  };
+
+  const citationModalError =
+    citationModalMode === "create" &&
+    saveFetcher.data?.intent === "save" &&
+    saveFetcher.data.failed
+      ? "Could not add citation."
+      : citationModalMode === "edit" &&
+          updateFetcher.data?.intent === "update" &&
+          updateFetcher.data.failed
+        ? updateFetcher.data.message ?? "Could not save citation."
+        : null;
+
+  const citationModalLoading =
+    citationModalMode === "create"
+      ? saveFetcher.state !== "idle"
+      : updateFetcher.state !== "idle";
+
+  const citationModal = (
+    <EditCitationModal
+      mode={citationModalMode === "create" ? "create" : "edit"}
+      entry={editingEntry}
+      opened={citationModalMode !== null}
+      onClose={closeCitationModal}
+      onSubmit={handleCitationSubmit}
+      loading={citationModalLoading}
+      error={citationModalError}
+    />
+  );
 
   const page = (
     <Stack>
@@ -998,9 +1088,7 @@ export const LibraryPage = () => {
                             {entry.title}
                           </Text>
                           <Text size="xs" c="dimmed">
-                            {[entry.source, entry.year]
-                              .filter(Boolean)
-                              .join(" · ")}
+                            {formatApaReference(entry)}
                           </Text>
                         </Box>
                         <Group gap="xs" wrap="nowrap">
@@ -1009,6 +1097,10 @@ export const LibraryPage = () => {
                               Open ↗
                             </Anchor>
                           )}
+                          <EditCitationButton
+                            entry={entry}
+                            onEdit={openEditCitation}
+                          />
                           <InsertCitationButton
                             paperId={paperId}
                             entry={entry}
@@ -1047,6 +1139,7 @@ export const LibraryPage = () => {
           ))}
         </Tabs>
       </Stack>
+      {citationModal}
     </Stack>
   );
 
@@ -1110,7 +1203,7 @@ export const LibraryPage = () => {
             <Button
               size="compact-xs"
               variant="outline"
-              onClick={manualCitationHandlers.open}
+              onClick={openCreateCitation}
             >
               + Add manual citation
             </Button>
@@ -1164,12 +1257,11 @@ export const LibraryPage = () => {
               </Tooltip>
             </removeFetcher.Form>
           )}
+          renderEdit={(entry) => (
+            <EditCitationButton entry={entry} onEdit={openEditCitation} />
+          )}
         />
-        <ManualCitationModal
-          paperId={paperId}
-          opened={manualCitationOpened}
-          onClose={manualCitationHandlers.close}
-        />
+        {citationModal}
       </>
     );
   }
