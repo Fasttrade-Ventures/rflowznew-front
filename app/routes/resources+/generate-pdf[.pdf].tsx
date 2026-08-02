@@ -6,7 +6,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const pdfUrl = url.searchParams.get("url");
   const date = url.searchParams.get("date");
+  const title = url.searchParams.get("title");
   invariant(pdfUrl, "PDF URL is required");
+
+  const filename = title ? `${title}.pdf` : `rflowz-document-${date}.pdf`;
 
   let response: Response;
   try {
@@ -27,7 +30,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return new Response(response.body, {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="rflowz-document-${date}.pdf"`,
+      "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
 }

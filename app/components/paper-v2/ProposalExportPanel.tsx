@@ -14,6 +14,7 @@ dayjs.extend(timezone);
 
 type ProposalExportPanelProps = {
   paperId: string;
+  paperTitle?: string;
   generatedDocuments: GeneratedDocument[];
   timeZone: string;
   exportPptx: boolean;
@@ -48,9 +49,24 @@ function urlFor(doc: GeneratedDocument, format: FormatKey) {
   return doc.pptx_url;
 }
 
-function downloadPath(format: FormatKey, url: string, date: string) {
+function slugifyTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .slice(0, 80);
+}
+
+function downloadPath(
+  format: FormatKey,
+  url: string,
+  date: string,
+  titleSlug?: string
+) {
   const ext = format === "docx" ? "docx" : format === "pdf" ? "pdf" : "pptx";
-  return `/resources/generate-${ext}.${ext}?url=${url}&date=${date}`;
+  const base = `/resources/generate-${ext}.${ext}?url=${encodeURIComponent(url)}&date=${date}`;
+  return titleSlug ? `${base}&title=${encodeURIComponent(titleSlug)}` : base;
 }
 
 function FormatButton({
@@ -58,11 +74,13 @@ function FormatButton({
   doc,
   timeZone,
   label,
+  titleSlug,
 }: {
   format: FormatKey;
   doc: GeneratedDocument | undefined;
   timeZone: string;
   label: string;
+  titleSlug?: string;
 }) {
   const status = doc ? statusFor(doc, format) : null;
   const url = doc ? urlFor(doc, format) : null;
@@ -74,7 +92,7 @@ function FormatButton({
     return (
       <Button
         component={Link}
-        to={downloadPath(format, url, dateSlug)}
+        to={downloadPath(format, url, dateSlug, titleSlug)}
         reloadDocument
         variant="outline"
         size="xs"
@@ -109,6 +127,7 @@ function FormatButton({
 
 export function ProposalExportPanel({
   paperId,
+  paperTitle,
   generatedDocuments,
   timeZone,
   exportPptx,
@@ -121,6 +140,7 @@ export function ProposalExportPanel({
   isPending,
 }: ProposalExportPanelProps) {
   const latest = generatedDocuments[0];
+  const titleSlug = paperTitle ? slugifyTitle(paperTitle) : undefined;
   const canGenerate =
     exportAllowed &&
     hasActiveSubscription &&
@@ -171,12 +191,14 @@ export function ProposalExportPanel({
                 doc={latest}
                 timeZone={timeZone}
                 label="DOCX"
+                titleSlug={titleSlug}
               />
               <FormatButton
                 format="pdf"
                 doc={latest}
                 timeZone={timeZone}
                 label="PDF"
+                titleSlug={titleSlug}
               />
               {exportPptx ? (
                 <FormatButton
@@ -184,6 +206,7 @@ export function ProposalExportPanel({
                   doc={latest}
                   timeZone={timeZone}
                   label="PPTX"
+                  titleSlug={titleSlug}
                 />
               ) : null}
             </>
@@ -247,12 +270,14 @@ export function ProposalExportPanel({
                   doc={doc}
                   timeZone={timeZone}
                   label="DOCX"
+                  titleSlug={titleSlug}
                 />
                 <FormatButton
                   format="pdf"
                   doc={doc}
                   timeZone={timeZone}
                   label="PDF"
+                  titleSlug={titleSlug}
                 />
                 {exportPptx ? (
                   <FormatButton
@@ -260,6 +285,7 @@ export function ProposalExportPanel({
                     doc={doc}
                     timeZone={timeZone}
                     label="PPTX"
+                    titleSlug={titleSlug}
                   />
                 ) : null}
               </Group>

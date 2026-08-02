@@ -244,6 +244,7 @@ export function ReviewProposalV2({
 
               <ProposalExportPanel
                 paperId={paperId}
+                paperTitle={paperTitle}
                 generatedDocuments={generatedDocuments}
                 timeZone={timeZone}
                 exportPptx={exportPptx}

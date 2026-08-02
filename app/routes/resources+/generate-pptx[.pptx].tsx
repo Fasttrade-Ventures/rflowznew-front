@@ -6,7 +6,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const pptxUrl = url.searchParams.get("url");
   const date = url.searchParams.get("date");
+  const title = url.searchParams.get("title");
   invariant(pptxUrl, "PPTX URL is required");
+
+  const filename = title ? `${title}.pptx` : `rflowz-document-${date}.pptx`;
 
   let response: Response;
   try {
@@ -28,7 +31,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     headers: {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      "Content-Disposition": `attachment; filename="rflowz-document-${date}.pptx"`,
+      "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
 }

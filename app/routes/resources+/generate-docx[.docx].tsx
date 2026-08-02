@@ -6,7 +6,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const docxUrl = url.searchParams.get("url");
   const date = url.searchParams.get("date");
+  const title = url.searchParams.get("title");
   invariant(docxUrl, "DOCX URL is required");
+
+  const filename = title ? `${title}.docx` : `rflowz-document-${date}.docx`;
 
   let response: Response;
   try {
@@ -28,7 +31,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     headers: {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "Content-Disposition": `attachment; filename="rflowz-document-${date}.docx"`,
+      "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
 }
