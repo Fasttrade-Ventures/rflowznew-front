@@ -164,26 +164,34 @@ export function ProposalExportPanel({
           </div>
         </div>
         <Group gap={6} wrap="wrap" className={classes.exportActions}>
-          <FormatButton
-            format="docx"
-            doc={latest}
-            timeZone={timeZone}
-            label="DOCX"
-          />
-          <FormatButton
-            format="pdf"
-            doc={latest}
-            timeZone={timeZone}
-            label="PDF"
-          />
-          {exportPptx ? (
-            <FormatButton
-              format="pptx"
-              doc={latest}
-              timeZone={timeZone}
-              label="PPTX"
-            />
-          ) : null}
+          {latest ? (
+            <>
+              <FormatButton
+                format="docx"
+                doc={latest}
+                timeZone={timeZone}
+                label="DOCX"
+              />
+              <FormatButton
+                format="pdf"
+                doc={latest}
+                timeZone={timeZone}
+                label="PDF"
+              />
+              {exportPptx ? (
+                <FormatButton
+                  format="pptx"
+                  doc={latest}
+                  timeZone={timeZone}
+                  label="PPTX"
+                />
+              ) : null}
+            </>
+          ) : (
+            <span className={classes.exportNoVersionHint}>
+              Click <strong>New version</strong> to generate your documents
+            </span>
+          )}
           <Form method="post">
             <input type="hidden" name="paperId" value={paperId} />
             <Button

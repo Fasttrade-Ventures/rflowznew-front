@@ -688,6 +688,142 @@
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 }
 
+/* List view */
+.projectList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.projectListRow {
+  align-items: center;
+  background: var(--rz-card);
+  border-bottom: 1px solid var(--rz-border);
+  display: flex;
+  gap: 10px;
+  padding: 10px 8px;
+  transition: background 0.1s;
+}
+
+.projectListRow:first-child {
+  border-top: 1px solid var(--rz-border);
+  border-radius: var(--rz-radius-md) var(--rz-radius-md) 0 0;
+}
+
+.projectListRow:last-child {
+  border-radius: 0 0 var(--rz-radius-md) var(--rz-radius-md);
+}
+
+.projectListRow:hover {
+  background: var(--rz-muted);
+}
+
+.projectListTitle {
+  color: var(--rz-foreground);
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.projectListTitle:hover {
+  color: var(--rz-primary);
+}
+
+.projectListMeta {
+  align-items: center;
+  color: var(--rz-muted-foreground);
+  display: flex;
+  font-size: 11px;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.projectListProgress {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  min-width: 80px;
+}
+
+.projectListProgressBar {
+  background: var(--rz-muted);
+  border-radius: 999px;
+  flex: 1;
+  height: 4px;
+  overflow: hidden;
+}
+
+.projectListProgressFill {
+  background: var(--rz-primary);
+  border-radius: 999px;
+  height: 100%;
+  transition: width 0.2s;
+}
+
+.projectListNewRow {
+  align-items: center;
+  border-radius: var(--rz-radius-md);
+  border: 1px dashed var(--rz-border);
+  color: var(--rz-muted-foreground);
+  display: flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 2px;
+  padding: 8px;
+  text-decoration: none;
+  transition: border-color 0.1s, color 0.1s;
+}
+
+.projectListNewRow:hover {
+  border-color: var(--rz-primary);
+  color: var(--rz-primary);
+}
+
+/* View toggle buttons */
+.viewToggle {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+}
+
+.viewToggleBtn {
+  align-items: center;
+  background: none;
+  border: 1px solid var(--rz-border);
+  border-radius: 4px;
+  color: var(--rz-muted-foreground);
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.1s, color 0.1s;
+  width: 28px;
+}
+
+.viewToggleBtn:hover {
+  background: var(--rz-muted);
+  color: var(--rz-foreground);
+}
+
+.viewToggleBtnActive {
+  background: var(--rz-primary);
+  border-color: var(--rz-primary);
+  color: #fff;
+}
+
+.viewToggleBtnActive:hover {
+  background: var(--rz-primary);
+  color: #fff;
+}
+
 .statsRowThree {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
