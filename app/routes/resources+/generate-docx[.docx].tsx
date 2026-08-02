@@ -9,7 +9,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const title = url.searchParams.get("title");
   invariant(docxUrl, "DOCX URL is required");
 
-  const filename = title ? `${title}.docx` : `rflowz-document-${date}.docx`;
+  const filename = `proposal-${date}.docx`;
 
   let response: Response;
   try {

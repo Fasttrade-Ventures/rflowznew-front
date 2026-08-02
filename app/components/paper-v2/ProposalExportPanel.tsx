@@ -51,28 +51,9 @@ function urlFor(doc: GeneratedDocument, format: FormatKey) {
   return doc.pptx_url;
 }
 
-function slugifyTitle(title: string): string {
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-");
-  if (slug.length <= 40) return slug;
-  // Truncate at the last word boundary within 40 chars so the filename stays readable.
-  const cut = slug.slice(0, 40);
-  const lastDash = cut.lastIndexOf("-");
-  return lastDash > 20 ? cut.slice(0, lastDash) : cut;
-}
-
-function downloadPath(
-  format: FormatKey,
-  url: string,
-  date: string,
-  titleSlug?: string
-) {
+function downloadPath(format: FormatKey, url: string, date: string) {
   const ext = format === "docx" ? "docx" : format === "pdf" ? "pdf" : "pptx";
-  const base = `/resources/generate-${ext}.${ext}?url=${encodeURIComponent(url)}&date=${date}`;
-  return titleSlug ? `${base}&title=${encodeURIComponent(titleSlug)}` : base;
+  return `/resources/generate-${ext}.${ext}?url=${encodeURIComponent(url)}&date=${date}`;
 }
 
 function FormatButton({
@@ -80,13 +61,11 @@ function FormatButton({
   doc,
   timeZone,
   label,
-  titleSlug,
 }: {
   format: FormatKey;
   doc: GeneratedDocument | undefined;
   timeZone: string;
   label: string;
-  titleSlug?: string;
 }) {
   const status = doc ? statusFor(doc, format) : null;
   const url = doc ? urlFor(doc, format) : null;
@@ -100,7 +79,7 @@ function FormatButton({
         variant="outline"
         size="xs"
         onClick={() => {
-          window.location.href = downloadPath(format, url, dateSlug, titleSlug);
+          window.location.href = downloadPath(format, url, dateSlug);
         }}
       >
         {label}
@@ -148,7 +127,6 @@ export function ProposalExportPanel({
 }: ProposalExportPanelProps) {
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const latest = generatedDocuments[0];
-  const titleSlug = paperTitle ? slugifyTitle(paperTitle) : undefined;
 
   const atVersionLimit =
     documentVersionLimit != null &&
@@ -239,14 +217,12 @@ export function ProposalExportPanel({
                 doc={latest}
                 timeZone={timeZone}
                 label="DOCX"
-                titleSlug={titleSlug}
               />
               <FormatButton
                 format="pdf"
                 doc={latest}
                 timeZone={timeZone}
                 label="PDF"
-                titleSlug={titleSlug}
               />
               {exportPptx ? (
                 <FormatButton
@@ -254,7 +230,6 @@ export function ProposalExportPanel({
                   doc={latest}
                   timeZone={timeZone}
                   label="PPTX"
-                  titleSlug={titleSlug}
                 />
               ) : null}
             </>
@@ -328,14 +303,12 @@ export function ProposalExportPanel({
                   doc={doc}
                   timeZone={timeZone}
                   label="DOCX"
-                  titleSlug={titleSlug}
                 />
                 <FormatButton
                   format="pdf"
                   doc={doc}
                   timeZone={timeZone}
                   label="PDF"
-                  titleSlug={titleSlug}
                 />
                 {exportPptx ? (
                   <FormatButton
@@ -343,7 +316,6 @@ export function ProposalExportPanel({
                     doc={doc}
                     timeZone={timeZone}
                     label="PPTX"
-                    titleSlug={titleSlug}
                   />
                 ) : null}
               </Group>
