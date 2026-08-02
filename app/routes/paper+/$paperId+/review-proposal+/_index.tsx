@@ -733,10 +733,24 @@ function GeneratedDocumentsTable({
                   leftSection={
                     <Icon name="pika-file" style={{ width: 16, height: 16 }} />
                   }
-                  onClick={() => {
-                    window.location.href = `/resources/generate-docx.docx?url=${
-                      generatedDocument.docx_url
-                    }&date=${formatDateForFileName(generatedDocument.created_at)}`;
+                  onClick={async () => {
+                    const date = formatDateForFileName(generatedDocument.created_at);
+                    const path = `/resources/generate-docx.docx?url=${encodeURIComponent(generatedDocument.docx_url)}&date=${date}`;
+                    try {
+                      const res = await fetch(path);
+                      if (!res.ok) throw new Error();
+                      const blob = await res.blob();
+                      const objectUrl = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = objectUrl;
+                      a.download = `proposal-${date}.docx`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(objectUrl);
+                    } catch {
+                      window.location.href = path;
+                    }
                   }}
                 >
                   DOCX

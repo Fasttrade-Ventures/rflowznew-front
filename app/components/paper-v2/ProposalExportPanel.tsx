@@ -56,6 +56,25 @@ function downloadPath(format: FormatKey, url: string, date: string) {
   return `/resources/generate-${ext}.${ext}?url=${encodeURIComponent(url)}&date=${date}`;
 }
 
+async function triggerSilentDownload(resourcePath: string, filename: string) {
+  try {
+    const res = await fetch(resourcePath);
+    if (!res.ok) throw new Error("fetch failed");
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    // fallback — at least the file downloads even if URL briefly shows
+    window.location.href = resourcePath;
+  }
+}
+
 function FormatButton({
   format,
   doc,
@@ -74,13 +93,13 @@ function FormatButton({
     : "";
 
   if (status === "completed" && url) {
+    const ext = format === "docx" ? "docx" : format === "pdf" ? "pdf" : "pptx";
+    const filename = `proposal-${dateSlug}.${ext}`;
     return (
       <Button
         variant="outline"
         size="xs"
-        onClick={() => {
-          window.location.href = downloadPath(format, url, dateSlug);
-        }}
+        onClick={() => triggerSilentDownload(downloadPath(format, url, dateSlug), filename)}
       >
         {label}
       </Button>
