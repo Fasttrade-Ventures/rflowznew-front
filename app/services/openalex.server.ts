@@ -1,7 +1,7 @@
 import customFetch from "#app/utils/customFetch";
 
 export interface OpenAlexAuthor {
-  first_name?: string;
+  first_name?: string | null;
   last_name: string;
 }
 
@@ -11,8 +11,12 @@ export interface OpenAlexCite {
   title: string;
   source: string | null;
   doi: string | null;
-  reference_type: "openalex";
-  openalex_id: string;
+  volume?: string | null;
+  issue?: string | null;
+  first_page?: string | null;
+  last_page?: string | null;
+  reference_type: "openalex" | "manual" | "web";
+  openalex_id: string | null;
 }
 
 export interface OpenAlexWork {

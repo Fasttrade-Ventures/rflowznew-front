@@ -25,6 +25,7 @@ import {
 import { getHints } from "#app/utils/client-hints";
 import { APIValidationError } from "#app/utils/error/api-validation-error";
 import { canManageStripeBilling } from "#app/utils/plan";
+import { getAskProfZPlanDisplay } from "#app/utils/ask-prof-z-plan-label";
 import { redirectWithToast } from "#app/utils/toast.server";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -316,15 +317,9 @@ function ProfileV2({
                 </span>
               </div>
               <div className={classes.kvRow}>
-                <span className={classes.kvLabel}>Ask Prof Z left</span>
+                <span className={classes.kvLabel}>Ask Prof Z</span>
                 <span className={classes.kvValue}>
-                  {subscription.ai_limit_remaining == null
-                    ? "Unlimited"
-                    : `${subscription.ai_limit_remaining}${
-                        subscription.ai_original_monthly_limit != null
-                          ? ` / ${subscription.ai_original_monthly_limit}`
-                          : ""
-                      }`}
+                  {getAskProfZPlanDisplay(subscription.plan_key).value}
                 </span>
               </div>
               <div className={classes.kvRow}>

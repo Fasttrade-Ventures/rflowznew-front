@@ -124,6 +124,7 @@ export function ProposalAccordion({
                     }
                     active={focusedKey === key}
                     previewable
+                    defaultMode={focusedKey === key ? "edit" : "preview"}
                     minRows={key === "references" ? 8 : 6}
                     disabled={regeneratingKey === key}
                     placeholder={

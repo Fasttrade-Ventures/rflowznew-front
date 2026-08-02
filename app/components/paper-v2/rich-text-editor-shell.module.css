@@ -186,3 +186,14 @@
   color: var(--rz-foreground);
   font-weight: 600;
 }
+
+.markdownPreview :global(p:has(> strong:only-child)) {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  margin-top: 14px;
+}
+
+.markdownPreview :global(p:has(> strong:only-child):first-child) {
+  margin-top: 0;
+}

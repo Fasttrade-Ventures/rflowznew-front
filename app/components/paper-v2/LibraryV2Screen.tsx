@@ -1,5 +1,6 @@
 import type { LibraryEntry, WebSearchResult } from "#app/services/library.server";
 import type { OpenAlexWork } from "#app/services/openalex.server";
+import { formatApaReference } from "#app/utils/format-library-reference";
 import { Anchor, Button, Group } from "@mantine/core";
 import type { ReactNode } from "react";
 
@@ -60,6 +61,7 @@ type LibraryV2ScreenProps = {
   ) => ReactNode;
   renderCiteControl: (entry: LibraryEntry) => ReactNode;
   renderRemove: (entry: LibraryEntry) => ReactNode;
+  renderEdit?: (entry: LibraryEntry) => ReactNode;
   manualCitationButton: ReactNode;
   attachedCount: number;
 };
@@ -84,6 +86,7 @@ export function LibraryV2Screen({
   renderWebCite,
   renderCiteControl,
   renderRemove,
+  renderEdit,
   manualCitationButton,
   attachedCount,
 }: LibraryV2ScreenProps) {
@@ -207,9 +210,7 @@ export function LibraryV2Screen({
                     {renderCiteControl(entry)}
                     <div>
                       <div className={classes.rowTitle}>{entry.title}</div>
-                      <div className={classes.rowMeta}>
-                        {[entry.source, entry.year].filter(Boolean).join(" · ")}
-                      </div>
+                      <div className={classes.rowMeta}>{formatApaReference(entry)}</div>
                     </div>
                     <div className={classes.rowActions}>
                       {entry.url && (
@@ -217,6 +218,7 @@ export function LibraryV2Screen({
                           Open
                         </Anchor>
                       )}
+                      {renderEdit ? renderEdit(entry) : null}
                       <Button size="compact-xs" variant="light" disabled>
                         Saved
                       </Button>
@@ -302,6 +304,7 @@ export function LibraryV2Screen({
                           Open
                         </Anchor>
                       )}
+                      {renderEdit ? renderEdit(entry) : null}
                       <Button size="compact-xs" variant="light" disabled>
                         Saved
                       </Button>
@@ -309,9 +312,7 @@ export function LibraryV2Screen({
                     </div>
                     <div>
                       <div className={classes.rowTitle}>{entry.title}</div>
-                      <div className={classes.rowMeta}>
-                        {[entry.source, entry.year].filter(Boolean).join(" · ")}
-                      </div>
+                      <div className={classes.rowMeta}>{formatApaReference(entry)}</div>
                     </div>
                   </div>
                 ))}
