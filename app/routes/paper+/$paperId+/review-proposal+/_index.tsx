@@ -188,8 +188,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   if (intent === "save-proposal-section") {
     const sectionKey = formData.get("section_key") as string;
-    const content = formData.get("content") as string;
-    await saveProposalSection({ request, paperId, sectionKey, content });
+    const content = (formData.get("content") as string) ?? "";
+    try {
+      await saveProposalSection({ request, paperId, sectionKey, content });
+    } catch {
+      // Silently ignore save errors for empty sections
+    }
     return json({ message: "Section saved" });
   }
 
