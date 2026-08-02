@@ -61,10 +61,12 @@ export function shouldRevalidate({
 
 export const PaperProblemStatementSchema = z.object({
   paperId: z.string(),
-  motivational_problem: z.string().min(150).optional(),
-  gap_in_practice: z.string().min(150).optional(),
-  research_problem: z.string().min(150).optional(),
-  gap_in_research: z.string().min(150).optional(),
+  motivational_problem: z
+    .union([z.literal(""), z.string().min(150)])
+    .optional(),
+  gap_in_practice: z.union([z.literal(""), z.string().min(150)]).optional(),
+  research_problem: z.union([z.literal(""), z.string().min(150)]).optional(),
+  gap_in_research: z.union([z.literal(""), z.string().min(150)]).optional(),
 });
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {

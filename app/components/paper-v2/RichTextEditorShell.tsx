@@ -1,4 +1,5 @@
-import { Textarea, type TextareaProps } from "@mantine/core";
+import { Box, SegmentedControl, Textarea, type TextareaProps } from "@mantine/core";
+import Markdown from "react-markdown";
 import { useCallback, useRef, useState } from "react";
 
 import classes from "./rich-text-editor-shell.module.css";
@@ -15,6 +16,7 @@ type RichTextEditorShellProps = {
   minHeight?: number;
   maxHeight?: number;
   toolbarLabel?: string;
+  previewable?: boolean;
   onFocus?: () => void;
   onBlur?: () => void;
 } & Pick<TextareaProps, "placeholder" | "disabled" | "error" | "autosize">;
@@ -31,6 +33,7 @@ export function RichTextEditorShell({
   minHeight = 120,
   maxHeight = 720,
   toolbarLabel,
+  previewable = false,
   placeholder,
   disabled,
   error,
@@ -39,6 +42,7 @@ export function RichTextEditorShell({
   onBlur,
 }: RichTextEditorShellProps) {
   const [height, setHeight] = useState(initialHeight);
+  const [mode, setMode] = useState<"edit" | "preview">("edit");
   const dragRef = useRef<{ startY: number; startHeight: number } | null>(null);
 
   const clampHeight = useCallback(
@@ -111,44 +115,63 @@ export function RichTextEditorShell({
         )}
       </div>
 
+      {previewable && value.trim() ? (
+        <SegmentedControl
+          size="xs"
+          value={mode}
+          onChange={(next) => setMode(next as "edit" | "preview")}
+          data={[
+            { label: "Edit", value: "edit" },
+            { label: "Preview", value: "preview" },
+          ]}
+          className={classes.modeToggle}
+        />
+      ) : null}
+
       <div
         className={`${classes.body} ${active ? classes.bodyActive : ""} ${
           variant === "code" ? classes.bodyCode : ""
         } ${resizable ? classes.bodyResizable : ""}`}
       >
-        <Textarea
-          value={value}
-          onChange={(event) => onChange(event.currentTarget.value)}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          minRows={minRows}
-          autosize={resizable ? false : autosize}
-          disabled={disabled}
-          placeholder={placeholder}
-          error={error}
-          styles={
-            resizable
-              ? {
-                  root: {
-                    display: "flex",
-                    flex: 1,
-                    flexDirection: "column",
-                    minHeight: 0,
-                  },
-                  wrapper: {
-                    flex: 1,
-                    minHeight: 0,
-                  },
-                  input: {
-                    height: "100%",
-                    minHeight: 0,
-                    overflow: "auto",
-                    resize: "none",
-                  },
-                }
-              : undefined
-          }
-        />
+        {previewable && mode === "preview" ? (
+          <Box className={classes.markdownPreview}>
+            <Markdown>{value}</Markdown>
+          </Box>
+        ) : (
+          <Textarea
+            value={value}
+            onChange={(event) => onChange(event.currentTarget.value)}
+            onFocus={onFocus}
+            onBlur={onBlur}
+            minRows={minRows}
+            autosize={resizable ? false : autosize}
+            disabled={disabled}
+            placeholder={placeholder}
+            error={error}
+            styles={
+              resizable
+                ? {
+                    root: {
+                      display: "flex",
+                      flex: 1,
+                      flexDirection: "column",
+                      minHeight: 0,
+                    },
+                    wrapper: {
+                      flex: 1,
+                      minHeight: 0,
+                    },
+                    input: {
+                      height: "100%",
+                      minHeight: 0,
+                      overflow: "auto",
+                      resize: "none",
+                    },
+                  }
+                : undefined
+            }
+          />
+        )}
         {hint ? <span className={classes.hint}>{hint}</span> : null}
       </div>
 
