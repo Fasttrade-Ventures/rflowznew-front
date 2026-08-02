@@ -768,13 +768,11 @@ function GeneratedDocumentsTable({
 
               {generatedDocument.pdf_generating_status === "completed" ? (
                 <Button
-                  component={Link}
-                  reloadDocument
-                  to={`/resources/generate-pdf.pdf?url=${
+                  component="a"
+                  href={`/resources/generate-pdf?url=${encodeURIComponent(
                     generatedDocument.pdf_url
-                  }&date=${formatDateForFileName(
-                    generatedDocument.created_at
-                  )}`}
+                  )}&date=${formatDateForFileName(generatedDocument.created_at)}`}
+                  download={`proposal-${formatDateForFileName(generatedDocument.created_at)}.pdf`}
                   variant="light"
                   leftSection={
                     <Icon name="pika-file" style={{ width: 16, height: 16 }} />
@@ -810,13 +808,11 @@ function GeneratedDocumentsTable({
               {exportPptx ? (
                 generatedDocument.pptx_generating_status === "completed" ? (
                   <Button
-                    component={Link}
-                    reloadDocument
-                    to={`/resources/generate-pptx.pptx?url=${
+                    component="a"
+                    href={`/resources/generate-pptx?url=${encodeURIComponent(
                       generatedDocument.pptx_url
-                    }&date=${formatDateForFileName(
-                      generatedDocument.created_at
-                    )}`}
+                    )}&date=${formatDateForFileName(generatedDocument.created_at)}`}
+                    download={`proposal-${formatDateForFileName(generatedDocument.created_at)}.pptx`}
                     variant="light"
                     leftSection={
                       <Icon
