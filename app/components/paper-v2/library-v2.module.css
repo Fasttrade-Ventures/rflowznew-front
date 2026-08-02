@@ -243,8 +243,35 @@
 }
 
 @media (max-width: 62em) {
+  /* Switch to single-column stacked layout */
   .dualBody {
     grid-template-columns: 1fr;
+    /* On mobile the outer mainContent handles scrolling — remove
+       the flex-height trick so panels don't overflow each other */
+    flex: unset;
+    min-height: unset;
+  }
+
+  /* Shell no longer tries to be 100% of the scroll container height */
+  .shell {
+    height: auto;
+    min-height: unset;
+  }
+
+  /* Panels flow to natural content height instead of being flex-stretched */
+  .panel {
+    min-height: unset;
+  }
+
+  /* Results table no longer fills remaining space; uses a fixed max-height instead */
+  .resultsTable {
+    flex: unset;
+    max-height: 320px;
+  }
+
+  /* scrollBody still scrolls within that capped height */
+  .scrollBody {
+    max-height: 260px;
   }
 
   .pageHeader {
@@ -261,7 +288,6 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  /* On very small screens, drop the stat labels and shrink */
   .statLabel {
     font-size: 9px;
   }
