@@ -60,11 +60,6 @@ export const PAPER_NAV_PHASES: PaperNavPhaseGroup[] = [
         icon: "pika-file",
         progressKey: "review_proposal",
       },
-      {
-        label: "Project settings",
-        path: "settings",
-        icon: "settings-outline",
-      },
     ],
   },
 ];

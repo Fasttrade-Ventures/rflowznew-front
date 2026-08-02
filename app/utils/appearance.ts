@@ -36,42 +36,47 @@ export function getScaleMultiplier(scale: FontScale | string | undefined): numbe
   }
 }
 
-/** CSS custom properties applied on `<html>` for v2 surfaces + global accent. */
+/** Primary accent only — light/dark surface tokens live in rflowz-v2.css */
+export function getPrimaryCssVars(
+  colorTheme: string | undefined
+): Record<string, string> {
+  const color = resolveThemeColor(colorTheme);
+  return {
+    "--rz-primary": PRIMARY_HEX[color],
+    "--rz-primary-foreground": "#ffffff",
+  };
+}
+
+/** @deprecated Use getPrimaryCssVars + CSS scheme tokens in rflowz-v2.css */
 export function getAppearanceCssVars(
   colorTheme: string | undefined,
   resolvedScheme: "light" | "dark"
 ): Record<string, string> {
-  const color = resolveThemeColor(colorTheme);
-  const primary = PRIMARY_HEX[color];
-
-  if (resolvedScheme === "dark") {
-    return {
-      "--rz-primary": primary,
-      "--rz-primary-foreground": "#ffffff",
-      "--rz-background": "#09090b",
-      "--rz-foreground": "#fafafa",
-      "--rz-card": "#18181b",
-      "--rz-muted": "#27272a",
-      "--rz-muted-foreground": "#a1a1aa",
-      "--rz-border": "#3f3f46",
-      "--rz-sidebar": "#09090b",
-      "--rz-sidebar-accent": "#27272a",
-      "--rz-sidebar-border": "#3f3f46",
-    };
-  }
-
   return {
-    "--rz-primary": primary,
-    "--rz-primary-foreground": "#ffffff",
-    "--rz-background": "#fafafa",
-    "--rz-foreground": "#09090b",
-    "--rz-card": "#ffffff",
-    "--rz-muted": "#f4f4f5",
-    "--rz-muted-foreground": "#71717a",
-    "--rz-border": "#e4e4e7",
-    "--rz-sidebar": "#fafafa",
-    "--rz-sidebar-accent": "#f4f4f5",
-    "--rz-sidebar-border": "#e4e4e7",
+    ...getPrimaryCssVars(colorTheme),
+    ...(resolvedScheme === "dark"
+      ? {
+          "--rz-background": "#09090b",
+          "--rz-foreground": "#fafafa",
+          "--rz-card": "#18181b",
+          "--rz-muted": "#27272a",
+          "--rz-muted-foreground": "#a1a1aa",
+          "--rz-border": "#3f3f46",
+          "--rz-sidebar": "#09090b",
+          "--rz-sidebar-accent": "#27272a",
+          "--rz-sidebar-border": "#3f3f46",
+        }
+      : {
+          "--rz-background": "#fafafa",
+          "--rz-foreground": "#09090b",
+          "--rz-card": "#ffffff",
+          "--rz-muted": "#f4f4f5",
+          "--rz-muted-foreground": "#71717a",
+          "--rz-border": "#e4e4e7",
+          "--rz-sidebar": "#fafafa",
+          "--rz-sidebar-accent": "#f4f4f5",
+          "--rz-sidebar-border": "#e4e4e7",
+        }),
   };
 }
 

@@ -20,6 +20,24 @@ type PaperListItem = {
   created_at: string;
 };
 
+function truncateLabel(text: string, maxLength = 26): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+  return `${trimmed.slice(0, maxLength - 1)}…`;
+}
+
+function getLatestProject(papers: PaperListItem[]): PaperListItem | null {
+  if (papers.length === 0) return null;
+
+  const byNewest = [...papers].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  return (
+    byNewest.find((paper) => paper.overall_progress < 100) ?? byNewest[0] ?? null
+  );
+}
+
 export function HomeDashboardV2({
   papers,
   stats,
@@ -35,6 +53,10 @@ export function HomeDashboardV2({
 }) {
   const list = papers ?? [];
   const firstName = displayFirstName(userName, userEmail);
+  const latestProject = getLatestProject(list);
+  const latestProjectLabel = latestProject
+    ? truncateLabel(latestProject.title || "Untitled project")
+    : null;
   const inProgress = list
     .filter((paper) => paper.overall_progress < 100)
     .sort(
@@ -181,24 +203,30 @@ export function HomeDashboardV2({
               >
                 Search library
               </Button>
-              <Button
-                component={Link}
-                to={inProgress[0] ? `/paper/${inProgress[0].id}/settings` : "/home/projects"}
-                variant="outline"
-                size="xs"
-                fullWidth
-              >
-                Edit project settings
-              </Button>
-              <Button
-                component={Link}
-                to={inProgress[0] ? `/paper/${inProgress[0].id}/review-proposal` : "/home/projects"}
-                variant="outline"
-                size="xs"
-                fullWidth
-              >
-                Export proposal
-              </Button>
+              {latestProject ? (
+                <>
+                  <Button
+                    component={Link}
+                    to={`/paper/${latestProject.id}/settings`}
+                    variant="outline"
+                    size="xs"
+                    fullWidth
+                    title={latestProject.title}
+                  >
+                    Edit settings: {latestProjectLabel}
+                  </Button>
+                  <Button
+                    component={Link}
+                    to={`/paper/${latestProject.id}/review-proposal`}
+                    variant="outline"
+                    size="xs"
+                    fullWidth
+                    title={latestProject.title}
+                  >
+                    Export: {latestProjectLabel}
+                  </Button>
+                </>
+              ) : null}
             </div>
           </div>
 

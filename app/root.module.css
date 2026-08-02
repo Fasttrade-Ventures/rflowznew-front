@@ -1,20 +1,6 @@
 .container {
+  background-color: var(--rz-background);
+  color: var(--rz-foreground);
   height: 100%;
   min-height: 100%;
-  background-color: light-dark(
-    var(--mantine-color-gray-1),
-    var(--mantine-color-dark-9)
-  );
-}
-
-:root {
-  @mixin light-root {
-    --color: var(--mantine-color-black);
-  }
-
-  @mixin dark-root {
-    --color: var(--mantine-color-black);
-  }
-
-  background-color: var(--color);
 }

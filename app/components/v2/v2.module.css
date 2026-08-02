@@ -68,6 +68,10 @@
   width: 120px;
 }
 
+:global(html[data-mantine-color-scheme="dark"]) .logo {
+  background-image: url("/images/rflowz-white.png");
+}
+
 .navLabel {
   color: var(--rz-muted-foreground);
   font-size: 9px;
@@ -191,6 +195,7 @@
 
 .profileName,
 .profileCaret {
+  color: var(--rz-foreground);
   display: inline;
   font-size: 11px;
   line-height: 1.25;
@@ -212,6 +217,7 @@
 }
 
 .headerGreet {
+  color: var(--rz-foreground);
   font-size: 14px;
   font-weight: 600;
   line-height: 1.25;
@@ -321,6 +327,18 @@
   padding: 10px;
 }
 
+.tablePagination {
+  border-top: 1px solid var(--rz-border);
+  margin-top: 4px;
+  padding-top: 10px;
+}
+
+.tablePaginationMeta {
+  border-top: 1px solid var(--rz-border);
+  margin-top: 4px;
+  padding-top: 10px;
+}
+
 .libraryRowActions {
   align-items: center;
   display: flex;
@@ -416,7 +434,7 @@
 
 .guideBanner {
   align-items: center;
-  background: #e7f5ff;
+  background: var(--rz-accent-surface);
   border: 1px solid var(--rz-primary);
   border-radius: var(--rz-radius-md);
   color: var(--rz-foreground);
@@ -429,7 +447,7 @@
 
 .profZ {
   align-items: flex-start;
-  background: #e7f5ff;
+  background: var(--rz-accent-surface);
   border-radius: var(--rz-radius-md);
   display: flex;
   gap: 10px;
@@ -836,6 +854,7 @@
 }
 
 .pageTitleLarge {
+  color: var(--rz-foreground);
   font-size: 16px;
   font-weight: 600;
 }
@@ -871,6 +890,7 @@
 }
 
 .v2CardTitle {
+  color: var(--rz-foreground);
   font-size: 13px;
   font-weight: 600;
 }

@@ -29,6 +29,7 @@ import {
 } from "@remix-run/react";
 
 import AppLayout from "./components/AppLayout";
+import { ThemeSync } from "./components/ThemeSync";
 import { HomeShellLayout } from "./components/v2/HomeShellLayout";
 import { isPaperV2FlowEnabled } from "./utils/feature-flags.server";
 import { GeneralErrorBoundary } from "./components/error-boundary";
@@ -47,7 +48,7 @@ import { getTheme, Theme } from "./utils/theme.server";
 import { getAblyKey } from "./utils/env.server";
 import { getToast } from "./utils/toast.server";
 import {
-  getAppearanceCssVars,
+  getPrimaryCssVars,
   getScaleMultiplier,
   type FontScale,
 } from "./utils/appearance";
@@ -134,8 +135,7 @@ function Document({
   allowIndexing?: boolean;
 }) {
   const userScale = getScaleMultiplier(scale);
-  const resolvedScheme: Theme = theme === "dark" ? "dark" : "light";
-  const appearanceVars = getAppearanceCssVars(selectedTheme, resolvedScheme);
+  const primaryVars = getPrimaryCssVars(selectedTheme);
   const mantineTheme = createTheme({
     scale: userScale,
     fontFamily: "Poppins, sans-serif",
@@ -150,8 +150,9 @@ function Document({
   return (
     <html
       lang="en"
+      data-mantine-color-scheme={theme}
       style={{
-        ...appearanceVars,
+        ...primaryVars,
         fontSize: `${16 * userScale}px`,
       }}
     >
@@ -169,6 +170,7 @@ function Document({
       </head>
       <body>
         <MantineProvider forceColorScheme={theme} theme={mantineTheme}>
+          <ThemeSync />
           <Notifications />
           <div className={classes.container}>{children}</div>
 

@@ -36,8 +36,15 @@ function ColorSchemePicker({
   userPreference?: Theme | null;
 }) {
   const fetcher = useFetcher();
+  const { revalidate } = useRevalidator();
   const optimisticMode = useOptimisticThemeMode();
   const mode = optimisticMode ?? userPreference ?? "system";
+
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data) {
+      revalidate();
+    }
+  }, [fetcher.state, fetcher.data, revalidate]);
 
   const setMode = (next: "light" | "dark" | "system") => {
     const formData = new FormData();
