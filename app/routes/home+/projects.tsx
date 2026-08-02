@@ -40,8 +40,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent === "delete-paper") {
     const paperId = formData.get("paperId");
     invariant(typeof paperId === "string" && paperId, "paperId is required");
-    await deletePaper({ paperId, request });
-    return json({ ok: true });
+    try {
+      await deletePaper({ paperId, request });
+      return json({ ok: true });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete project";
+      return json({ ok: false, error: message }, { status: 500 });
+    }
   }
 
   return json({ ok: false }, { status: 400 });

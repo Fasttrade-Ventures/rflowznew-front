@@ -15,7 +15,8 @@ import {
 } from "#app/utils/research-questions-v2";
 import { Alert, Textarea } from "@mantine/core";
 import { showAskProfZNotification } from "#app/utils/api-error";
-import { useFetcher } from "@remix-run/react";
+import { useFetcher, useRevalidator } from "@remix-run/react";
+import { notifications } from "@mantine/notifications";
 import Ably from "ably";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSpinDelay } from "spin-delay";
@@ -207,6 +208,7 @@ export function ResearchQuestionsV2Screen({
   initialEditedSlots?: number[];
 }) {
   const fetcher = useFetcher<ResearchQuestionAndObjectiveActionData>();
+  const revalidator = useRevalidator();
   const rqCount = effectiveRqCount(meta);
   const slots = rqSlotsForCount(rqCount);
 
@@ -235,6 +237,20 @@ export function ResearchQuestionsV2Screen({
     delay: 200,
     minDuration: 500,
   });
+
+  useEffect(() => {
+    const data = fetcher.data;
+    if (!data || fetcher.state !== "idle") return;
+
+    if (data.success && data.toast) {
+      notifications.show({
+        title: data.toast.title,
+        message: data.toast.description,
+        color: "teal",
+      });
+      revalidator.revalidate();
+    }
+  }, [fetcher.data, fetcher.state, revalidator]);
 
   return (
     <div className={classes.shell}>

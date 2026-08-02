@@ -123,6 +123,7 @@ export function ProposalAccordion({
                       setDrafts((d) => ({ ...d, [key]: text }))
                     }
                     active={focusedKey === key}
+                    previewable
                     minRows={key === "references" ? 8 : 6}
                     disabled={regeneratingKey === key}
                     placeholder={

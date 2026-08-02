@@ -143,14 +143,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         mainResearchQuestion,
         subs,
       });
-      return redirectWithToast(
-        `/paper/${paperId}/research-questions-and-objectives`,
-        {
+      return json({
+        lastResult: null,
+        serverError: null,
+        success: true,
+        toast: {
           type: "success",
           title: "Saved",
           description: "Research questions saved successfully",
-        }
-      );
+        },
+      });
     } catch (error) {
       return json({
         lastResult: null,

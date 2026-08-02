@@ -6,7 +6,8 @@ import { getFormProps, useForm } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
 import { Alert, Anchor, Textarea } from "@mantine/core";
 import { showAskProfZNotification } from "#app/utils/api-error";
-import { useFetcher } from "@remix-run/react";
+import { useFetcher, useRevalidator } from "@remix-run/react";
+import { notifications } from "@mantine/notifications";
 import Ably from "ably";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSpinDelay } from "spin-delay";
@@ -309,6 +310,7 @@ export function ProblemStatementV2Screen({
   libraryEntries: LibraryEntry[];
 }) {
   const fetcher = useFetcher<ProblemStatementActionData>();
+  const revalidator = useRevalidator();
   const formUrl = `/paper/${paperId}/problem-statement/form`;
 
   const [values, setValues] = useState(initialValues);
@@ -342,6 +344,20 @@ export function ProblemStatementV2Screen({
     delay: 200,
     minDuration: 500,
   });
+
+  useEffect(() => {
+    const data = fetcher.data;
+    if (!data || fetcher.state !== "idle") return;
+
+    if (data.success && data.toast) {
+      notifications.show({
+        title: data.toast.title,
+        message: data.toast.description,
+        color: "teal",
+      });
+      revalidator.revalidate();
+    }
+  }, [fetcher.data, fetcher.state, revalidator]);
 
   const citedWeb = libraryEntries.filter(
     (entry) => entry.is_cited && entry.kind === "web"
