@@ -9,6 +9,11 @@ import {
   updatePaperSubResearchQuestionOrObjective,
 } from "#app/services/paper.server";
 import { usePaperV2Flow } from "#app/utils/use-paper-v2-flow";
+import {
+  getApiErrorMessage,
+  getAskProfZErrorTitle,
+  isPlanLimitError,
+} from "#app/utils/api-error";
 import { redirectWithToast } from "#app/utils/toast.server";
 import { z } from "zod";
 
@@ -243,21 +248,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         toast: null,
       });
     } catch (error) {
-      console.log("ERROR 🔥🔥🔥🔥", error);
+      const message = getApiErrorMessage(error);
       return json({
         lastResult: {
           error: {
-            "": ["Error generating AI response"],
+            "": [message],
           },
           value: null,
           submittedData: formData,
         },
-        serverError: "Error generating AI response",
+        serverError: message,
         success: false,
+        planLimit: isPlanLimitError(error),
         toast: {
           type: "error",
-          title: "Error",
-          description: "Error generating AI response",
+          title: getAskProfZErrorTitle(error),
+          description: message,
         },
       });
     }
@@ -416,20 +422,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         toast: null,
       });
     } catch (error) {
+      const message = getApiErrorMessage(error);
       return json({
         lastResult: {
           error: {
-            "": ["Error generating AI response"],
+            "": [message],
           },
           value: null,
           submittedData: formData,
         },
-        serverError: "Error generating AI response",
+        serverError: message,
         success: false,
+        planLimit: isPlanLimitError(error),
         toast: {
           type: "error",
-          title: "Error",
-          description: "Error generating AI response",
+          title: getAskProfZErrorTitle(error),
+          description: message,
         },
       });
     }

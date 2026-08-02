@@ -130,6 +130,7 @@ export interface PlanFeatures {
   watermark_exports: boolean;
   proposal_limit_remaining?: number;
   ai_limit_remaining?: number;
+  ai_original_monthly_limit?: number;
   export_limit_remaining?: number;
   unlimited_export: boolean;
   unlimited_proposals?: boolean;

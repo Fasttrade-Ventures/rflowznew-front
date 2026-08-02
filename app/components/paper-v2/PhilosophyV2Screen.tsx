@@ -14,6 +14,7 @@ import Ably from "ably";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { FormSaveFooter } from "./FormSaveFooter";
+import { PlanLimitAlert } from "./PlanLimitAlert";
 import classes from "./philosophy-v2.module.css";
 import { AskProfZButton } from "./AskProfZButton";
 
@@ -29,6 +30,8 @@ export function PhilosophyV2Screen({
   initial,
   saving,
   savedDraft,
+  generationError,
+  generationPlanLimit,
   onSave,
   onAskProfZ,
 }: {
@@ -36,6 +39,8 @@ export function PhilosophyV2Screen({
   initial: Partial<PhilosophyAnswers>;
   saving?: boolean;
   savedDraft?: boolean;
+  generationError?: string | null;
+  generationPlanLimit?: boolean;
   onSave: (data: PhilosophyAnswers) => void;
   onAskProfZ?: (step: string, ablyEvent: string) => void;
 }) {
@@ -105,6 +110,12 @@ export function PhilosophyV2Screen({
   }, []);
 
   useAbly(paperId, ablyEventName, handleMessage);
+
+  useEffect(() => {
+    if (generationError) {
+      setIsGenerating(false);
+    }
+  }, [generationError]);
 
   const confirmAnswer = () => {
     if (!pendingChoice) return;
@@ -275,6 +286,10 @@ export function PhilosophyV2Screen({
               />
             ) : null}
           </div>
+          <PlanLimitAlert
+            message={generationError}
+            planLimit={generationPlanLimit}
+          />
           <RichTextEditorShell
             value={data.draft_philosophy}
             onChange={(value) =>

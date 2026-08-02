@@ -98,27 +98,36 @@ export function computeDashboardStats({
       subscription?.ai_original_monthly_limit == null &&
       hasPlanAccess(subscription?.status));
 
+  // Counts each Ask Prof Z / AI draft call (problem statement, RQ, philosophy, etc.)
   let aiRemaining = "—";
-  let aiSub = "View subscription";
+  let aiSub = "Ask Prof Z uses 1 each";
 
   if (unlimitedAi) {
     aiRemaining = "Unlimited";
-    aiSub = "Included in your plan";
+    aiSub = "Ask Prof Z included";
   } else if (
     typeof subscription?.ai_limit_remaining === "number" ||
     typeof features?.ai_limit_remaining === "number"
   ) {
     const remaining =
       features?.ai_limit_remaining ?? subscription?.ai_limit_remaining ?? 0;
-    aiRemaining = String(remaining);
     const limit =
       subscription?.ai_original_monthly_limit ??
       features?.ai_original_monthly_limit;
-    aiSub =
-      typeof limit === "number" ? `${limit} monthly limit` : "Remaining this month";
+    if (typeof limit === "number" && limit > 0) {
+      aiRemaining = `${remaining} left`;
+      const used = Math.max(0, limit - remaining);
+      aiSub =
+        remaining === 0
+          ? `${limit} used · upgrade for more`
+          : `${used} of ${limit} used this month`;
+    } else {
+      aiRemaining = `${remaining} left`;
+      aiSub = "Remaining this month";
+    }
   } else if (subscription?.plan_key === "free" || !subscription) {
     aiRemaining = "Limited";
-    aiSub = "Upgrade for more AI";
+    aiSub = "Ask Prof Z · upgrade for more";
   }
 
   return {

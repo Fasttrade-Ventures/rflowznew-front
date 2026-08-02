@@ -23,6 +23,11 @@ import {
   getCurrentUser,
   requireAuth,
 } from "#app/services/authentication.server";
+import {
+  getApiErrorMessage,
+  getAskProfZErrorTitle,
+  isPlanLimitError,
+} from "#app/utils/api-error";
 import { parseWithZod } from "@conform-to/zod";
 import { invariant } from "@epic-web/invariant";
 import { useDisclosure } from "@mantine/hooks";
@@ -139,11 +144,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         toast: null,
       });
     } catch (error) {
+      const message = getApiErrorMessage(error);
       return json({
         lastResult: submission.reply(),
-        serverError: "Error generating AI response",
+        serverError: message,
         success: false,
-        toast: null,
+        planLimit: isPlanLimitError(error),
+        toast: {
+          type: "error",
+          title: getAskProfZErrorTitle(error),
+          description: message,
+        },
       });
     }
   }
