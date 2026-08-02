@@ -128,6 +128,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   };
 
   const exportPptx = subscriptionRes.data?.features?.export_pptx ?? false;
+  const documentVersionLimit =
+    subscriptionRes.data?.features?.document_version_limit ?? null;
 
   const generatedDocuments =
     generatedDocumentsResponse.data?.generatedDocuments || [];
@@ -155,6 +157,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     generatedDocuments,
     subscription: subscriptionRes.data?.subscription,
     exportPptx,
+    documentVersionLimit,
     hasActiveSubscription:
       user.subscription_status === "active" ||
       user.subscription_status === "trialing",
@@ -273,6 +276,7 @@ export const ReviewProposalPage = () => {
     generatedDocuments,
     subscription,
     exportPptx,
+    documentVersionLimit,
     hasActiveSubscription,
     formatting,
     integrity,
@@ -401,6 +405,7 @@ export const ReviewProposalPage = () => {
         metadataOverride={metadataOverride}
         onMetadataOverride={setMetadataOverride}
         exportPptx={exportPptx}
+        documentVersionLimit={documentVersionLimit}
         hasActiveSubscription={hasActiveSubscription}
         exportLimitRemaining={subscription?.export_limit_remaining}
         unlimitedExport={subscription?.unlimited_export}

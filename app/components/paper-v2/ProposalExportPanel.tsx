@@ -1,11 +1,12 @@
 import type { GeneratedDocument } from "#app/services/paper.server";
 import type { ProjectMetadataIssue } from "#app/utils/project-metadata-export";
 import { projectMetadataWarningMessage } from "#app/utils/project-metadata-export";
-import { Button, Group } from "@mantine/core";
+import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import { Form, Link } from "@remix-run/react";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+import { useState } from "react";
 
 import classes from "./review-proposal-v2.module.css";
 
@@ -24,6 +25,7 @@ type ProposalExportPanelProps = {
   exportLimitRemaining?: number;
   unlimitedExport?: boolean;
   watermarkExports?: boolean;
+  documentVersionLimit?: number | null;
   isPending: boolean;
 };
 
@@ -137,13 +139,21 @@ export function ProposalExportPanel({
   exportLimitRemaining,
   unlimitedExport,
   watermarkExports,
+  documentVersionLimit,
   isPending,
 }: ProposalExportPanelProps) {
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const latest = generatedDocuments[0];
   const titleSlug = paperTitle ? slugifyTitle(paperTitle) : undefined;
+
+  const atVersionLimit =
+    documentVersionLimit != null &&
+    generatedDocuments.length >= documentVersionLimit;
+
   const canGenerate =
     exportAllowed &&
     hasActiveSubscription &&
+    !atVersionLimit &&
     (unlimitedExport || (exportLimitRemaining ?? 0) > 0);
   const hasPending = generatedDocuments.some(
     (doc) =>
@@ -154,6 +164,40 @@ export function ProposalExportPanel({
   const metadataWarning = projectMetadataWarningMessage(metadataIssues);
 
   return (
+    <>
+    <Modal
+      opened={upgradeModalOpen}
+      onClose={() => setUpgradeModalOpen(false)}
+      title="Upgrade to generate more versions"
+      centered
+      size="sm"
+    >
+      <Stack gap="md">
+        <Text size="sm">
+          Your current plan allows <strong>{documentVersionLimit} document version</strong> per
+          project. Upgrade to a paid plan to generate unlimited versions and
+          unlock additional features.
+        </Text>
+        <Group justify="flex-end" gap="xs">
+          <Button
+            variant="default"
+            size="xs"
+            onClick={() => setUpgradeModalOpen(false)}
+          >
+            Maybe later
+          </Button>
+          <Button
+            component={Link}
+            to="/subscription"
+            size="xs"
+            color="orange"
+            onClick={() => setUpgradeModalOpen(false)}
+          >
+            View plans
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
     <div className={classes.exportPanel}>
       {metadataWarning ? (
         <div className={classes.metadataWarning}>
@@ -215,19 +259,29 @@ export function ProposalExportPanel({
               Click <strong>New version</strong> to generate your documents
             </span>
           )}
-          <Form method="post">
-            <input type="hidden" name="paperId" value={paperId} />
+          {atVersionLimit ? (
             <Button
-              type="submit"
-              name="intent"
-              value="generate-documents"
               size="xs"
-              disabled={!canGenerate || isPending || hasPending}
-              loading={isPending || hasPending}
+              color="orange"
+              onClick={() => setUpgradeModalOpen(true)}
             >
               New version
             </Button>
-          </Form>
+          ) : (
+            <Form method="post">
+              <input type="hidden" name="paperId" value={paperId} />
+              <Button
+                type="submit"
+                name="intent"
+                value="generate-documents"
+                size="xs"
+                disabled={!canGenerate || isPending || hasPending}
+                loading={isPending || hasPending}
+              >
+                New version
+              </Button>
+            </Form>
+          )}
         </Group>
       </div>
 
@@ -294,5 +348,6 @@ export function ProposalExportPanel({
         </div>
       )}
     </div>
+    </>
   );
 }
