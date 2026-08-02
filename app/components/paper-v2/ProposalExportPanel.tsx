@@ -52,12 +52,16 @@ function urlFor(doc: GeneratedDocument, format: FormatKey) {
 }
 
 function slugifyTitle(title: string): string {
-  return title
+  const slug = title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, "")
     .trim()
-    .replace(/\s+/g, "-")
-    .slice(0, 80);
+    .replace(/\s+/g, "-");
+  if (slug.length <= 40) return slug;
+  // Truncate at the last word boundary within 40 chars so the filename stays readable.
+  const cut = slug.slice(0, 40);
+  const lastDash = cut.lastIndexOf("-");
+  return lastDash > 20 ? cut.slice(0, lastDash) : cut;
 }
 
 function downloadPath(
