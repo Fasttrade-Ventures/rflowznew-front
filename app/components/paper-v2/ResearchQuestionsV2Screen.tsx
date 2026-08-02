@@ -209,6 +209,7 @@ export function ResearchQuestionsV2Screen({
 }) {
   const fetcher = useFetcher<ResearchQuestionAndObjectiveActionData>();
   const revalidator = useRevalidator();
+  const saveToastShownRef = useRef(false);
   const rqCount = effectiveRqCount(meta);
   const slots = rqSlotsForCount(rqCount);
 
@@ -239,10 +240,17 @@ export function ResearchQuestionsV2Screen({
   });
 
   useEffect(() => {
+    if (fetcher.state === "submitting") {
+      saveToastShownRef.current = false;
+    }
+  }, [fetcher.state]);
+
+  useEffect(() => {
     const data = fetcher.data;
-    if (!data || fetcher.state !== "idle") return;
+    if (!data || fetcher.state !== "idle" || saveToastShownRef.current) return;
 
     if (data.success && data.toast) {
+      saveToastShownRef.current = true;
       notifications.show({
         title: data.toast.title,
         message: data.toast.description,
@@ -250,7 +258,7 @@ export function ResearchQuestionsV2Screen({
       });
       revalidator.revalidate();
     }
-  }, [fetcher.data, fetcher.state, revalidator]);
+  }, [fetcher.data, fetcher.state, revalidator.revalidate]);
 
   return (
     <div className={classes.shell}>

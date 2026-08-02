@@ -1,6 +1,7 @@
 import { Button, Progress, Text } from "@mantine/core";
-import { Link, useFetcher } from "@remix-run/react";
-import { useMemo, useState } from "react";
+import { notifications } from "@mantine/notifications";
+import { Link, useFetcher, useRevalidator } from "@remix-run/react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Icon } from "#app/components/icon";
 import { StatCard } from "./PaperScreen";
@@ -17,8 +18,41 @@ type PaperListItem = {
 type ViewMode = "list" | "grid";
 
 function DeleteProjectButton({ paperId }: { paperId: string }) {
-  const fetcher = useFetcher();
+  const fetcher = useFetcher<{ ok?: boolean; error?: string }>();
+  const revalidator = useRevalidator();
+  const fetcherHandledRef = useRef(false);
   const isDeleting = fetcher.state !== "idle";
+
+  useEffect(() => {
+    if (fetcher.state === "submitting") {
+      fetcherHandledRef.current = false;
+    }
+  }, [fetcher.state]);
+
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data || fetcherHandledRef.current) {
+      return;
+    }
+    fetcherHandledRef.current = true;
+
+    if (fetcher.data.ok) {
+      notifications.show({
+        title: "Project deleted",
+        message: "Your library citations were kept in the Library tab.",
+        color: "teal",
+      });
+      revalidator.revalidate();
+      return;
+    }
+
+    notifications.show({
+      title: "Could not delete project",
+      message:
+        fetcher.data.error ??
+        "Something went wrong. Run API migrations and try again.",
+      color: "red",
+    });
+  }, [fetcher.data, fetcher.state, revalidator.revalidate]);
 
   return (
     <fetcher.Form
@@ -41,7 +75,7 @@ function DeleteProjectButton({ paperId }: { paperId: string }) {
         disabled={isDeleting}
         className={classes.deletePaperBtn}
         aria-label="Delete project"
-        title="Delete project"
+        title={isDeleting ? "Deleting…" : "Delete project"}
       >
         <Icon name="pika-delete-paper" width={14} height={14} />
       </button>

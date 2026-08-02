@@ -23,7 +23,7 @@ import {
   LoaderFunctionArgs,
   SerializeFrom,
 } from "@remix-run/node";
-import { useActionData, useFetcher, useLoaderData, useParams } from "@remix-run/react";
+import { useActionData, useFetcher, useLoaderData, useParams, useRevalidator } from "@remix-run/react";
 import { generateAiMethodology } from "#app/services/ai.server";
 import { MethodologyForm } from "#app/components/ui/paper/MethodologyForm";
 import {
@@ -33,7 +33,7 @@ import {
   showAskProfZNotification,
 } from "#app/utils/api-error";
 import { useDisclosure } from "@mantine/hooks";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { notifications } from "@mantine/notifications";
 import {
   getCurrentUser,
@@ -333,6 +333,8 @@ export const PaperNewMethodologyPage = () => {
   const actionData = useActionData<typeof action>();
   const loaderData = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
+  const revalidator = useRevalidator();
+  const fetcherHandledRef = useRef(false);
   const params = useParams();
 
   const initialValues = useMemo(
@@ -346,15 +348,25 @@ export const PaperNewMethodologyPage = () => {
   ] = useDisclosure(false);
 
   useEffect(() => {
-    if (fetcher.state !== "idle" || !fetcher.data) return;
+    if (fetcher.state === "submitting") {
+      fetcherHandledRef.current = false;
+    }
+  }, [fetcher.state]);
+
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data || fetcherHandledRef.current) {
+      return;
+    }
+    fetcherHandledRef.current = true;
 
     if ("saveOk" in fetcher.data) {
       if (fetcher.data.saveOk) {
         notifications.show({
           title: "Saved",
           message: "Methodology saved successfully",
-          color: "green",
+          color: "teal",
         });
+        revalidator.revalidate();
         return;
       }
       if ("serverError" in fetcher.data && fetcher.data.serverError) {
@@ -383,7 +395,7 @@ export const PaperNewMethodologyPage = () => {
             : undefined,
       });
     }
-  }, [fetcher.data, fetcher.state]);
+  }, [fetcher.data, fetcher.state, revalidator.revalidate]);
 
   useEffect(() => {
     if (actionData && "success" in actionData && actionData.success) {

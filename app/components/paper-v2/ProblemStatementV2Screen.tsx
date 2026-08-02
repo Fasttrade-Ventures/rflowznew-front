@@ -311,6 +311,7 @@ export function ProblemStatementV2Screen({
 }) {
   const fetcher = useFetcher<ProblemStatementActionData>();
   const revalidator = useRevalidator();
+  const saveToastShownRef = useRef(false);
   const formUrl = `/paper/${paperId}/problem-statement/form`;
 
   const [values, setValues] = useState(initialValues);
@@ -346,10 +347,17 @@ export function ProblemStatementV2Screen({
   });
 
   useEffect(() => {
+    if (fetcher.state === "submitting") {
+      saveToastShownRef.current = false;
+    }
+  }, [fetcher.state]);
+
+  useEffect(() => {
     const data = fetcher.data;
-    if (!data || fetcher.state !== "idle") return;
+    if (!data || fetcher.state !== "idle" || saveToastShownRef.current) return;
 
     if (data.success && data.toast) {
+      saveToastShownRef.current = true;
       notifications.show({
         title: data.toast.title,
         message: data.toast.description,
@@ -357,7 +365,7 @@ export function ProblemStatementV2Screen({
       });
       revalidator.revalidate();
     }
-  }, [fetcher.data, fetcher.state, revalidator]);
+  }, [fetcher.data, fetcher.state, revalidator.revalidate]);
 
   const citedWeb = libraryEntries.filter(
     (entry) => entry.is_cited && entry.kind === "web"

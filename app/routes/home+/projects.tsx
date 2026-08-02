@@ -1,6 +1,7 @@
 import { getLibraryEntries } from "#app/services/library.server";
 import { requireAuth } from "#app/services/authentication.server";
 import { deletePaper, getPapers } from "#app/services/paper.server";
+import { APIValidationError } from "#app/utils/error/api-validation-error";
 import { invariant } from "@epic-web/invariant";
 import {
   ActionFunctionArgs,
@@ -45,7 +46,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({ ok: true });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Failed to delete project";
+        error instanceof APIValidationError
+          ? (error.data?.message as string | undefined) ??
+            "Failed to delete project"
+          : error instanceof Error
+            ? error.message
+            : "Failed to delete project";
       return json({ ok: false, error: message }, { status: 500 });
     }
   }
