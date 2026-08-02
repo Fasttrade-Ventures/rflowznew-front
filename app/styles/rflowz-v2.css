@@ -1,18 +1,5 @@
 /* RFlowz 2.0 design tokens — from pencil-new.pen */
 :root {
-  --rz-background: #fafafa;
-  --rz-foreground: #09090b;
-  --rz-card: #ffffff;
-  --rz-muted: #f4f4f5;
-  --rz-muted-foreground: #71717a;
-  --rz-border: #e4e4e7;
-  --rz-primary: #228be6;
-  --rz-primary-foreground: #ffffff;
-  --rz-sidebar: #fafafa;
-  --rz-sidebar-accent: #f4f4f5;
-  --rz-sidebar-border: #e4e4e7;
-  --rz-success: #22c55e;
-  --rz-destructive: #ef4444;
   --rz-radius-sm: 4px;
   --rz-radius-md: 6px;
   --rz-font: "Inter", "Poppins", system-ui, sans-serif;
@@ -23,6 +10,45 @@
   --rz-pad-md: 12px;
   --rz-pad-lg: 16px;
   --rz-control-height: 32px;
+  --rz-primary: #228be6;
+  --rz-primary-foreground: #ffffff;
+  --rz-success: #22c55e;
+  --rz-destructive: #ef4444;
+}
+
+html[data-mantine-color-scheme="light"],
+html:not([data-mantine-color-scheme="dark"]) {
+  color-scheme: light;
+  --rz-background: #fafafa;
+  --rz-foreground: #09090b;
+  --rz-card: #ffffff;
+  --rz-muted: #f4f4f5;
+  --rz-muted-foreground: #71717a;
+  --rz-border: #e4e4e7;
+  --rz-sidebar: #fafafa;
+  --rz-sidebar-accent: #f4f4f5;
+  --rz-sidebar-border: #e4e4e7;
+  --rz-accent-surface: #e7f5ff;
+}
+
+html[data-mantine-color-scheme="dark"] {
+  color-scheme: dark;
+  --rz-background: #09090b;
+  --rz-foreground: #fafafa;
+  --rz-card: #18181b;
+  --rz-muted: #27272a;
+  --rz-muted-foreground: #a1a1aa;
+  --rz-border: #3f3f46;
+  --rz-sidebar: #0f0f12;
+  --rz-sidebar-accent: #27272a;
+  --rz-sidebar-border: #3f3f46;
+  --rz-accent-surface: #1c2a3a;
+}
+
+html,
+body {
+  background-color: var(--rz-background);
+  color: var(--rz-foreground);
 }
 
 .rz-v2 {

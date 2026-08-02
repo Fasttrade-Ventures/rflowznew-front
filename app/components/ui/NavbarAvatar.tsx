@@ -21,4 +21,6 @@ const NavbarAvatar = forwardRef<HTMLButtonElement, NavbarAvatarProps>(
   )
 );
 
+NavbarAvatar.displayName = "NavbarAvatar";
+
 export default NavbarAvatar;

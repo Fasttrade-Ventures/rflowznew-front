@@ -6,14 +6,14 @@ import {
 import { requireAuth } from "#app/services/authentication.server";
 import { getPapers } from "#app/services/paper.server";
 import { invariant } from "@epic-web/invariant";
-import { ActionIcon, Badge, Button, Tooltip } from "@mantine/core";
+import { ActionIcon, Badge, Button, Group, Pagination, Text, Tooltip } from "@mantine/core";
 import {
   ActionFunctionArgs,
   json,
   LoaderFunctionArgs,
 } from "@remix-run/node";
 import { Link, useFetcher, useLoaderData } from "@remix-run/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Icon } from "#app/components/icon";
 import {
@@ -30,6 +30,8 @@ type AggregatedEntry = LibraryEntry & {
 
 type KindFilter = "all" | "academic" | "web";
 type CitedFilter = "all" | "cited" | "saved";
+
+const LIBRARY_PAGE_SIZE = 15;
 
 function truncateText(text: string, max: number): string {
   const trimmed = text.trim();
@@ -150,6 +152,7 @@ export default function HomeLibraryPage() {
   const [query, setQuery] = useState("");
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [citedFilter, setCitedFilter] = useState<CitedFilter>("all");
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -165,6 +168,21 @@ export default function HomeLibraryPage() {
       );
     });
   }, [entries, kindFilter, citedFilter, query]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, kindFilter, citedFilter]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / LIBRARY_PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart =
+    filtered.length === 0 ? 0 : (currentPage - 1) * LIBRARY_PAGE_SIZE + 1;
+  const pageEnd = Math.min(currentPage * LIBRARY_PAGE_SIZE, filtered.length);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * LIBRARY_PAGE_SIZE;
+    return filtered.slice(start, start + LIBRARY_PAGE_SIZE);
+  }, [filtered, currentPage]);
 
   return (
     <div className={classes.dashboard}>
@@ -240,7 +258,7 @@ export default function HomeLibraryPage() {
               { key: "project", label: "Project" },
               { key: "actions", label: "", width: "88px", align: "right" },
             ]}
-            rows={filtered.map((entry) => ({
+            rows={paginated.map((entry) => ({
               id: `${entry.paper_id}-${entry.id}`,
               cells: {
                 source: (
@@ -293,14 +311,14 @@ export default function HomeLibraryPage() {
         </div>
 
         <div className={classes.mobileCardList}>
-          {filtered.length === 0 ? (
+          {paginated.length === 0 ? (
             <div className={classes.mobileCard}>
               <div className={classes.mobileCardMeta}>
                 No sources yet. Open a project and add entries from Source Library.
               </div>
             </div>
           ) : (
-            filtered.map((entry) => (
+            paginated.map((entry) => (
               <div
                 key={`${entry.paper_id}-${entry.id}`}
                 className={classes.mobileCard}
@@ -333,6 +351,33 @@ export default function HomeLibraryPage() {
             ))
           )}
         </div>
+
+        {filtered.length > LIBRARY_PAGE_SIZE ? (
+          <Group
+            className={classes.tablePagination}
+            justify="space-between"
+            align="center"
+            wrap="wrap"
+            gap="sm"
+          >
+            <Text size="xs" c="dimmed">
+              Showing {pageStart}–{pageEnd} of {filtered.length}
+            </Text>
+            <Pagination
+              size="sm"
+              total={pageCount}
+              value={currentPage}
+              onChange={setPage}
+              siblings={1}
+              boundaries={1}
+              aria-label="Library sources pages"
+            />
+          </Group>
+        ) : filtered.length > 0 ? (
+          <Text size="xs" c="dimmed" className={classes.tablePaginationMeta}>
+            Showing {filtered.length} source{filtered.length === 1 ? "" : "s"}
+          </Text>
+        ) : null}
       </div>
     </div>
   );

@@ -29,6 +29,7 @@ import {
 } from "@remix-run/react";
 
 import AppLayout from "./components/AppLayout";
+import { ThemeSync } from "./components/ThemeSync";
 import { HomeShellLayout } from "./components/v2/HomeShellLayout";
 import { isPaperV2FlowEnabled } from "./utils/feature-flags.server";
 import { GeneralErrorBoundary } from "./components/error-boundary";
@@ -46,6 +47,11 @@ import { useNonce } from "./utils/nonce-provider";
 import { getTheme, Theme } from "./utils/theme.server";
 import { getAblyKey } from "./utils/env.server";
 import { getToast } from "./utils/toast.server";
+import {
+  getPrimaryCssVars,
+  getScaleMultiplier,
+  type FontScale,
+} from "./utils/appearance";
 
 export const handle: BreadcrumbHandle = {
   breadcrumb: "Home",
@@ -117,27 +123,19 @@ function Document({
   children,
   nonce,
   theme = "light",
-  selectedTheme = "grape",
+  selectedTheme = "blue",
   scale = "md",
 }: {
   children: React.ReactNode;
   nonce: string;
   theme?: Theme;
   selectedTheme?: string;
-  scale?: "xs" | "sm" | "md" | "lg" | "xl";
+  scale?: FontScale;
   env?: Record<string, string>;
   allowIndexing?: boolean;
 }) {
-  const userScale =
-    scale === "xs"
-      ? 1
-      : scale === "sm"
-      ? 1.05625
-      : scale === "md"
-      ? 1.1125
-      : scale === "lg"
-      ? 1.16875
-      : 1.225;
+  const userScale = getScaleMultiplier(scale);
+  const primaryVars = getPrimaryCssVars(selectedTheme);
   const mantineTheme = createTheme({
     scale: userScale,
     fontFamily: "Poppins, sans-serif",
@@ -150,7 +148,14 @@ function Document({
   });
 
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      data-mantine-color-scheme={theme}
+      style={{
+        ...primaryVars,
+        fontSize: `${16 * userScale}px`,
+      }}
+    >
       <head>
         <ClientHintCheck nonce={nonce} />
         <Meta />
@@ -165,6 +170,7 @@ function Document({
       </head>
       <body>
         <MantineProvider forceColorScheme={theme} theme={mantineTheme}>
+          <ThemeSync />
           <Notifications />
           <div className={classes.container}>{children}</div>
 

@@ -1,8 +1,9 @@
 import { useForm, getFormProps } from "@conform-to/react";
 import { parseWithZod } from "@conform-to/zod";
 import { json, type ActionFunctionArgs } from "@remix-run/node";
-import { useFetcher, useFetchers } from "@remix-run/react";
+import { useFetcher, useFetchers, useRevalidator } from "@remix-run/react";
 import { z } from "zod";
+import { useEffect } from "react";
 import { useHints } from "#app/utils/client-hints.tsx";
 import { useRequestInfo } from "#app/utils/request-info.ts";
 import { Theme, setTheme } from "#app/utils/theme.server";
@@ -42,11 +43,18 @@ export function ThemeSwitch({
   userPreference?: Theme | null;
 }) {
   const fetcher = useFetcher<typeof action>();
+  const { revalidate } = useRevalidator();
 
   const [form] = useForm({
     id: "theme-switch",
     lastResult: fetcher.data?.result,
   });
+
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data) {
+      revalidate();
+    }
+  }, [fetcher.state, fetcher.data, revalidate]);
 
   const optimisticMode = useOptimisticThemeMode();
   const mode = optimisticMode ?? userPreference ?? "system";
@@ -111,12 +119,14 @@ export function useOptimisticThemeMode() {
  * @returns the user's theme preference, or the client hint theme if the user
  * has not set a preference.
  */
-export function useTheme() {
+export function useTheme(): Theme {
   const hints = useHints();
   const requestInfo = useRequestInfo();
   const optimisticMode = useOptimisticThemeMode();
   if (optimisticMode) {
-    return optimisticMode === "system" ? hints.theme : optimisticMode;
+    return optimisticMode === "system"
+      ? hints.theme ?? "light"
+      : optimisticMode;
   }
-  return requestInfo.userPrefs.theme ?? hints.theme;
+  return requestInfo.userPrefs.theme ?? hints.theme ?? "light";
 }

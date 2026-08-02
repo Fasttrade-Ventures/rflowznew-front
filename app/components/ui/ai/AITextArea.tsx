@@ -34,7 +34,6 @@ export const AITextArea: React.FC<AITextAreaProps> = ({
   infoContent,
   initialValue,
   paperId,
-  field,
   fieldId,
   onValueChange,
   errors,
@@ -61,7 +60,7 @@ export const AITextArea: React.FC<AITextAreaProps> = ({
 
   useAbly(paperId, ablyEventName, handleMessage);
 
-  const fetcher = useFetcher<any>();
+  const fetcher = useFetcher<{ serverError?: string; success?: boolean }>();
 
   const handleAIClick = useCallback(() => {
     setIsGenerating(true);
@@ -78,6 +77,7 @@ export const AITextArea: React.FC<AITextAreaProps> = ({
 
     fetcher.submit(submitData, { method: "post", action: generateUrl });
   }, [
+    fetcher,
     generateUrl,
     paperId,
     ablyEventName,
@@ -92,9 +92,7 @@ export const AITextArea: React.FC<AITextAreaProps> = ({
   };
 
   useEffect(() => {
-    if (initialValue !== undefined && value !== initialValue) {
-      setValue(initialValue);
-    }
+    setValue(initialValue ?? "");
   }, [initialValue]);
 
   useEffect(() => {

@@ -295,7 +295,6 @@ export const AddCitationDrawer = ({
                       <Textarea
                         placeholder="Paste your statement here"
                         data-autofocus
-                        autoFocus
                         size="xs"
                         autosize
                         minRows={3}
