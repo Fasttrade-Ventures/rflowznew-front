@@ -300,13 +300,6 @@ function SubscriptionV2({
                   </Button>
                 )
               }
-              footer={
-                !plan.isFree && !hasUsedTrial ? (
-                  <Text size="xs" c="dimmed" ta="center">
-                    No credit card required for the trial.
-                  </Text>
-                ) : undefined
-              }
             />
           );
         })}
