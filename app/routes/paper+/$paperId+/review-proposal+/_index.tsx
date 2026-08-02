@@ -729,29 +729,15 @@ function GeneratedDocumentsTable({
             >
               {generatedDocument.docx_generating_status === "completed" ? (
                 <Button
+                  component="a"
+                  href={`/resources/generate-docx?url=${encodeURIComponent(
+                    generatedDocument.docx_url
+                  )}&date=${formatDateForFileName(generatedDocument.created_at)}`}
+                  download={`proposal-${formatDateForFileName(generatedDocument.created_at)}.docx`}
                   variant="light"
                   leftSection={
                     <Icon name="pika-file" style={{ width: 16, height: 16 }} />
                   }
-                  onClick={async () => {
-                    const date = formatDateForFileName(generatedDocument.created_at);
-                    const path = `/resources/generate-docx.docx?url=${encodeURIComponent(generatedDocument.docx_url)}&date=${date}`;
-                    try {
-                      const res = await fetch(path);
-                      if (!res.ok) throw new Error();
-                      const blob = await res.blob();
-                      const objectUrl = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = objectUrl;
-                      a.download = `proposal-${date}.docx`;
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                      URL.revokeObjectURL(objectUrl);
-                    } catch {
-                      window.location.href = path;
-                    }
-                  }}
                 >
                   DOCX
                 </Button>
