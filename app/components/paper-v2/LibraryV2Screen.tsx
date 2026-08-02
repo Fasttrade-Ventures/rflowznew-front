@@ -158,7 +158,8 @@ export function LibraryV2Screen({
           <div className={`${classes.searchRow} inputButtonRow`}>
             <input
               className={classes.searchInput}
-              name="q"
+              name="academic_q"
+              autoComplete="off"
               value={academicQuery}
               onChange={(e) => onAcademicQueryChange(e.currentTarget.value)}
               placeholder='Boolean supported: "crop yield" AND (ml OR ai)'
@@ -239,7 +240,8 @@ export function LibraryV2Screen({
           <div className={`${classes.searchRow} inputButtonRow`}>
             <input
               className={classes.searchInput}
-              name="q"
+              name="policy_q"
+              autoComplete="off"
               value={policyQuery}
               onChange={(e) => onPolicyQueryChange(e.currentTarget.value)}
               placeholder={

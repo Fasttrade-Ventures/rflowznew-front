@@ -256,7 +256,13 @@
     width: 100%;
   }
 
+  /* Keep stats as 3 columns on mobile — stacking them takes too much vertical space */
   .statsRow {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* On very small screens, drop the stat labels and shrink */
+  .statLabel {
+    font-size: 9px;
   }
 }
