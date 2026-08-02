@@ -729,13 +729,14 @@ function GeneratedDocumentsTable({
             >
               {generatedDocument.docx_generating_status === "completed" ? (
                 <Button
-                  component={Link}
-                  reloadDocument
-                  to={`/resources/generate-docx.docx?url=${
+                  component="a"
+                  href={`/resources/generate-docx.docx?url=${
                     generatedDocument.docx_url
                   }&date=${formatDateForFileName(
                     generatedDocument.created_at
                   )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   variant="light"
                   leftSection={
                     <Icon name="pika-file" style={{ width: 16, height: 16 }} />
