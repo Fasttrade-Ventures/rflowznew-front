@@ -1,0 +1,288 @@
+.shell {
+  max-width: 760px;
+  margin: 0 auto;
+  height: min(78vh, 820px);
+  padding: 12px 12px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.frame {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-radius: 16px;
+  background: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  padding: 12px 16px;
+  border-bottom: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.headerAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-7));
+  color: white;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.headerTitle {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.headerSub {
+  font-size: 12px;
+  color: var(--mantine-color-dimmed);
+}
+
+.messages {
+  flex: 1;
+  min-height: 0;
+  padding: 20px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  max-width: 100%;
+}
+
+.rowUser {
+  flex-direction: row-reverse;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.avatarProf {
+  background: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-7));
+  color: white;
+}
+
+.avatarUser {
+  background: light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  color: var(--mantine-color-text);
+}
+
+.messageCol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  max-width: min(640px, 92%);
+}
+
+.rowUser .messageCol {
+  align-items: flex-end;
+}
+
+.roleLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mantine-color-dimmed);
+  padding: 0 2px;
+}
+
+.bubbleProf {
+  padding: 10px 14px;
+  border-radius: 14px;
+  border-top-left-radius: 4px;
+  background: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  color: var(--mantine-color-text);
+  font-size: 14.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.bubbleUser {
+  padding: 10px 14px;
+  border-radius: 14px;
+  border-top-right-radius: 4px;
+  background: light-dark(var(--mantine-color-blue-1), rgba(37, 99, 235, 0.28));
+  border: 1px solid light-dark(var(--mantine-color-blue-2), var(--mantine-color-blue-8));
+  color: var(--mantine-color-text);
+  font-size: 14.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.status {
+  align-self: center;
+  font-size: 12px;
+  color: var(--mantine-color-dimmed);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+}
+
+.typingDots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.typingDots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--mantine-color-dimmed);
+  animation: bounce 1.2s infinite ease-in-out;
+}
+
+.typingDots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typingDots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-left: 38px;
+  margin-top: -4px;
+}
+
+.suggestion {
+  appearance: none;
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  background: light-dark(var(--mantine-color-body), var(--mantine-color-dark-7));
+  color: var(--mantine-color-text);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.suggestion:hover {
+  border-color: var(--mantine-color-blue-5);
+  background: light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-5));
+}
+
+.suggestionPrimary {
+  border-color: var(--mantine-color-blue-5);
+  background: light-dark(var(--mantine-color-blue-6), var(--mantine-color-blue-7));
+  color: white;
+  font-weight: 600;
+}
+
+.suggestionPrimary:hover {
+  background: light-dark(var(--mantine-color-blue-7), var(--mantine-color-blue-6));
+  border-color: transparent;
+}
+
+.composer {
+  padding: 12px 12px 10px;
+  border-top: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: light-dark(
+    color-mix(in srgb, var(--mantine-color-body) 92%, transparent),
+    color-mix(in srgb, var(--mantine-color-dark-7) 92%, transparent)
+  );
+}
+
+.composerBox {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  border: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-radius: 14px;
+  padding: 8px 8px 8px 12px;
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+}
+
+.composerBox:focus-within {
+  border-color: var(--mantine-color-blue-5);
+  box-shadow: 0 0 0 2px light-dark(
+    color-mix(in srgb, var(--mantine-color-blue-5) 20%, transparent),
+    color-mix(in srgb, var(--mantine-color-blue-7) 30%, transparent)
+  );
+}
+
+.composerInput :global(textarea) {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 6px 0 !important;
+  min-height: 24px !important;
+  color: var(--mantine-color-text) !important;
+}
+
+.composerInput :global(textarea::placeholder) {
+  color: var(--mantine-color-dimmed) !important;
+}
+
+.sendBtn {
+  flex-shrink: 0;
+}
+
+.hintRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--mantine-color-dimmed);
+}
+
+.error {
+  font-size: 12px;
+  color: var(--mantine-color-red-6);
+  padding: 0 4px;
+}

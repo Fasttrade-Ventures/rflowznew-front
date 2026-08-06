@@ -1,16 +1,14 @@
 import useAbly from "#app/components/hooks/useAbly";
 import { RichTextEditorShell } from "#app/components/paper-v2/RichTextEditorShell";
 import {
+  analysisDraftText,
   buildMethodologyParagraph,
-  designLabel,
+  collectionDraftText,
+  designDraftText,
   evaluateCoherenceClient,
-  METHODOLOGY_ANALYSIS_OPTIONS,
-  METHODOLOGY_COLLECTION_OPTIONS,
-  METHODOLOGY_DESIGN_OPTIONS,
-  suggestedDesignKey,
   type MethodologyV2FormValues,
 } from "#app/utils/methodology-v2";
-import { Alert, Button, Textarea } from "@mantine/core";
+import { Alert, Textarea } from "@mantine/core";
 import Ably from "ably";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -29,6 +27,9 @@ export function MethodologyV2Screen({
   generationPlanLimit,
   onSave,
   onAskProfZ,
+  onRecommendDesign,
+  recommending,
+  recommendationError,
 }: {
   paperId: string;
   philosophyParadigm?: string | null;
@@ -38,12 +39,19 @@ export function MethodologyV2Screen({
   generationError?: string | null;
   generationPlanLimit?: boolean;
   onSave: (values: MethodologyV2FormValues) => void;
-  onAskProfZ?: (ablyEvent: string) => void;
+  onAskProfZ?: (ablyEvent: string, field: string) => void;
+  onRecommendDesign?: () => void;
+  recommending?: boolean;
+  recommendationError?: string | null;
 }) {
   const [values, setValues] = useState<MethodologyV2FormValues>(initial);
   const [showOverride, setShowOverride] = useState(false);
   const [draftFocused, setDraftFocused] = useState(false);
   const [samplingFocused, setSamplingFocused] = useState(false);
+  const [designFocused, setDesignFocused] = useState(false);
+  const [collectionFocused, setCollectionFocused] = useState(false);
+  const [analysisFocused, setAnalysisFocused] = useState(false);
+  const [softwareFocused, setSoftwareFocused] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const streamRef = useRef("");
   const ablyEventName = "methodology-paragraph";
@@ -53,12 +61,17 @@ export function MethodologyV2Screen({
     setValues(initial);
   }, [
     initial.methodology_paragraph,
-    initial.meta?.design,
-    initial.meta?.analysis,
     initial.meta?.sampling,
     initial.meta?.coherence_overridden,
     initial.meta?.override_reason,
-    (initial.meta?.collection ?? []).join(","),
+    initial.meta?.recommended_design_label,
+    initial.meta?.recommendation_justification,
+    initial.meta?.recommended_software,
+    initial.meta?.recommended_data_collection,
+    initial.meta?.recommended_data_analysis,
+    (initial.meta?.recommendation_alternatives ?? [])
+      .map((item) => item.design)
+      .join("|"),
   ]);
 
   const coherence = useMemo(
@@ -74,13 +87,20 @@ export function MethodologyV2Screen({
 
   const setMeta = (patch: Partial<MethodologyV2FormValues["meta"]>) => {
     setValues((current) => {
-      const nextMeta = { ...current.meta, ...patch, coherence_overridden: false };
+      const nextMeta = {
+        ...current.meta,
+        ...patch,
+        coherence_overridden:
+          patch.coherence_overridden !== undefined
+            ? patch.coherence_overridden
+            : false,
+      };
       const nextValues = { ...current, meta: nextMeta };
-      const shouldDraft =
-        nextMeta.design &&
-        (nextMeta.collection?.length ?? 0) > 0 &&
-        nextMeta.analysis &&
-        !current.methodology_paragraph.trim();
+      const hasDrafts =
+        Boolean(designDraftText(nextMeta)) &&
+        Boolean(collectionDraftText(nextMeta)) &&
+        Boolean(analysisDraftText(nextMeta));
+      const shouldDraft = hasDrafts && !current.methodology_paragraph.trim();
       return {
         ...nextValues,
         methodology_paragraph: shouldDraft
@@ -90,39 +110,13 @@ export function MethodologyV2Screen({
     });
   };
 
-  const switchToSuggestedDesign = () => {
-    const suggested = suggestedDesignKey(coherence.suggested_design);
+  const applySuggestedDesign = () => {
+    const suggested = coherence.suggested_design;
     if (!suggested) return;
     setShowOverride(false);
-    setMeta({ design: suggested });
-    setValues((current) => {
-      const next = {
-        ...current,
-        meta: { ...current.meta, design: suggested, coherence_overridden: false },
-      };
-      return {
-        ...next,
-        methodology_paragraph: buildMethodologyParagraph(next),
-      };
-    });
-  };
-
-  const toggleCollection = (key: string) => {
-    setValues((current) => {
-      const collection = new Set(current.meta.collection ?? []);
-      if (collection.has(key)) collection.delete(key);
-      else collection.add(key);
-      const next = {
-        ...current,
-        meta: { ...current.meta, collection: [...collection] },
-      };
-      return {
-        ...next,
-        methodology_paragraph:
-          next.meta.design && collection.size > 0 && next.meta.analysis
-            ? buildMethodologyParagraph(next)
-            : current.methodology_paragraph,
-      };
+    setMeta({
+      recommended_design_label: suggested,
+      design: undefined,
     });
   };
 
@@ -147,20 +141,21 @@ export function MethodologyV2Screen({
     }
   }, [generationError]);
 
-  const askProfZ = () => {
+  const askProfZParagraph = () => {
     if (!onAskProfZ) return;
     streamRef.current = "";
     setValues((current) => ({ ...current, methodology_paragraph: "" }));
     setIsGenerating(true);
-    onAskProfZ(ablyEventName);
+    onAskProfZ(ablyEventName, "research_design");
   };
 
-  const profZNote =
-    values.meta.design === "yin_case_study" && primaryWarning
-      ? "Use SELECT to pick your design — then Ask Prof Z to WRITE the paragraph. Yin was your supervisor's suggestion, but IPA fits your lived-experience question better."
-      : values.meta.design === "ipa"
-        ? "IPA aligns with your interpretivist philosophy. Ask Prof Z to draft the methodology paragraph from your selections above."
-        : "Use SELECT to pick your design — then Ask Prof Z to WRITE the paragraph for your proposal.";
+  const profZNote = values.meta.recommendation_justification
+    ? values.meta.recommendation_justification
+    : "Click Recommend design with Prof Z — one call fills design, sampling, collection, analysis, and software. Then edit and write the paragraph.";
+
+  const designText = designDraftText(values.meta);
+  const collectionText = collectionDraftText(values.meta);
+  const analysisText = analysisDraftText(values.meta);
 
   return (
     <div className={classes.shell}>
@@ -168,8 +163,8 @@ export function MethodologyV2Screen({
         <div className={classes.pageTitleWrap}>
           <div className={classes.pageTitle}>Methodology</div>
           <div className={classes.pageSub}>
-            Two steps: (1) SELECT your design & methods · (2) WRITE the
-            methodology paragraph for your proposal
+            One Prof Z recommendation fills design, sampling, collection,
+            analysis, and software — then you edit and write the paragraph
           </div>
         </div>
       </div>
@@ -178,47 +173,72 @@ export function MethodologyV2Screen({
         <section className={classes.howItWorks}>
           <div className={classes.howTitle}>How this screen works</div>
           <div className={classes.howText}>
-            {`SELECT = click to choose Yin, IPA, interviews, analysis type
-WRITE = rich text editor below — Prof Z drafts it, you edit
-Coherence Engine only fires when your selections don't match your philosophy`}
+            {`1) Recommend design with Prof Z — fills Research design, Sampling, Data collection, Data analysis, and Software in one go
+2) Edit any drafted field if needed
+3) Ask Prof Z to WRITE the methodology paragraph, then refine`}
           </div>
+          {onRecommendDesign ? (
+            <div style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                className={classes.coherenceBtn}
+                disabled={recommending}
+                onClick={onRecommendDesign}
+              >
+                {recommending
+                  ? "Thinking…"
+                  : "Recommend design with Prof Z"}
+              </button>
+              {recommendationError ? (
+                <Alert
+                  color="red"
+                  mt="sm"
+                  classNames={{ message: classes.recommendBody }}
+                >
+                  {recommendationError}
+                </Alert>
+              ) : null}
+            </div>
+          ) : null}
         </section>
 
         {primaryWarning && !values.meta.coherence_overridden ? (
           <section className={classes.coherenceEngine}>
             <div className={classes.coherenceHeader}>
               <span className={classes.coherenceTitle}>
-                ⚠ Your SELECT doesn&apos;t match your philosophy
+                ⚠ Drafted design may not match your philosophy
               </span>
               <span className={classes.mismatchBadge}>Review needed</span>
             </div>
-            <div className={classes.coherenceMessage}>{primaryWarning.message}</div>
+            <div className={classes.coherenceMessage}>
+              {primaryWarning.message}
+            </div>
             <div className={classes.mismatchRow}>
               <span className={classes.mismatchLabel}>Philosophy</span>
               <span className={classes.mismatchValue}>
                 {primaryWarning.philosophy ?? philosophyParadigm}
               </span>
               <span>→</span>
-              <span className={classes.mismatchLabel}>Design (selected)</span>
+              <span className={classes.mismatchLabel}>Design draft</span>
               <span className={classes.mismatchBad}>
-                {primaryWarning.selected_design ?? designLabel(values.meta.design)}
-              </span>
-              <span>✗</span>
-              <span className={classes.mismatchGood}>
-                Suggested: {primaryWarning.suggested_design}
+                {primaryWarning.selected_design ?? designText}
               </span>
             </div>
             <div className={classes.coherenceActions}>
-              <Button size="compact-sm" onClick={switchToSuggestedDesign}>
-                Switch to {primaryWarning.suggested_design}
-              </Button>
-              <Button
-                size="compact-sm"
-                variant="default"
+              <button
+                type="button"
+                className={classes.coherenceBtn}
+                onClick={applySuggestedDesign}
+              >
+                Use {primaryWarning.suggested_design}
+              </button>
+              <button
+                type="button"
+                className={classes.coherenceBtnSecondary}
                 onClick={() => setShowOverride((current) => !current)}
               >
                 Override & document reason
-              </Button>
+              </button>
             </div>
             {showOverride ? (
               <div className={classes.overrideBox}>
@@ -229,17 +249,18 @@ Coherence Engine only fires when your selections don't match your philosophy`}
                   }
                   minRows={2}
                   placeholder="Why are you keeping this design despite the mismatch?"
+                  styles={{
+                    input: { fontSize: 10, lineHeight: 1.4 },
+                  }}
                 />
-                <Button
-                  size="compact-sm"
-                  variant="light"
+                <button
+                  type="button"
+                  className={classes.coherenceBtn}
                   disabled={!values.meta.override_reason?.trim()}
-                  onClick={() =>
-                    setMeta({ coherence_overridden: true })
-                  }
+                  onClick={() => setMeta({ coherence_overridden: true })}
                 >
                   Confirm override
-                </Button>
+                </button>
               </div>
             ) : null}
           </section>
@@ -251,7 +272,9 @@ Coherence Engine only fires when your selections don't match your philosophy`}
             <span
               key={item.key}
               className={
-                item.status === "ok" ? classes.reportChipOk : classes.reportChipFail
+                item.status === "ok"
+                  ? classes.reportChipOk
+                  : classes.reportChipFail
               }
             >
               {item.label} {item.status === "ok" ? "✓" : "✗"}
@@ -269,7 +292,7 @@ Coherence Engine only fires when your selections don't match your philosophy`}
 
         <section className={classes.selectSection}>
           <div className={classes.sectionTitle}>
-            ① SELECT — choose your design & methods (click one per row)
+            ① Review & edit drafts (filled by Recommend design with Prof Z)
           </div>
 
           <div className={classes.philosophyRow}>
@@ -281,101 +304,103 @@ Coherence Engine only fires when your selections don't match your philosophy`}
             </div>
           </div>
 
+          {!designText ? (
+            <div className={classes.howText} style={{ marginBottom: 8 }}>
+              Click “Recommend design with Prof Z” above — one call fills all
+              fields below. No separate Ask Prof Z needed on each field.
+            </div>
+          ) : null}
+
           <div>
             <div className={classes.rowTitle}>Research design</div>
-            <div className={classes.designOptions}>
-              {METHODOLOGY_DESIGN_OPTIONS.map((option) => {
-                const selected = values.meta.design === option.key;
-                const flagged =
-                  option.key === "yin_case_study" &&
-                  primaryWarning &&
-                  !values.meta.coherence_overridden;
-                return (
-                  <button
-                    key={option.key}
-                    type="button"
-                    className={`${classes.designCard} ${selected ? classes.designCardSelected : ""} ${option.recommended && !selected ? classes.designCardRecommended : ""}`}
-                    onClick={() => setMeta({ design: option.key })}
-                  >
-                    <span className={classes.designCardTitle}>
-                      {selected ? "● " : "○ "}
-                      {option.title}
-                      {option.recommended ? " (recommended)" : ""}
-                    </span>
-                    <span
-                      className={`${classes.designCardHint} ${option.recommended ? classes.designCardHintPrimary : ""}`}
-                    >
-                      {flagged && selected
-                        ? "Currently selected · flagged by Coherence Engine"
-                        : option.hint}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <RichTextEditorShell
+              value={designText}
+              onChange={(text) =>
+                setMeta({
+                  recommended_design_label: text,
+                  design: undefined,
+                })
+              }
+              active={designFocused}
+              minRows={2}
+              disabled={recommending}
+              placeholder="Filled by Recommend design with Prof Z — edit if needed"
+              hint="✎ Filled in one go with the other drafts"
+              onFocus={() => setDesignFocused(true)}
+              onBlur={() => setDesignFocused(false)}
+            />
           </div>
 
           <div>
-            <div className={classes.rowTitle}>Data collection</div>
-            <div className={classes.pillRow}>
-              {METHODOLOGY_COLLECTION_OPTIONS.map((option) => {
-                const selected = values.meta.collection?.includes(option.key);
-                return (
-                  <button
-                    key={option.key}
-                    type="button"
-                    className={`${classes.pill} ${selected ? classes.pillSelected : ""}`}
-                    onClick={() => toggleCollection(option.key)}
-                  >
-                    {selected ? "✓ " : ""}
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
             <div className={classes.rowTitle}>Sampling</div>
             <RichTextEditorShell
               value={values.meta.sampling ?? ""}
               onChange={(text) => setMeta({ sampling: text })}
               active={samplingFocused}
               minRows={2}
-              placeholder="Describe your sample size, selection criteria, and setting"
-              hint="✎ Click to edit"
+              disabled={recommending}
+              placeholder="Filled by Recommend design with Prof Z — edit if needed"
+              hint="✎ Filled in one go with the other drafts"
               onFocus={() => setSamplingFocused(true)}
               onBlur={() => setSamplingFocused(false)}
             />
           </div>
 
           <div>
+            <div className={classes.rowTitle}>Data collection</div>
+            <RichTextEditorShell
+              value={collectionText}
+              onChange={(text) =>
+                setMeta({
+                  recommended_data_collection: text,
+                  collection: undefined,
+                })
+              }
+              active={collectionFocused}
+              minRows={2}
+              disabled={recommending}
+              placeholder="Filled by Recommend design with Prof Z — matched to the design"
+              hint="✎ Filled in one go with the other drafts"
+              onFocus={() => setCollectionFocused(true)}
+              onBlur={() => setCollectionFocused(false)}
+            />
+          </div>
+
+          <div>
             <div className={classes.rowTitle}>Data analysis</div>
-            <div className={classes.pillRow}>
-              {METHODOLOGY_ANALYSIS_OPTIONS.map((option) => {
-                const selected = values.meta.analysis === option.key;
-                return (
-                  <button
-                    key={option.key}
-                    type="button"
-                    className={`${classes.pill} ${selected ? classes.pillSelected : ""}`}
-                    onClick={() => {
-                      setMeta({ analysis: option.key });
-                      setValues((current) => {
-                        const next = {
-                          ...current,
-                          meta: { ...current.meta, analysis: option.key },
-                        };
-                        return {
-                          ...next,
-                          methodology_paragraph: buildMethodologyParagraph(next),
-                        };
-                      });
-                    }}
-                  >
-                    {selected ? "✓ " : ""}
-                    {option.label}
-                  </button>
-                );
-              })}
+            <RichTextEditorShell
+              value={analysisText}
+              onChange={(text) =>
+                setMeta({
+                  recommended_data_analysis: text,
+                  analysis: undefined,
+                })
+              }
+              active={analysisFocused}
+              minRows={2}
+              disabled={recommending}
+              placeholder="Filled by Recommend design with Prof Z — matched to the design"
+              hint="✎ Filled in one go with the other drafts"
+              onFocus={() => setAnalysisFocused(true)}
+              onBlur={() => setAnalysisFocused(false)}
+            />
+          </div>
+
+          <div>
+            <div className={classes.rowTitle}>
+              Analysis software (external tool recommendation)
             </div>
+            <RichTextEditorShell
+              value={values.meta.recommended_software ?? ""}
+              onChange={(text) => setMeta({ recommended_software: text })}
+              active={softwareFocused}
+              minRows={1}
+              disabled={recommending}
+              placeholder="Filled by Recommend design with Prof Z — e.g. NVivo, ATLAS.ti"
+              hint="✎ External tool until RflowZ in-app analysis is available"
+              onFocus={() => setSoftwareFocused(true)}
+              onBlur={() => setSoftwareFocused(false)}
+            />
           </div>
         </section>
 
@@ -387,7 +412,11 @@ Coherence Engine only fires when your selections don't match your philosophy`}
             <span className={classes.writeTitle}>
               Proposed Methodology & Analysis
             </span>
-            <AskProfZButton onClick={askProfZ} disabled={isGenerating} loading={isGenerating} />
+            <AskProfZButton
+              onClick={askProfZParagraph}
+              disabled={isGenerating || recommending}
+              loading={isGenerating}
+            />
           </div>
           <PlanLimitAlert
             message={generationError}
@@ -404,13 +433,13 @@ Coherence Engine only fires when your selections don't match your philosophy`}
             active={draftFocused}
             minRows={6}
             disabled={isGenerating}
-            placeholder="Ask Prof Z to draft from your selections, or write your methodology paragraph"
-            hint="✎ Prof Z drafted this from your selections above — click to edit"
+            placeholder="Ask Prof Z to draft continuous prose from the recommendations above"
+            hint="✎ Only this paragraph uses Ask Prof Z — drafts above come from Recommend"
             onFocus={() => setDraftFocused(true)}
             onBlur={() => setDraftFocused(false)}
           />
           <div className={classes.writeHint}>
-            This text is saved and appears in Review Proposal → §5 Methodology
+            This text is saved and appears in Review Proposal → §3 Methodology
           </div>
         </section>
 

@@ -53,7 +53,7 @@
 }
 
 .bodyActive {
-  background: #fff;
+  background: light-dark(#fff, var(--rz-card));
 }
 
 .body :global(.mantine-Textarea-input) {

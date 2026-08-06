@@ -35,8 +35,8 @@ type LegConfig = {
 
 const LEGS: LegConfig[] = [
   {
-    title: "Leg 1 — Motivational (policy/media)",
-    gapLabel: "→ Motivational gap",
+    title: "Societal problem (policy / media)",
+    gapLabel: "Practical / policy gap (woven in prose)",
     problemField: "motivational_problem",
     gapField: "gap_in_practice",
     evidenceLabel: "Evidence linked (auto from library citations)",
@@ -44,8 +44,8 @@ const LEGS: LegConfig[] = [
     ablyEventName: "problem-statement-motivational_problem",
   },
   {
-    title: "Leg 2 — Research (literature)",
-    gapLabel: "→ Research gap",
+    title: "Research problem (literature)",
+    gapLabel: "Scholarly gap (woven in prose)",
     problemField: "research_problem",
     gapField: "gap_in_research",
     evidenceLabel: "Evidence linked (auto from saved literature)",
@@ -61,21 +61,16 @@ function evidenceLabel(entry: LibraryEntry, index: number) {
   return `${prefix} ${title}`;
 }
 
-function legGapHeading(leg: LegConfig) {
-  return leg.problemField === "motivational_problem"
-    ? "Motivational gap:"
-    : "Research gap:";
-}
-
 function combineLegText(
   problem: string,
   gap: string,
-  leg: LegConfig
+  _leg: LegConfig
 ): string {
   if (!problem && !gap) return "";
   if (!gap) return problem;
-  if (!problem) return `${legGapHeading(leg)} ${gap}`;
-  return `${problem}\n\n${legGapHeading(leg)} ${gap}`;
+  if (!problem) return gap;
+  // Continuous prose only — do not inject scaffolding labels into saved body.
+  return `${problem}\n\n${gap}`;
 }
 
 function splitLegText(
@@ -242,8 +237,8 @@ function LegEditor({
             disabled={isGenerating}
             placeholder={
               leg.evidenceKind === "web"
-                ? "Describe the real-world problem using policy/media evidence, then add Motivational gap: …"
-                : "Synthesise the literature with in-text citations, then add Research gap: …"
+                ? "Write continuous prose: societal motivation with citations, then weave the practical gap in the closing sentences (no labels)."
+                : "Write continuous prose: scholarly problem with citations, then weave the research gap in the closing sentences (no labels)."
             }
             error={
               [...(problemErrors ?? []), ...(gapErrors ?? [])].length > 0
@@ -383,8 +378,9 @@ export function ProblemStatementV2Screen({
       <div className={classes.pageHeader}>
         <div className={classes.pageTitle}>Problem statement</div>
         <div className={classes.pageSub}>
-          Assemble motivational leg (policy/media) and research leg (literature) —
-          each with linked evidence
+          Pure problem and gap only — what is wrong and why this study. Your
+          Introduction (landscape) was written at project start and is not
+          overwritten here.
         </div>
       </div>
 

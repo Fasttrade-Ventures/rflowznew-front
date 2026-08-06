@@ -7,8 +7,10 @@ import {
   getPaperMethodology,
 } from "#app/services/paper.server";
 import {
+  applyMethodologyRecommendation,
   fromMethodologyRecord,
   toMethodologyPayload,
+  type MethodologyRecommendation,
   type MethodologyV2FormValues,
 } from "#app/utils/methodology-v2";
 import { redirectWithToast } from "#app/utils/toast.server";
@@ -24,7 +26,10 @@ import {
   SerializeFrom,
 } from "@remix-run/node";
 import { useActionData, useFetcher, useLoaderData, useParams, useRevalidator } from "@remix-run/react";
-import { generateAiMethodology } from "#app/services/ai.server";
+import {
+  generateAiMethodology,
+  recommendMethodologyDesign,
+} from "#app/services/ai.server";
 import { MethodologyForm } from "#app/components/ui/paper/MethodologyForm";
 import {
   getApiErrorMessage,
@@ -62,7 +67,7 @@ export function shouldRevalidate({
   defaultShouldRevalidate: boolean;
 }) {
   const intent = formData?.get("intent");
-  if (intent === "generateAiResponse") {
+  if (intent === "generateAiResponse" || intent === "recommendDesign") {
     return false;
   }
   return defaultShouldRevalidate;
@@ -140,6 +145,32 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return json({
         saveOk: false,
         serverError: "Error saving methodology",
+      });
+    }
+  }
+
+  if (intent === "recommendDesign") {
+    const paperId = formData.get("paperId");
+    invariant(paperId, "Paper ID is required");
+    try {
+      const res = await recommendMethodologyDesign({
+        request,
+        paperId: paperId as string,
+      });
+      return json({
+        success: true,
+        recommendOk: true,
+        recommendation: (res.data?.recommendation ??
+          null) as MethodologyRecommendation | null,
+        methodology: res.data?.methodology ?? null,
+      });
+    } catch (error) {
+      const message = getApiErrorMessage(error);
+      return json({
+        success: false,
+        recommendOk: false,
+        serverError: message,
+        planLimit: isPlanLimitError(error),
       });
     }
   }
@@ -336,11 +367,13 @@ export const PaperNewMethodologyPage = () => {
   const revalidator = useRevalidator();
   const fetcherHandledRef = useRef(false);
   const params = useParams();
+  const [recommendedValues, setRecommendedValues] =
+    React.useState<MethodologyV2FormValues | null>(null);
 
-  const initialValues = useMemo(
-    () => fromMethodologyRecord(loaderData.methodology),
-    [loaderData.methodology]
-  );
+  const initialValues = useMemo(() => {
+    if (recommendedValues) return recommendedValues;
+    return fromMethodologyRecord(loaderData.methodology);
+  }, [loaderData.methodology, recommendedValues]);
 
   const [
     citationDrawerOpened,
@@ -366,6 +399,7 @@ export const PaperNewMethodologyPage = () => {
           message: "Methodology saved successfully",
           color: "teal",
         });
+        setRecommendedValues(null);
         revalidator.revalidate();
         return;
       }
@@ -376,6 +410,31 @@ export const PaperNewMethodologyPage = () => {
           color: "red",
         });
       }
+      return;
+    }
+
+    if (
+      "recommendOk" in fetcher.data &&
+      fetcher.data.recommendOk &&
+      (("recommendation" in fetcher.data && fetcher.data.recommendation) ||
+        ("methodology" in fetcher.data && fetcher.data.methodology))
+    ) {
+      const base = fromMethodologyRecord(
+        "methodology" in fetcher.data && fetcher.data.methodology
+          ? fetcher.data.methodology
+          : loaderData.methodology
+      );
+      const next =
+        "recommendation" in fetcher.data && fetcher.data.recommendation
+          ? applyMethodologyRecommendation(base, fetcher.data.recommendation)
+          : base;
+      setRecommendedValues(next);
+      notifications.show({
+        title: "Recommendation ready",
+        message:
+          "Prof Z filled research design, sampling, data collection, data analysis, and software.",
+        color: "teal",
+      });
       return;
     }
 
@@ -395,7 +454,7 @@ export const PaperNewMethodologyPage = () => {
             : undefined,
       });
     }
-  }, [fetcher.data, fetcher.state, revalidator.revalidate]);
+  }, [fetcher.data, fetcher.state, loaderData.methodology, revalidator.revalidate]);
 
   useEffect(() => {
     if (actionData && "success" in actionData && actionData.success) {
@@ -413,6 +472,10 @@ export const PaperNewMethodologyPage = () => {
     fetcher.state !== "idle" &&
     fetcher.formData?.get("intent") === "save_all_v2";
 
+  const isRecommending =
+    fetcher.state !== "idle" &&
+    fetcher.formData?.get("intent") === "recommendDesign";
+
   const saveError =
     fetcher.data &&
     "saveOk" in fetcher.data &&
@@ -421,10 +484,20 @@ export const PaperNewMethodologyPage = () => {
       ? fetcher.data.serverError
       : null;
 
+  const recommendationError =
+    fetcher.data &&
+    "recommendOk" in fetcher.data &&
+    fetcher.data.recommendOk === false &&
+    "serverError" in fetcher.data &&
+    typeof fetcher.data.serverError === "string"
+      ? fetcher.data.serverError
+      : null;
+
   const generationError =
     fetcher.data &&
     "success" in fetcher.data &&
     fetcher.data.success === false &&
+    !("recommendOk" in fetcher.data) &&
     "serverError" in fetcher.data &&
     typeof fetcher.data.serverError === "string"
       ? fetcher.data.serverError
@@ -432,7 +505,8 @@ export const PaperNewMethodologyPage = () => {
 
   const generationPlanLimit =
     fetcher.data &&
-    "planLimit" in fetcher.data
+    "planLimit" in fetcher.data &&
+    !("recommendOk" in fetcher.data)
       ? Boolean(fetcher.data.planLimit)
       : false;
 
@@ -450,11 +524,19 @@ export const PaperNewMethodologyPage = () => {
         saveError={saveError}
         generationError={generationError}
         generationPlanLimit={generationPlanLimit}
-        onAskProfZ={(ablyEvent) => {
+        recommending={isRecommending}
+        recommendationError={recommendationError}
+        onRecommendDesign={() => {
+          const fd = new FormData();
+          fd.set("intent", "recommendDesign");
+          fd.set("paperId", params.paperId!);
+          fetcher.submit(fd, { method: "post" });
+        }}
+        onAskProfZ={(ablyEvent, field) => {
           const fd = new FormData();
           fd.set("intent", "generateAiResponse");
           fd.set("paperId", params.paperId!);
-          fd.set("field", "research_design");
+          fd.set("field", field);
           fd.set("ablyEventName", ablyEvent);
           fetcher.submit(fd, { method: "post" });
         }}

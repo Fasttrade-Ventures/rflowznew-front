@@ -21,20 +21,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (!isPaperV2FlowEnabled()) {
     throw redirect("/paper/new/legacy");
   }
-  const url = new URL(request.url);
-  const purpose = url.searchParams.get("purpose") ?? "masters";
-  const rqCount = Number(url.searchParams.get("rqCount") ?? "3");
-
-  return json({
-    initial: {
-      purpose,
-      rqCount,
-      topic: "",
-      who: "",
-      what: "",
-      where: "",
-    },
-  });
+  throw redirect("/paper/new/chat");
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {

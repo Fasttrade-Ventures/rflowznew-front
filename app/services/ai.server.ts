@@ -136,12 +136,41 @@ const generateAiMethodology = async ({
   return res;
 };
 
+const recommendMethodologyDesign = async ({
+  request,
+  paperId,
+}: {
+  request: Request;
+  paperId: string;
+}) => {
+  return customFetch<{
+    success: boolean;
+    recommendation?: {
+      recommended_design?: string;
+      justification?: string;
+      sampling?: string;
+      data_collection?: string;
+      data_analysis?: string;
+      software?: string;
+      alternatives?: Array<{ design?: string; reason?: string }>;
+    };
+    methodology?: Record<string, unknown>;
+  }>({
+    request,
+    url: "/api/ai/recommend-methodology-design",
+    method: "post",
+    data: JSON.stringify({ paper_id: paperId }),
+  });
+};
+
 const generateAiExpectedOutput = async ({
   paperId,
   request,
+  ablyEventName,
 }: {
   paperId: string;
   request: Request;
+  ablyEventName: string;
 }) => {
   const res = await customFetch<{
     success: boolean;
@@ -153,6 +182,7 @@ const generateAiExpectedOutput = async ({
     method: "post",
     data: JSON.stringify({
       paper_id: paperId,
+      ably_event_name: ablyEventName,
     }),
   });
 
@@ -440,6 +470,7 @@ export {
   generateAiProblemStatement,
   generateAiPoD,
   generateAiMethodology,
+  recommendMethodologyDesign,
   generateAiExpectedOutput,
   generateAiConclusion,
   generateAiResearchSignificant,

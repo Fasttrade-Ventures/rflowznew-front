@@ -37,7 +37,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (!isPaperV2FlowEnabled()) {
     throw redirect("/paper/new/legacy");
   }
-  return json({ purposes: PURPOSES });
+  // Prof ZZ chatbot replaces the purpose → topic → review wizard.
+  throw redirect("/paper/new/chat");
 };
 
 export default function NewProjectPurpose() {

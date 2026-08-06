@@ -166,7 +166,7 @@ export function HomeProjectsV2({
               </svg>
             </button>
           </div>
-          <Button component={Link} to="/paper/new/purpose" size="xs">
+          <Button component={Link} to="/paper/new/chat" size="xs">
             New project
           </Button>
           <input
@@ -181,7 +181,7 @@ export function HomeProjectsV2({
         {viewMode === "grid" ? (
           <div className={classes.projectGrid}>
             <Link
-              to="/paper/new/purpose"
+              to="/paper/new/chat"
               className={`${classes.projectCard} ${classes.projectCardNew}`}
             >
               <Text size="sm" fw={600}>
@@ -234,7 +234,7 @@ export function HomeProjectsV2({
           </div>
         ) : (
           <div className={classes.projectList}>
-            <Link to="/paper/new/purpose" className={classes.projectListNewRow}>
+            <Link to="/paper/new/chat" className={classes.projectListNewRow}>
               + New project
             </Link>
             {filtered.map((paper) => (

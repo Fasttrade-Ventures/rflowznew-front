@@ -9,6 +9,14 @@
   width: 100%;
 }
 
+.saveButton {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding-inline: 12px !important;
+}
+
 @media (min-width: 901px) {
   .formFooter {
     align-items: flex-end;

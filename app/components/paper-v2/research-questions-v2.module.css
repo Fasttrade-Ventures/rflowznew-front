@@ -46,8 +46,8 @@
 }
 
 .rqCardActive {
-  background: #e7f5ff;
-  border-color: var(--rz-primary);
+  background: light-dark(#e7f5ff, rgba(34, 139, 230, 0.18));
+  border-color: light-dark(var(--rz-primary), #74c0fc);
 }
 
 .rqHeader {
@@ -99,10 +99,10 @@
 }
 
 .editedBadge {
-  background: #e7f5ff;
-  border: 1px solid #74c0fc;
+  background: light-dark(#e7f5ff, rgba(34, 139, 230, 0.22));
+  border: 1px solid light-dark(#74c0fc, rgba(116, 192, 252, 0.55));
   border-radius: 999px;
-  color: #1971c2;
+  color: light-dark(#1971c2, #74c0fc);
   font-size: 10px;
   font-weight: 600;
   padding: 2px 8px;
@@ -115,10 +115,10 @@
 
 .askProfZ {
   align-items: center;
-  background: #e7f5ff;
+  background: light-dark(#e7f5ff, rgba(34, 139, 230, 0.22));
   border: none;
   border-radius: 999px;
-  color: #228be6;
+  color: light-dark(#228be6, #74c0fc);
   cursor: pointer;
   display: flex;
   font-size: 9px;
@@ -195,7 +195,7 @@
 }
 
 .editorBodyActive {
-  background: #fff;
+  background: light-dark(#fff, var(--rz-card));
 }
 
 .editorBody :global(.mantine-Textarea-input) {
@@ -245,7 +245,8 @@
 
 .profNote {
   align-items: flex-start;
-  background: #e7f5ff;
+  background: light-dark(#e7f5ff, rgba(34, 139, 230, 0.18));
+  border: 1px solid light-dark(#a5d8ff, rgba(34, 139, 230, 0.35));
   border-radius: var(--rz-radius-md);
   display: flex;
   gap: 10px;
@@ -261,7 +262,7 @@
 }
 
 .profNoteTitle {
-  color: #228be6;
+  color: light-dark(#228be6, #74c0fc);
   font-size: 10px;
   font-weight: 600;
 }
