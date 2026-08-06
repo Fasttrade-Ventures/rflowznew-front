@@ -1,15 +1,36 @@
+/** Legacy shortlist keys — kept only so older saved meta still loads. */
 export type MethodologyDesignKey =
   | "yin_case_study"
   | "ipa"
   | "stake_case_study";
 
+export type MethodologyRecommendation = {
+  recommended_design?: string;
+  justification?: string;
+  sampling?: string;
+  data_collection?: string;
+  data_analysis?: string;
+  software?: string;
+  alternatives?: Array<{ design?: string; reason?: string }>;
+};
+
 export type MethodologyMeta = {
+  /** @deprecated Prefer recommended_design_label (free-text Prof Z draft). */
   design?: MethodologyDesignKey;
+  /** @deprecated Prefer recommended_data_collection. */
   collection?: string[];
+  /** @deprecated Prefer recommended_data_analysis. */
   analysis?: string;
   sampling?: string;
   coherence_overridden?: boolean;
   override_reason?: string;
+  recommended_design_label?: string;
+  recommendation_justification?: string;
+  recommended_software?: string;
+  recommended_data_collection?: string;
+  recommended_data_analysis?: string;
+  recommendation_alternatives?: Array<{ design?: string; reason?: string }>;
+  prof_z_recommendation?: MethodologyRecommendation;
 };
 
 export type MethodologyV2FormValues = {
@@ -17,64 +38,80 @@ export type MethodologyV2FormValues = {
   methodology_paragraph: string;
 };
 
-export const METHODOLOGY_DESIGN_OPTIONS: Array<{
-  key: MethodologyDesignKey;
-  title: string;
-  hint: string;
-  recommended?: boolean;
-}> = [
-  {
-    key: "yin_case_study",
-    title: "Yin case study",
-    hint: "Post-positivist · propositions · construct validity",
-  },
-  {
-    key: "ipa",
-    title: "IPA",
-    hint: "Click to switch — fits interpretivism + RQ2",
-    recommended: true,
-  },
-  {
-    key: "stake_case_study",
-    title: "Stake's interpretive case study",
-    hint: "Interpretive case study aligned with constructivism",
-  },
-];
-
-export const METHODOLOGY_COLLECTION_OPTIONS = [
-  { key: "semi_structured_interviews", label: "Semi-structured interviews" },
-  { key: "go_along_observations", label: "Go-along observations" },
-  { key: "surveys", label: "Surveys" },
-] as const;
-
-export const METHODOLOGY_ANALYSIS_OPTIONS = [
-  { key: "thematic_analysis", label: "Thematic analysis" },
-  { key: "ipa_4_stage", label: "IPA 4-stage cycle" },
-] as const;
-
 export const DEFAULT_SAMPLING = "";
 
-export function designLabel(key?: MethodologyDesignKey): string {
-  return (
-    METHODOLOGY_DESIGN_OPTIONS.find((option) => option.key === key)?.title ?? ""
-  );
-}
+const LEGACY_DESIGN_TITLES: Record<MethodologyDesignKey, string> = {
+  yin_case_study: "Yin case study",
+  ipa: "IPA",
+  stake_case_study: "Stake's interpretive case study",
+};
 
-export function collectionLabels(keys: string[] = []): string[] {
-  return keys
-    .map(
-      (key) =>
-        METHODOLOGY_COLLECTION_OPTIONS.find((option) => option.key === key)
-          ?.label
-    )
-    .filter(Boolean) as string[];
-}
+const LEGACY_COLLECTION_LABELS: Record<string, string> = {
+  semi_structured_interviews: "Semi-structured interviews",
+  go_along_observations: "Go-along observations",
+  surveys: "Surveys",
+};
 
-export function analysisLabel(key?: string): string {
+const LEGACY_ANALYSIS_LABELS: Record<string, string> = {
+  thematic_analysis: "Thematic analysis",
+  ipa_4_stage: "IPA 4-stage cycle",
+};
+
+export function designDraftText(meta: MethodologyMeta): string {
   return (
-    METHODOLOGY_ANALYSIS_OPTIONS.find((option) => option.key === key)?.label ??
+    meta.recommended_design_label?.trim() ||
+    (meta.design ? LEGACY_DESIGN_TITLES[meta.design] : "") ||
     ""
   );
+}
+
+export function collectionDraftText(meta: MethodologyMeta): string {
+  if (meta.recommended_data_collection?.trim()) {
+    return meta.recommended_data_collection.trim();
+  }
+  const fromKeys = (meta.collection ?? [])
+    .map((key) => LEGACY_COLLECTION_LABELS[key] ?? key)
+    .filter(Boolean)
+    .join("; ");
+  return fromKeys;
+}
+
+export function analysisDraftText(meta: MethodologyMeta): string {
+  if (meta.recommended_data_analysis?.trim()) {
+    return meta.recommended_data_analysis.trim();
+  }
+  if (meta.analysis) {
+    return LEGACY_ANALYSIS_LABELS[meta.analysis] ?? meta.analysis;
+  }
+  return "";
+}
+
+export function applyMethodologyRecommendation(
+  current: MethodologyV2FormValues,
+  recommendation: MethodologyRecommendation
+): MethodologyV2FormValues {
+  const next: MethodologyV2FormValues = {
+    ...current,
+    meta: {
+      ...current.meta,
+      // Clear legacy shortlist keys so UI/save path is free-text only.
+      design: undefined,
+      collection: undefined,
+      analysis: undefined,
+      sampling: recommendation.sampling ?? current.meta.sampling ?? "",
+      recommended_design_label: recommendation.recommended_design,
+      recommendation_justification: recommendation.justification,
+      recommended_software: recommendation.software,
+      recommended_data_collection: recommendation.data_collection,
+      recommended_data_analysis: recommendation.data_analysis,
+      recommendation_alternatives: recommendation.alternatives ?? [],
+      prof_z_recommendation: recommendation,
+      coherence_overridden: false,
+    },
+  };
+  // Always refresh the starter paragraph from the new drafts when recommending.
+  next.methodology_paragraph = buildMethodologyParagraph(next);
+  return next;
 }
 
 export function fromMethodologyRecord(
@@ -82,69 +119,94 @@ export function fromMethodologyRecord(
     research_design?: string | null;
     data_collection_methods?: string | null;
     analysis_techniques?: string | null;
+    software_and_tools?: string | null;
     meta?: MethodologyMeta | null;
   } | null
 ): MethodologyV2FormValues {
   const meta = methodology?.meta ?? {};
+  const recommendation = meta.prof_z_recommendation;
   return {
     meta: {
       design: meta.design,
-      collection: meta.collection ?? [],
+      collection: meta.collection,
       analysis: meta.analysis,
       sampling: meta.sampling ?? DEFAULT_SAMPLING,
       coherence_overridden: meta.coherence_overridden ?? false,
       override_reason: meta.override_reason ?? "",
+      recommended_design_label:
+        meta.recommended_design_label ?? recommendation?.recommended_design,
+      recommendation_justification:
+        meta.recommendation_justification ?? recommendation?.justification,
+      recommended_software:
+        meta.recommended_software ??
+        recommendation?.software ??
+        methodology?.software_and_tools ??
+        undefined,
+      recommended_data_collection:
+        meta.recommended_data_collection ?? recommendation?.data_collection,
+      recommended_data_analysis:
+        meta.recommended_data_analysis ?? recommendation?.data_analysis,
+      recommendation_alternatives:
+        meta.recommendation_alternatives ?? recommendation?.alternatives ?? [],
+      prof_z_recommendation: recommendation,
     },
     methodology_paragraph: methodology?.research_design ?? "",
   };
 }
 
 export function toMethodologyPayload(values: MethodologyV2FormValues) {
-  const collectionLabelsText = collectionLabels(values.meta.collection ?? []).join(
-    ", "
-  );
+  const design = designDraftText(values.meta);
+  const collection = collectionDraftText(values.meta);
+  const analysis = analysisDraftText(values.meta);
+  const paragraph = values.methodology_paragraph.trim();
 
+  // Persist drafts in columns for progress ticks. Export stitch prefers the
+  // written paragraph when present, so these drafts no longer get double-joined.
   return {
-    research_design: values.methodology_paragraph,
-    data_collection_methods: [collectionLabelsText, values.meta.sampling]
+    research_design: paragraph,
+    data_collection_methods: [collection, values.meta.sampling]
       .filter(Boolean)
       .join("\n"),
-    analysis_techniques: analysisLabel(values.meta.analysis),
-    software_and_tools: "",
-    meta: values.meta,
+    analysis_techniques: analysis,
+    software_and_tools: values.meta.recommended_software ?? "",
+    meta: {
+      ...values.meta,
+      design: undefined,
+      collection: undefined,
+      analysis: undefined,
+      recommended_design_label: design || values.meta.recommended_design_label,
+      recommended_data_collection:
+        collection || values.meta.recommended_data_collection,
+      recommended_data_analysis:
+        analysis || values.meta.recommended_data_analysis,
+    },
   };
 }
 
-export function buildMethodologyParagraph(values: MethodologyV2FormValues): string {
-  const design = designLabel(values.meta.design);
-  const collection = collectionLabels(values.meta.collection ?? []).join(" and ");
-  const analysis = analysisLabel(values.meta.analysis);
-  const sampling = values.meta.sampling ?? DEFAULT_SAMPLING;
+export function buildMethodologyParagraph(
+  values: MethodologyV2FormValues
+): string {
+  const design = designDraftText(values.meta);
+  const collection = collectionDraftText(values.meta);
+  const analysis = analysisDraftText(values.meta);
+  const sampling = values.meta.sampling?.trim() ?? "";
+  const software = values.meta.recommended_software?.trim() ?? "";
 
   if (!design || !collection || !analysis) {
     return "";
   }
 
-  if (values.meta.design === "ipa") {
-    return `This study adopts an interpretivist approach using Interpretative Phenomenological Analysis (IPA). Data will be collected through ${collection.toLowerCase()} with ${sampling.replace(/^Sampling:\s*/i, "")}. Analysis follows Smith's four-stage IPA cycle. Reflexivity logs and an audit trail ensure trustworthiness.`;
-  }
+  const samplingBit = sampling
+    ? ` ${sampling.replace(/^Sampling:\s*/i, "").replace(/\.$/, "")}.`
+    : "";
+  const softwareLabel = software
+    .replace(/\s*\(external tool recommendation[^)]*\)\s*/i, "")
+    .trim();
+  const softwareBit = softwareLabel
+    ? ` Analysis may be supported with ${softwareLabel}.`
+    : "";
 
-  if (values.meta.design === "yin_case_study") {
-    return `This study employs a case study design following Yin (2018), with ${collection.toLowerCase()} across ${sampling.replace(/^Sampling:\s*/i, "")}. Data will be analysed using ${analysis.toLowerCase()} to develop propositions and assess construct validity.`;
-  }
-
-  return `This study uses ${design.toLowerCase()} with ${collection.toLowerCase()} and ${analysis.toLowerCase()}. ${sampling}.`;
-}
-
-export function suggestedDesignKey(
-  suggested?: string | null
-): MethodologyDesignKey | null {
-  if (!suggested) return null;
-  const normalized = suggested.toLowerCase();
-  if (normalized.includes("ipa")) return "ipa";
-  if (normalized.includes("stake")) return "stake_case_study";
-  if (normalized.includes("yin")) return "yin_case_study";
-  return null;
+  return `This study adopts ${design}, with data collected through ${collection.charAt(0).toLowerCase()}${collection.slice(1)}.${samplingBit} Data will be analysed using ${analysis.charAt(0).toLowerCase()}${analysis.slice(1)}.${softwareBit}`;
 }
 
 export function evaluateCoherenceClient({
@@ -175,45 +237,60 @@ export function evaluateCoherenceClient({
   const paradigmText = paradigm ?? "";
   const isInterpretivist =
     /interpretiv|constructiv|qualitative/i.test(paradigmText);
-  const design = values.meta.design;
+  const designText = designDraftText(values.meta);
   const overridden = values.meta.coherence_overridden;
+  const positivistOrDsr =
+    /\byin\b|design science|\bdsr\b|post-?positiv/i.test(designText);
 
-  if (
-    isInterpretivist &&
-    design === "yin_case_study" &&
-    !overridden
-  ) {
+  if (isInterpretivist && positivistOrDsr && !overridden && designText) {
     warnings.push({
-      code: "yin_interpretivism_mismatch",
+      code: "design_paradigm_mismatch",
       message:
-        "You clicked Yin case study above, but your philosophy is Interpretivism. Yin leans positivist. Click IPA in the SELECT section, or click Override below.",
-      suggested_design: "IPA",
-      philosophy: "Interpretivism",
-      selected_design: "Yin case study",
+        "The drafted design looks positivist or design/artifact-oriented, but your philosophy is interpretivist/constructivist. Ask Prof Z to recommend again, or edit the design draft to a qualitative approach (e.g. IPA, case study, grounded theory).",
+      suggested_design: "Interpretative Phenomenological Analysis (IPA)",
+      philosophy: paradigmText || "Interpretivism",
+      selected_design: designText,
     });
   }
 
   const hasPhilosophy = Boolean(paradigmText.trim());
-  const hasDesign = Boolean(design);
-  const hasSampling =
-    Boolean(values.meta.sampling?.trim()) ||
-    (values.meta.collection?.length ?? 0) > 0;
+  const hasDesign = Boolean(designText.trim());
+  const hasSampling = Boolean(values.meta.sampling?.trim());
+  const hasCollection = Boolean(collectionDraftText(values.meta).trim());
+  const hasAnalysis = Boolean(analysisDraftText(values.meta).trim());
   const designAligned = hasDesign && (warnings.length === 0 || overridden);
 
   const report = [
-    { key: "philosophy", label: "Philosophy", status: hasPhilosophy ? "ok" : "fail" },
-    { key: "rq_fit", label: "RQ fit", status: hasDesign ? "ok" : "fail" },
-    { key: "sampling", label: "Sampling", status: hasSampling ? "ok" : "fail" },
+    {
+      key: "philosophy",
+      label: "Philosophy",
+      status: hasPhilosophy ? ("ok" as const) : ("fail" as const),
+    },
+    {
+      key: "rq_fit",
+      label: "Design draft",
+      status: hasDesign ? ("ok" as const) : ("fail" as const),
+    },
+    {
+      key: "sampling",
+      label: "Sampling",
+      status: hasSampling && hasCollection ? ("ok" as const) : ("fail" as const),
+    },
+    {
+      key: "analysis",
+      label: "Analysis",
+      status: hasAnalysis ? ("ok" as const) : ("fail" as const),
+    },
     {
       key: "design",
-      label: "Design",
-      status: designAligned ? "ok" : "fail",
+      label: "Paradigm fit",
+      status: designAligned ? ("ok" as const) : ("fail" as const),
     },
-  ] as const;
+  ];
 
   return {
     warnings,
-    report: [...report],
+    report,
     aligned: warnings.length === 0 || Boolean(overridden),
     suggested_design: warnings[0]?.suggested_design ?? null,
   };

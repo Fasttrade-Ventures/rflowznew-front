@@ -57,6 +57,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await generateAiExpectedOutput({
       request,
       paperId: paperId as string,
+      ablyEventName: "expected-output",
     });
 
     return json({

@@ -153,7 +153,15 @@ export function ReviewProposalV2({
     const events =
       regeneratingKey === "lit_review"
         ? ["proposal-lit-review"]
-        : ["proposal-benefits-practical", "proposal-benefits-research"];
+        : regeneratingKey === "introduction"
+          ? ["proposal-introduction"]
+          : regeneratingKey === "methodology"
+            ? ["proposal-methodology"]
+            : regeneratingKey === "expected_results"
+              ? ["proposal-expected-results"]
+              : regeneratingKey === "conclusion"
+                ? ["proposal-conclusion"]
+                : ["proposal-benefits-practical", "proposal-benefits-research"];
 
     for (const event of events) {
       channel.subscribe(event, handleAblyMessage);
@@ -177,10 +185,19 @@ export function ReviewProposalV2({
       return;
     }
 
-    onRegenerateSection(
-      key,
-      key === "lit_review" ? "proposal-lit-review" : `proposal-${key}`
-    );
+    const eventName =
+      key === "lit_review"
+        ? "proposal-lit-review"
+        : key === "introduction"
+          ? "proposal-introduction"
+          : key === "methodology"
+            ? "proposal-methodology"
+            : key === "expected_results"
+              ? "proposal-expected-results"
+              : key === "conclusion"
+                ? "proposal-conclusion"
+                : `proposal-${key}`;
+    onRegenerateSection(key, eventName);
   };
 
   return (
@@ -357,9 +374,10 @@ export function ReviewProposalV2({
         <div>
           <div className={classes.profTitle}>Prof Z</div>
           <div className={classes.profText}>
-            Run the integrity check before export. Stitched sections cost 0
-            tokens; use Ask Prof Z on §2 Literature Review or §6 Benefits when
-            you need a fresh AI draft.
+            Run the integrity check before export. Use Ask Prof Z on §1
+            Introduction (cited pivot), §2 Literature Review, §3 Methodology,
+            §4 Expected Results, §5 Conclusion, or §6 Benefits when you need a
+            fresh AI draft.
           </div>
         </div>
       </footer>

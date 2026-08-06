@@ -187,7 +187,7 @@ export function NewProjectTopicForm({
           <div className={classes.wizardActions}>
             <Button
               component={Link}
-              to={`/paper/new/purpose`}
+              to={`/paper/new/chat`}
               variant="outline"
               size="xs"
             >

@@ -33,12 +33,10 @@ type FrameworkV2ScreenProps = {
   initial: FrameworkV2FormValues;
   renderedPngUrl?: string | null;
   saving?: boolean;
-  rendering?: boolean;
   saveError?: string | null;
   generationError?: string | null;
   generationPlanLimit?: boolean;
-  onSave: (values: FrameworkV2FormValues) => void;
-  onGenerateDiagram: (values: FrameworkV2FormValues, svgData?: string) => void;
+  onSave: (values: FrameworkV2FormValues, svgData?: string) => void;
   onAskProfZTheoretical?: (ablyEvent: string) => void;
   onAskProfZMermaid?: (
     ablyEvent: string,
@@ -51,12 +49,10 @@ export function FrameworkV2Screen({
   libraryEntries,
   initial,
   saving,
-  rendering,
   saveError,
   generationError,
   generationPlanLimit,
   onSave,
-  onGenerateDiagram,
   onAskProfZTheoretical,
   onAskProfZMermaid,
 }: FrameworkV2ScreenProps) {
@@ -70,7 +66,7 @@ export function FrameworkV2Screen({
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [svgExport, setSvgExport] = useState<MermaidExportPayload | null>(null);
-  const [isEmbedding, setIsEmbedding] = useState(false);
+  const [isSavingLocal, setIsSavingLocal] = useState(false);
   const [generatingTarget, setGeneratingTarget] = useState<
     "theoretical" | "mermaid" | null
   >(null);
@@ -288,25 +284,25 @@ export function FrameworkV2Screen({
     }
   };
 
-  const embedInProposal = async () => {
-    if (!svgExport?.svg || !values.mermaid_source.trim()) return;
-    setIsEmbedding(true);
+  const handleSave = async () => {
+    setIsSavingLocal(true);
     setPreviewError(null);
     try {
-      let imageData = svgExport.dataUri;
-      try {
-        imageData = await toMermaidPngDataUri(svgExport.svg);
-      } catch (pngError) {
-        console.warn("Client PNG conversion failed; sending SVG for server render", pngError);
+      let imageData: string | undefined;
+      if (svgExport?.svg && values.mermaid_source.trim()) {
+        try {
+          imageData = await toMermaidPngDataUri(svgExport.svg);
+        } catch (pngError) {
+          console.warn(
+            "Client PNG conversion failed; sending SVG for server render",
+            pngError
+          );
+          imageData = svgExport.dataUri;
+        }
       }
-      onGenerateDiagram(values, imageData);
-    } catch (error) {
-      console.error("Framework diagram embed failed", error);
-      setPreviewError(
-        "Could not embed the diagram. Preview it again, then retry Embed in proposal."
-      );
+      onSave(values, imageData);
     } finally {
-      setIsEmbedding(false);
+      setIsSavingLocal(false);
     }
   };
 
@@ -482,19 +478,6 @@ export function FrameworkV2Screen({
               <div className={classes.exportRow}>
                 <button
                   type="button"
-                  className={`${classes.exportBtn} ${classes.exportBtnPrimary}`}
-                  disabled={
-                    rendering ||
-                    isEmbedding ||
-                    !svgExport?.dataUri ||
-                    !values.mermaid_source.trim()
-                  }
-                  onClick={() => void embedInProposal()}
-                >
-                  {rendering || isEmbedding ? "Embedding…" : "Embed in proposal"}
-                </button>
-                <button
-                  type="button"
                   className={classes.exportBtn}
                   disabled={!svgExport?.svg}
                   onClick={downloadPng}
@@ -517,8 +500,8 @@ export function FrameworkV2Screen({
                   <div className={classes.profNoteTitle}>Prof Z</div>
                   <div className={classes.profNoteText}>
                     {libraryEntries.length > 0
-                      ? `Step 1: Ask Prof Z on Theoretical framework. Step 2: Ask Prof Z on Mermaid. Step 3: Preview diagram. Step 4: Embed in proposal or download.`
-                      : "Add Library sources first. Then use Ask Prof Z on the theoretical narrative, then on Mermaid, then Preview diagram."}
+                      ? `Step 1: Ask Prof Z on Theoretical framework. Step 2: Ask Prof Z on Mermaid. Step 3: Preview diagram. Step 4: Save framework — the diagram embeds in the proposal automatically.`
+                      : "Add Library sources first. Then use Ask Prof Z on the theoretical narrative, then on Mermaid, then Preview diagram, then Save."}
                   </div>
                 </div>
               </section>
@@ -529,8 +512,8 @@ export function FrameworkV2Screen({
 
       <FormSaveFooter
         type="button"
-        loading={saving}
-        onClick={() => onSave(values)}
+        loading={saving || isSavingLocal}
+        onClick={() => void handleSave()}
         before={
           saveError ? (
             <Alert color="red" variant="light">

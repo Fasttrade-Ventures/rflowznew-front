@@ -309,7 +309,8 @@
 
 .profNote {
   align-items: flex-start;
-  background: #e7f5ff;
+  background: light-dark(#e7f5ff, rgba(34, 139, 230, 0.18));
+  border: 1px solid light-dark(#a5d8ff, rgba(34, 139, 230, 0.35));
   border-radius: var(--rz-radius-md);
   display: flex;
   gap: 10px;
@@ -325,7 +326,7 @@
 }
 
 .profNoteTitle {
-  color: #228be6;
+  color: light-dark(#228be6, #74c0fc);
   font-size: 10px;
   font-weight: 600;
 }

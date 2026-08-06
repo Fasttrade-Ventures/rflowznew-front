@@ -39,8 +39,7 @@ export function shouldRevalidate({
   if (
     intent === "save" ||
     intent === "generate-mermaid" ||
-    intent === "generate-theoretical" ||
-    intent === "render"
+    intent === "generate-theoretical"
   ) {
     return false;
   }
@@ -71,28 +70,48 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
 
   if (intent === "save") {
     try {
-      const res = await saveFramework({
+      const data = JSON.parse(
+        formData.get("data") as string
+      ) as FrameworkV2FormValues;
+      const svgData = (formData.get("svg_data") as string) || undefined;
+
+      const saved = await saveFramework({
         request,
         paperId,
-        data: JSON.parse(formData.get("data") as string) as FrameworkV2FormValues,
+        data,
       });
-      return json({ saveOk: true, framework: res.data?.framework });
+
+      // Auto-embed diagram in proposal when a preview image was provided.
+      if (svgData) {
+        try {
+          const rendered = await renderFramework({
+            request,
+            paperId,
+            mermaidSource: data.mermaid_source,
+            svgData,
+          });
+          return json({
+            saveOk: true,
+            framework: rendered.data?.framework ?? saved.data?.framework,
+            embedded: true,
+          });
+        } catch {
+          return json({
+            saveOk: true,
+            framework: saved.data?.framework,
+            embedWarning:
+              "Framework saved, but the diagram could not be embedded. Preview it again, then save.",
+          });
+        }
+      }
+
+      return json({
+        saveOk: true,
+        framework: saved.data?.framework,
+        embedded: false,
+      });
     } catch {
       return json({ saveOk: false, serverError: "Error saving framework" });
-    }
-  }
-
-  if (intent === "render") {
-    try {
-      const res = await renderFramework({
-        request,
-        paperId,
-        mermaidSource: formData.get("mermaid_source") as string,
-        svgData: (formData.get("svg_data") as string) || undefined,
-      });
-      return json({ renderOk: true, framework: res.data?.framework });
-    } catch {
-      return json({ renderOk: false, serverError: "Could not render diagram" });
     }
   }
 
@@ -170,8 +189,6 @@ export default function FrameworksRoute() {
 
   const isSaving =
     fetcher.state !== "idle" && fetcher.formData?.get("intent") === "save";
-  const isRendering =
-    fetcher.state !== "idle" && fetcher.formData?.get("intent") === "render";
 
   const saveError =
     fetcher.data &&
@@ -203,41 +220,26 @@ export default function FrameworksRoute() {
     if ("saveOk" in data) {
       if (data.saveOk && "framework" in data && data.framework) {
         setSavedValues(fromFrameworkRecord(data.framework));
-        notifications.show({
-          title: "Saved",
-          message: "Framework saved successfully",
-          color: "green",
-        });
+        setRenderedPngUrl(data.framework?.rendered_png_url ?? null);
+        if ("embedWarning" in data && data.embedWarning) {
+          notifications.show({
+            title: "Saved with warning",
+            message: String(data.embedWarning),
+            color: "yellow",
+          });
+        } else {
+          notifications.show({
+            title: "Saved",
+            message:
+              "embedded" in data && data.embedded
+                ? "Framework saved and diagram embedded in the proposal"
+                : "Framework saved successfully",
+            color: "green",
+          });
+        }
       } else if ("serverError" in data && data.serverError) {
         notifications.show({
           title: "Error",
-          message: data.serverError,
-          color: "red",
-        });
-      }
-      return;
-    }
-
-    if ("renderOk" in data) {
-      if (data.renderOk && "framework" in data) {
-        setRenderedPngUrl(data.framework?.rendered_png_url ?? null);
-        setSavedValues((current) => ({
-          theoretical_framework:
-            current?.theoretical_framework ||
-            data.framework?.theoretical_framework ||
-            "",
-          mermaid_source: repairMermaidSource(
-            data.framework?.mermaid_source ?? current?.mermaid_source ?? DEFAULT_MERMAID
-          ),
-        }));
-        notifications.show({
-          title: "Diagram ready",
-          message: "Diagram rendered and embedded for proposal export",
-          color: "green",
-        });
-      } else if ("serverError" in data && data.serverError) {
-        notifications.show({
-          title: "Render failed",
           message: data.serverError,
           color: "red",
         });
@@ -270,7 +272,6 @@ export default function FrameworksRoute() {
       initial={screenInitial}
       renderedPngUrl={renderedPngUrl}
       saving={isSaving}
-      rendering={isRendering}
       saveError={saveError}
       generationError={generationError}
       generationPlanLimit={generationPlanLimit}
@@ -287,16 +288,10 @@ export default function FrameworksRoute() {
         fd.set("theoretical_framework", data.theoretical_framework);
         fetcher.submit(fd, { method: "post" });
       }}
-      onSave={(data) => {
+      onSave={(data, svgData) => {
         const fd = new FormData();
         fd.set("intent", "save");
         fd.set("data", JSON.stringify(data));
-        fetcher.submit(fd, { method: "post" });
-      }}
-      onGenerateDiagram={(data, svgData) => {
-        const fd = new FormData();
-        fd.set("intent", "render");
-        fd.set("mermaid_source", data.mermaid_source);
         if (svgData) fd.set("svg_data", svgData);
         fetcher.submit(fd, { method: "post" });
       }}

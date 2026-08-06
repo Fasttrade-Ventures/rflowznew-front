@@ -18,7 +18,7 @@ import { isPaperV2FlowEnabled } from "#app/utils/feature-flags.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (isPaperV2FlowEnabled()) {
-    throw redirect("/paper/new/purpose");
+    throw redirect("/paper/new/chat");
   }
   return null;
 };

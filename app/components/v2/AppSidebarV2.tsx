@@ -78,7 +78,7 @@ export function AppSidebarV2({ onNavigate }: { onNavigate?: () => void }) {
         All projects
       </NavLink>
       <NavLink
-        to="/paper/new/purpose"
+        to="/paper/new/chat"
         onClick={onNavigate}
         className={({ isActive }) =>
           `${classes.navSubLink}${isActive ? ` ${classes.navSubLinkActive}` : ""}`

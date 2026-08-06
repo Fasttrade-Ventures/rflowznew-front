@@ -103,7 +103,7 @@ export function HomeDashboardV2({
           >
             Browse library
           </Button>
-          <Button component={Link} to="/paper/new/purpose" size="xs">
+          <Button component={Link} to="/paper/new/chat" size="xs">
             + New project
           </Button>
         </div>
@@ -187,7 +187,7 @@ export function HomeDashboardV2({
             <div className={classes.quickActions}>
               <Button
                 component={Link}
-                to="/paper/new/purpose"
+                to="/paper/new/chat"
                 variant="outline"
                 size="xs"
                 fullWidth

@@ -26,12 +26,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     throw redirect("/paper/new/legacy");
   }
 
-  const draft = await readWizardDraftCookie(request);
-  if (!draft?.refinedStatement || !draft.topic) {
-    throw redirect("/paper/new/purpose");
-  }
-
-  return json({ draft });
+  throw redirect("/paper/new/chat");
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -42,7 +37,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const draft = await readWizardDraftCookie(request);
   if (!draft?.refinedStatement || !draft.topic) {
-    throw redirect("/paper/new/purpose");
+    throw redirect("/paper/new/chat");
   }
 
   try {

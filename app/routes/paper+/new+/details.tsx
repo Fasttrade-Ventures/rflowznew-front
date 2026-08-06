@@ -5,7 +5,7 @@ import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await requireAuth({ request });
   if (isPaperV2FlowEnabled()) {
-    throw redirect("/paper/new/purpose");
+    throw redirect("/paper/new/chat");
   }
   throw redirect("/paper/new/legacy");
 };

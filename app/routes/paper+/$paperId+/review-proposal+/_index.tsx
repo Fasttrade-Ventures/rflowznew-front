@@ -25,7 +25,11 @@ import {
 import { getFramework } from "#app/services/framework.server";
 import { getProposalAssembly, saveProposalSection } from "#app/services/proposal-assembly.server";
 import {
+  generateAiConclusion,
+  generateAiExpectedOutput,
+  generateAiIntroduction,
   generateAiLiteratureReview,
+  generateAiMethodology,
   generateAiResearchSignificant,
 } from "#app/services/ai.server";
 import { isPaperV2FlowEnabled } from "#app/utils/feature-flags.server";
@@ -207,6 +211,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({ message: "Regenerating literature review…" });
       }
 
+      if (section === "introduction") {
+        await generateAiIntroduction({ request, paperId, ablyEventName });
+        return json({ message: "Regenerating introduction…" });
+      }
+
+      if (section === "methodology") {
+        await generateAiMethodology({
+          request,
+          paperId,
+          field: "research_design",
+          ablyEventName,
+        });
+        return json({ message: "Regenerating methodology…" });
+      }
+
       if (section === "benefits-practical") {
         await generateAiResearchSignificant({
           request,
@@ -225,6 +244,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           ablyEventName,
         });
         return json({ message: "Regenerating research contribution…" });
+      }
+
+      if (section === "expected_results") {
+        await generateAiExpectedOutput({
+          request,
+          paperId,
+          ablyEventName,
+        });
+        return json({ message: "Regenerating expected results…" });
+      }
+
+      if (section === "conclusion") {
+        await generateAiConclusion({
+          request,
+          paperId,
+          ablyEventName,
+        });
+        return json({ message: "Regenerating conclusion…" });
       }
 
       return json({ message: "Unknown section" }, { status: 400 });

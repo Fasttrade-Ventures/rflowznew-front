@@ -13,7 +13,12 @@ const SECTION_ORDER: Array<{
   hint?: string;
   regeneratable?: boolean;
 }> = [
-  { key: "introduction", label: "1. Introduction", hint: "From Screens 3–4 · Stitched · 0 tokens · ✎ editable" },
+  {
+    key: "introduction",
+    label: "1. Introduction",
+    hint: "Ask Prof Z · affirmative landscape then cited pivot · ✎ editable",
+    regeneratable: true,
+  },
   {
     key: "lit_review",
     label: "2. Literature Review",
@@ -23,17 +28,20 @@ const SECTION_ORDER: Array<{
   {
     key: "methodology",
     label: "3. Proposed Methodology & Analysis",
-    hint: "Method-adaptive (propositions, not IV/DV) · Stitched · 0 tokens · ✎ editable",
+    hint: "Ask Prof Z · one continuous design narrative · ✎ editable",
+    regeneratable: true,
   },
   {
     key: "expected_results",
-    label: "4. Research Question",
-    hint: "From Screen 5 RQs · Stitched · 0 tokens · ✎ editable",
+    label: "4. Expected Results",
+    hint: "Ask Prof Z · declarative anticipated findings · not research questions · ✎ editable",
+    regeneratable: true,
   },
   {
     key: "conclusion",
     label: "5. Conclusion",
-    hint: "Stitched from §1–§5 · Stitched · 0 tokens · ✎ editable",
+    hint: "Ask Prof Z · elaborated synthesis from problem, gap, method, contribution · ✎ editable",
+    regeneratable: true,
   },
   {
     key: "benefits",
@@ -130,7 +138,11 @@ export function ProposalAccordion({
                     placeholder={
                       key === "references"
                         ? "APA 7 references — one entry per paragraph"
-                        : `Edit ${label.toLowerCase()}…`
+                        : key === "expected_results"
+                          ? "Ask Prof Z for declarative anticipated findings — not research questions"
+                          : key === "conclusion"
+                            ? "Ask Prof Z for a 5–8 sentence synthesis of problem, gap, method, and contribution"
+                            : `Edit ${label.toLowerCase()}…`
                     }
                     hint="✎ Click to edit"
                     onFocus={() => setFocusedKey(key)}

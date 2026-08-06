@@ -28,11 +28,12 @@ export function FormSaveFooter({
       {before}
       <Button
         type={type}
-        size="sm"
+        size="compact-xs"
         loading={loading}
         disabled={disabled}
         onClick={onClick}
         fullWidth={isMobile}
+        className={formClasses.saveButton}
       >
         {children}
       </Button>
