@@ -139,6 +139,7 @@ export interface PlanFeatures {
   unlimited_ai?: boolean;
   document_version_limit?: number | null;
   rag_monthly_limit?: number | null;
+  templates_status?: 'coming_soon';
   framework_generator?: boolean;
   collaboration?: boolean;
   trez_access?: boolean;

@@ -307,6 +307,10 @@ function SubscriptionV2({
         })}
       </div>
       <div className={v2classes.subscriptionDisclaimer}>
+        <strong>Multiple proposal templates</strong> — coming soon. All plans
+        currently use the standard DSR proposal structure.
+      </div>
+      <div className={v2classes.subscriptionDisclaimer}>
         RflowZ is designed to assist users in developing research proposals
         utilizing Design Science Research (DSR) principles.
       </div>
@@ -473,6 +477,10 @@ function SubscriptionLegacy({
           </Grid.Col>
         ))}
       </Grid>
+      <Text size="xs" c="dimmed" ta="center" mt="xl">
+        <strong>Multiple proposal templates</strong> — coming soon. All plans
+        currently use the standard DSR proposal structure.
+      </Text>
     </Container>
   );
 }
