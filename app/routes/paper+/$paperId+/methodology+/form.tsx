@@ -49,6 +49,7 @@ import {
   addCitationSchema,
 } from "#app/components/ui/citation/AddCitationDrawer";
 import { MethodologyV2Screen } from "#app/components/paper-v2/MethodologyV2Screen";
+import { usePaperLanguage } from "#app/components/paper-v2/usePaperLanguage";
 import NoSubscriptionEmptyState from "#app/components/NoSubscriptionEmptyState";
 import { getCoherence } from "#app/services/coherence.server";
 import { getPhilosophy } from "#app/services/philosophy.server";
@@ -365,6 +366,7 @@ export const PaperNewMethodologyPage = () => {
   const loaderData = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const revalidator = useRevalidator();
+  const paperLanguage = usePaperLanguage();
   const fetcherHandledRef = useRef(false);
   const params = useParams();
   const [recommendedValues, setRecommendedValues] =
@@ -426,7 +428,11 @@ export const PaperNewMethodologyPage = () => {
       );
       const next =
         "recommendation" in fetcher.data && fetcher.data.recommendation
-          ? applyMethodologyRecommendation(base, fetcher.data.recommendation)
+          ? applyMethodologyRecommendation(
+              base,
+              fetcher.data.recommendation,
+              paperLanguage
+            )
           : base;
       setRecommendedValues(next);
       notifications.show({
@@ -518,6 +524,7 @@ export const PaperNewMethodologyPage = () => {
     return (
       <MethodologyV2Screen
         paperId={params.paperId!}
+        paperLanguage={paperLanguage}
         philosophyParadigm={loaderData.philosophy?.paradigm}
         initial={initialValues}
         saving={isSaving}

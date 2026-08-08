@@ -40,6 +40,10 @@ export function isSupportedLanguageCode(
 export function normalizeLanguageCode(
   value: string | null | undefined
 ): LanguageCode {
+  if (isSupportedLanguageCode(value)) {
+    return value;
+  }
+  return DEFAULT_LANGUAGE;
   return isSupportedLanguageCode(value) ? value : DEFAULT_LANGUAGE;
 }
 
