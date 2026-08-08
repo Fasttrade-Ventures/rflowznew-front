@@ -3,6 +3,7 @@ import CDivider from "#app/components/ui/CDivider";
 import { FormattedText } from "#app/components/ui/FormattedText";
 import {
   GeneratedDocument,
+  createOrUpdateAbstractSec,
   generateDocuments,
   getPaper,
   getPaperAbstractSec,
@@ -25,8 +26,10 @@ import {
 import { getFramework } from "#app/services/framework.server";
 import { getProposalAssembly, saveProposalSection } from "#app/services/proposal-assembly.server";
 import {
+  generateAiAbstractSec,
   generateAiConclusion,
   generateAiExpectedOutput,
+  generateAiExpertReview,
   generateAiIntroduction,
   generateAiLiteratureReview,
   generateAiMethodology,
@@ -85,7 +88,9 @@ export function shouldRevalidate({
   const intent = formData?.get("intent");
   if (
     intent === "save-proposal-section" ||
-    intent === "regenerate-proposal-section"
+    intent === "regenerate-proposal-section" ||
+    intent === "save-abstract" ||
+    intent === "generate-abstract"
   ) {
     return false;
   }
@@ -247,12 +252,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
 
       if (section === "expected_results") {
-        await generateAiExpectedOutput({
+        await generateAiExpertReview({
           request,
           paperId,
           ablyEventName,
         });
-        return json({ message: "Regenerating expected results…" });
+        return json({ message: "Regenerating expert review…" });
       }
 
       if (section === "conclusion") {
@@ -303,6 +308,33 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ message: res.data?.message ?? "Formatting reset" });
   }
 
+  if (intent === "generate-abstract") {
+    try {
+      await generateAiAbstractSec({
+        request,
+        paperId,
+        ablyEventName: "proposal-abstract",
+      });
+      return json({ message: "Generating abstract…" });
+    } catch (error) {
+      return json({
+        message: getApiErrorMessage(error),
+        serverError: getApiErrorMessage(error),
+        success: false,
+      });
+    }
+  }
+
+  if (intent === "save-abstract") {
+    const body = (formData.get("body") as string) ?? "";
+    try {
+      await createOrUpdateAbstractSec({ request, paperId, body });
+    } catch {
+      // silently ignore
+    }
+    return json({ message: "Abstract saved" });
+  }
+
   return json({ message: "Invalid intent" });
 };
 
@@ -328,6 +360,7 @@ export const ReviewProposalPage = () => {
   } = useLoaderData<typeof loader>();
   const sectionFetcher = useFetcher();
   const regenerateFetcher = useFetcher();
+  const abstractFetcher = useFetcher();
   const revalidator = useRevalidator();
 
   const isPending = useDelayedIsPending({
@@ -473,6 +506,19 @@ export const ReviewProposalPage = () => {
           fd.set("section", section);
           fd.set("ably_event_name", ablyEventName);
           regenerateFetcher.submit(fd, { method: "post" });
+        }}
+        onGenerateAbstract={() => {
+          const fd = new FormData();
+          fd.set("intent", "generate-abstract");
+          fd.set("paperId", paperId);
+          abstractFetcher.submit(fd, { method: "post" });
+        }}
+        onSaveAbstract={(body) => {
+          const fd = new FormData();
+          fd.set("intent", "save-abstract");
+          fd.set("paperId", paperId);
+          fd.set("body", body);
+          abstractFetcher.submit(fd, { method: "post" });
         }}
       />
     );

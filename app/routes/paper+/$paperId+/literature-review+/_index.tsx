@@ -60,16 +60,26 @@ export const LiteratureReviewPage = () => {
               </Text>
             </Group>
           </Stack>
-          <Button
-            leftSection={
-              <Icon name="pencil-outline" style={{ width: 16, height: 16 }} />
-            }
-            variant="light"
-            component={Link}
-            to={`/paper/${data?.literature_review?.paper_id}/literature-review/form`}
-          >
-            Edit
-          </Button>
+          <Group gap="xs">
+            <Button
+              size="sm"
+              variant="default"
+              component={Link}
+              to={`/paper/${data?.literature_review?.paper_id}/literature-review/subtopics`}
+            >
+              Sub-topics
+            </Button>
+            <Button
+              leftSection={
+                <Icon name="pencil-outline" style={{ width: 16, height: 16 }} />
+              }
+              variant="light"
+              component={Link}
+              to={`/paper/${data?.literature_review?.paper_id}/literature-review/form`}
+            >
+              Edit
+            </Button>
+          </Group>
         </Group>
       </Stack>
       <CDivider />
