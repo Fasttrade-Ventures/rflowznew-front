@@ -14,13 +14,9 @@ export type LanguageCode = (typeof LANGUAGE_OPTIONS)[number]["value"];
 
 interface LanguageSelectProps {
   field: FieldMetadata<LanguageCode>;
-  isEditing?: boolean;
 }
 
-export const LanguageSelect: React.FC<LanguageSelectProps> = ({
-  field,
-  isEditing = false,
-}) => {
+export const LanguageSelect: React.FC<LanguageSelectProps> = ({ field }) => {
   return (
     <NativeSelect
       label="Language"
@@ -29,7 +25,6 @@ export const LanguageSelect: React.FC<LanguageSelectProps> = ({
         value: option.value,
         label: option.label,
       }))}
-      disabled={isEditing}
       error={field.errors}
       {...getInputProps(field, { type: "text" })}
       aria-label="Select language for AI-generated content"

@@ -565,7 +565,7 @@ export const PaperForm: React.FC<PaperFormPropsWithConditionalPaperId> = ({
 
             <MethodRadioGroup fields={{ method: fields.method }} form={form} />
 
-            <LanguageSelect field={fields.language} isEditing={isEditing} />
+            <LanguageSelect field={fields.language} />
 
             <TextInput
               label="Title"
