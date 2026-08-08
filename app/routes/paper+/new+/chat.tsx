@@ -33,9 +33,21 @@ import {
   type KeyboardEvent,
 } from "react";
 
+import {
+  SUPPORTED_LANGUAGES,
+  normalizeLanguageCode,
+  type LanguageCode,
+} from "#app/utils/languages";
+
 import classes from "./chat.module.css";
 
+const LANGUAGE_OPTIONS = Object.values(SUPPORTED_LANGUAGES).map((lang) => ({
+  code: lang.code as LanguageCode,
+  label: `${lang.flag} ${lang.native_name}`,
+}));
+
 type Step =
+  | "choose_language"
   | "choose_type"
   | "ask_topic"
   | "collecting"
@@ -96,6 +108,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const topic = String(formData.get("topic") ?? "").trim();
     const focus = String(formData.get("focus") ?? "").trim();
     const refined = String(formData.get("refined_statement") ?? "").trim();
+    const language = normalizeLanguageCode(
+      String(formData.get("language") ?? "en").trim()
+    );
     let sources: ChatWizardSource[] = [];
     try {
       sources = JSON.parse(String(formData.get("sources") ?? "[]"));
@@ -112,6 +127,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           topic,
           focus,
           refined_statement: refined || buildRefinedStatement(topic, focus),
+          language,
           sources,
         },
       });
@@ -169,14 +185,15 @@ export default function ProfZzChatWizard() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const [step, setStep] = useState<Step>("choose_type");
+  const [step, setStep] = useState<Step>("choose_language");
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "hello",
       role: "prof",
-      text: "Hello — how can I help you today? What type of research are you planning?",
+      text: "Hello — before we begin, which language should I use for your proposal and AI-generated sections?",
     },
   ]);
+  const [language, setLanguage] = useState<LanguageCode | null>(null);
   const [purpose, setPurpose] = useState<ResearchPurpose | null>(null);
   const [rqCount, setRqCount] = useState(1);
   const [topic, setTopic] = useState("");
@@ -236,6 +253,18 @@ export default function ProfZzChatWizard() {
     setMessages((prev) => [...prev, { id: uid(), role: "prof", text }]);
   };
 
+  const onSelectLanguage = (code: LanguageCode) => {
+    if (step !== "choose_language") return;
+    const option = LANGUAGE_OPTIONS.find((item) => item.code === code);
+    if (!option) return;
+    setLanguage(code);
+    pushUser(option.label);
+    pushProf(
+      "Great — I'll write your proposal content in that language. What type of research are you planning?"
+    );
+    setStep("choose_type");
+  };
+
   const onSelectType = (id: ResearchPurpose) => {
     const opt = RESEARCH_TYPE_OPTIONS.find((o) => o.id === id);
     if (!opt || step !== "choose_type") return;
@@ -293,6 +322,7 @@ export default function ProfZzChatWizard() {
     fd.set("topic", topic);
     fd.set("focus", focus);
     fd.set("refined_statement", refined);
+    fd.set("language", normalizeLanguageCode(language));
     fd.set("sources", JSON.stringify(sources));
     submit(fd, { method: "post" });
   };
@@ -321,6 +351,7 @@ export default function ProfZzChatWizard() {
     busy ||
     step === "collecting" ||
     step === "finalizing" ||
+    step === "choose_language" ||
     step === "choose_type";
 
   return (
@@ -380,6 +411,21 @@ export default function ProfZzChatWizard() {
               </div>
             );
           })}
+
+          {step === "choose_language" ? (
+            <div className={classes.suggestions}>
+              {LANGUAGE_OPTIONS.map((option) => (
+                <button
+                  key={option.code}
+                  type="button"
+                  className={classes.suggestion}
+                  onClick={() => onSelectLanguage(option.code)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           {step === "choose_type" ? (
             <div className={classes.suggestions}>

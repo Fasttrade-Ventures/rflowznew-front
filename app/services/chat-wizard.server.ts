@@ -31,6 +31,7 @@ export async function chatWizardFinalize({
     topic: string;
     focus?: string;
     refined_statement: string;
+    language?: string;
     sources?: ChatWizardSource[];
   };
 }) {
