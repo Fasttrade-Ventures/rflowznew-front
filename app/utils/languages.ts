@@ -44,6 +44,7 @@ export function normalizeLanguageCode(
     return value;
   }
   return DEFAULT_LANGUAGE;
+  return isSupportedLanguageCode(value) ? value : DEFAULT_LANGUAGE;
 }
 
 /**
