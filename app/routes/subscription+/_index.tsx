@@ -208,7 +208,7 @@ function SubscriptionV2({
       <div className={v2classes.subscriptionHeader}>
         <div className={v2classes.subscriptionTitle}>Choose Your Plan</div>
         <Text size="xs" c="dimmed">
-          Toggle monthly or yearly billing
+          RflowZ 2.0 — yearly billing shown by default
         </Text>
       </div>
       <div className={v2classes.billingToggle}>
@@ -279,6 +279,8 @@ function SubscriptionV2({
                       Included for all new accounts
                     </Text>
                   )
+                ) : plan.subscribable === false ? (
+                  <ComingSoonButton message={plan.subscription_unavailable_message} />
                 ) : subscription_status === null ||
                   subscription_status === "inactive" ||
                   onFreePlan ? (
@@ -444,6 +446,8 @@ function SubscriptionLegacy({
                     Included for all new accounts
                   </Text>
                 )
+              ) : plan.subscribable === false ? (
+                <ComingSoonButton message={plan.subscription_unavailable_message} />
               ) : subscription_status === null ||
                 subscription_status === "inactive" ||
                 onFreePlan ? (
@@ -472,6 +476,19 @@ function SubscriptionLegacy({
     </Container>
   );
 }
+
+const ComingSoonButton = ({ message }: { message?: string }) => (
+  <Stack gap={5} align="center">
+    <Button fullWidth size="xs" variant="outline" disabled>
+      Coming soon
+    </Button>
+    {message && (
+      <Text size="xs" c="dimmed" ta="center">
+        {message}
+      </Text>
+    )}
+  </Stack>
+);
 
 const ManageSubscriptionButton = ({ planName }: { planName: string }) => {
   const navigation = useNavigation();
