@@ -35,6 +35,7 @@ import {
 
 import {
   SUPPORTED_LANGUAGES,
+  normalizeLanguageCode,
   type LanguageCode,
 } from "#app/utils/languages";
 
@@ -107,7 +108,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const topic = String(formData.get("topic") ?? "").trim();
     const focus = String(formData.get("focus") ?? "").trim();
     const refined = String(formData.get("refined_statement") ?? "").trim();
-    const language = String(formData.get("language") ?? "en").trim();
+    const language = normalizeLanguageCode(
+      String(formData.get("language") ?? "en").trim()
+    );
     let sources: ChatWizardSource[] = [];
     try {
       sources = JSON.parse(String(formData.get("sources") ?? "[]"));
@@ -319,7 +322,7 @@ export default function ProfZzChatWizard() {
     fd.set("topic", topic);
     fd.set("focus", focus);
     fd.set("refined_statement", refined);
-    fd.set("language", language ?? "en");
+    fd.set("language", normalizeLanguageCode(language));
     fd.set("sources", JSON.stringify(sources));
     submit(fd, { method: "post" });
   };

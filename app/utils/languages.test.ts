@@ -4,6 +4,8 @@ import {
   getLanguageName,
   getLanguageFlag,
   DEFAULT_LANGUAGE,
+  isSupportedLanguageCode,
+  normalizeLanguageCode,
 } from "./languages";
 
 describe("Language Utilities", () => {
@@ -53,5 +55,12 @@ describe("Language Utilities", () => {
 
   test("DEFAULT_LANGUAGE is set correctly", () => {
     expect(DEFAULT_LANGUAGE).toBe("en");
+  });
+
+  test("isSupportedLanguageCode validates supported codes", () => {
+    expect(isSupportedLanguageCode("id")).toBe(true);
+    expect(isSupportedLanguageCode("fr")).toBe(false);
+    expect(normalizeLanguageCode("id")).toBe("id");
+    expect(normalizeLanguageCode("fr")).toBe("en");
   });
 });
