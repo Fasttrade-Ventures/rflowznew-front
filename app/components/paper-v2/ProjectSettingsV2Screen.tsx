@@ -1,4 +1,5 @@
 import { paperSchema } from "#app/components/ui/paper/PaperForm";
+import { LanguageSelect } from "#app/components/ui/paper/LanguageSelect";
 import type { action as settingsEditAction } from "#app/routes/paper+/$paperId+/settings+/edit";
 import type { loader as rootLoader } from "#app/root";
 import { purposeLabel } from "#app/utils/new-project-wizard";
@@ -24,13 +25,6 @@ import v2Classes from "#app/components/v2/v2.module.css";
 import { normalizeKeywords } from "#app/utils/normalize-keywords";
 import classes from "./project-settings-v2.module.css";
 import formClasses from "./paper-v2-form.module.css";
-
-const LANGUAGE_LABELS: Record<string, string> = {
-  en: "English",
-  ms: "Malay",
-  ar: "Arabic",
-  id: "Indonesian",
-};
 
 type PaperMeta = {
   purpose?: string;
@@ -200,7 +194,6 @@ export function ProjectSettingsV2Screen({
       : null,
     tangibleOutputLabel(initialData.tangibleOutput),
     initialData.method,
-    LANGUAGE_LABELS[initialData.language ?? "en"] ?? initialData.language,
   ].filter(Boolean);
 
   return (
@@ -245,9 +238,9 @@ export function ProjectSettingsV2Screen({
           ))}
         </div>
         <p className={classes.profileNote}>
-          Purpose, output type, method, and language are set when the project is
-          created. This page is for title-page details: authors, affiliations,
-          and keywords.
+          Purpose, output type, and method are set when the project is created.
+          You can update language below; it affects future Ask Prof Z generations
+          only. Existing section content is not translated.
         </p>
       </div>
 
@@ -258,7 +251,6 @@ export function ProjectSettingsV2Screen({
       >
         <input type="hidden" name="id" value={initialData.id} />
         <input type="hidden" name={fields.method.name} value={initialData.method} />
-        <input type="hidden" name={fields.language.name} value={initialData.language ?? "en"} />
         <input
           type="hidden"
           name={`${fields.tangibleOutput.name}.type`}
@@ -278,6 +270,14 @@ export function ProjectSettingsV2Screen({
               <div className={classes.panelTitle}>Citation metadata</div>
               <div className={classes.panelSub}>
                 Shown on your DOCX/PDF title page and export headers.
+              </div>
+            </div>
+
+            <div className={classes.field}>
+              <LanguageSelect field={fields.language} />
+              <div className={classes.fieldHint}>
+                Changing language affects future Ask Prof Z generations. Existing
+                drafts and sections stay in their current language.
               </div>
             </div>
 

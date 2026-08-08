@@ -54,7 +54,7 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
               | "Model"
               | "Application",
           },
-    language: (returnedPaper?.language ?? "en") as "en" | "id" | "ar", // Use language from API or default to English
+    language: (returnedPaper?.language ?? "en") as "en" | "id" | "ar" | "ms",
   };
 
   return json({
