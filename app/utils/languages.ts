@@ -30,6 +30,22 @@ export type LanguageCode = keyof typeof SUPPORTED_LANGUAGES;
 
 export const DEFAULT_LANGUAGE: LanguageCode = "en";
 
+export function isSupportedLanguageCode(
+  value: string | null | undefined
+): value is LanguageCode {
+  if (!value) return false;
+  return value in SUPPORTED_LANGUAGES;
+}
+
+export function normalizeLanguageCode(
+  value: string | null | undefined
+): LanguageCode {
+  if (isSupportedLanguageCode(value)) {
+    return value;
+  }
+  return DEFAULT_LANGUAGE;
+}
+
 /**
  * Get language display name with flag
  */
