@@ -41,6 +41,19 @@ import {
 
 import classes from "./chat.module.css";
 
+const PROF_Z_AVATAR_SRC = "/images/dr-z.png";
+
+function ProfZAvatar({ className }: { className?: string }) {
+  return (
+    <img
+      src={PROF_Z_AVATAR_SRC}
+      alt=""
+      className={className}
+      aria-hidden
+    />
+  );
+}
+
 const LANGUAGE_OPTIONS = Object.values(SUPPORTED_LANGUAGES).map((lang) => ({
   code: lang.code as LanguageCode,
   label: `${lang.flag} ${lang.native_name}`,
@@ -334,7 +347,7 @@ export default function ProfZzChatWizard() {
         ? "Reply here, or tap a suggestion above…"
         : step === "confirm"
           ? "Or type a tweak before confirming…"
-          : "Message Prof ZZ…";
+          : "Message Prof Z…";
 
   const canSend =
     (step === "ask_topic" && draftText.trim().length >= 3) ||
@@ -359,10 +372,10 @@ export default function ProfZzChatWizard() {
       <div className={classes.frame}>
         <div className={classes.header}>
           <div className={classes.headerAvatar} aria-hidden>
-            ZZ
+            <ProfZAvatar className={classes.avatarImage} />
           </div>
           <div>
-            <div className={classes.headerTitle}>Prof ZZ</div>
+            <div className={classes.headerTitle}>Prof Z</div>
             <div className={classes.headerSub}>
               Research mentor · starts your proposal
             </div>
@@ -396,11 +409,15 @@ export default function ProfZzChatWizard() {
                   }`}
                   aria-hidden
                 >
-                  {isUser ? "You" : "ZZ"}
+                  {isUser ? (
+                    "You"
+                  ) : (
+                    <ProfZAvatar className={classes.avatarImage} />
+                  )}
                 </div>
                 <div className={classes.messageCol}>
                   <div className={classes.roleLabel}>
-                    {isUser ? "You" : "Prof ZZ"}
+                    {isUser ? "You" : "Prof Z"}
                   </div>
                   <div
                     className={isUser ? classes.bubbleUser : classes.bubbleProf}
