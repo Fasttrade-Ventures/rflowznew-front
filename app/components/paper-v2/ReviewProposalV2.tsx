@@ -49,13 +49,15 @@ type ReviewProposalV2Props = {
   actionMessage?: string | null;
   onSaveSection: (key: string, content: string) => void;
   onRegenerateSection: (key: string, ablyEventName: string) => void;
+  onGenerateAbstract: () => void;
+  onSaveAbstract: (body: string) => void;
   savingKey?: string | null;
 };
 
 export function ReviewProposalV2({
   paperId,
   paperTitle,
-  abstractBody,
+  abstractBody: initialAbstractBody,
   sections: initialSections,
   libraryEntries,
   framework,
@@ -78,10 +80,15 @@ export function ReviewProposalV2({
   actionMessage,
   onSaveSection,
   onRegenerateSection,
+  onGenerateAbstract,
+  onSaveAbstract,
   savingKey,
 }: ReviewProposalV2Props) {
   const [tab, setTab] = useState<ReviewProposalTab>("preview");
   const [sections, setSections] = useState(initialSections);
+  const [abstractBody, setAbstractBody] = useState(initialAbstractBody ?? "");
+  const [isGeneratingAbstract, setIsGeneratingAbstract] = useState(false);
+  const abstractStreamRef = useRef("");
   const [regeneratingKey, setRegeneratingKey] = useState<string | null>(null);
   const streamRef = useRef("");
   const benefitsPhaseRef = useRef<"practical" | "research" | null>(null);
@@ -94,8 +101,48 @@ export function ReviewProposalV2({
   }, [initialSections]);
 
   useEffect(() => {
+    setAbstractBody(initialAbstractBody ?? "");
+  }, [initialAbstractBody]);
+
+  useEffect(() => {
     regeneratingKeyRef.current = regeneratingKey;
   }, [regeneratingKey]);
+
+  // Abstract Ably subscription
+  useEffect(() => {
+    if (!ablyKey || !isGeneratingAbstract) return;
+
+    const client = new Ably.Realtime({ key: ablyKey });
+    const channel = client.channels.get(`paper-${paperId}`);
+
+    const handler = (message: Message) => {
+      const data = String(message.data);
+      if (data === "[DONE]") {
+        const content = abstractStreamRef.current.trim();
+        if (content) {
+          setAbstractBody(content);
+          onSaveAbstract(content);
+        }
+        abstractStreamRef.current = "";
+        setIsGeneratingAbstract(false);
+        return;
+      }
+      abstractStreamRef.current += data;
+      setAbstractBody(abstractStreamRef.current);
+    };
+
+    channel.subscribe("proposal-abstract", handler);
+    return () => {
+      channel.unsubscribe("proposal-abstract", handler);
+      client.close();
+    };
+  }, [ablyKey, isGeneratingAbstract, onSaveAbstract, paperId]);
+
+  const startGenerateAbstract = () => {
+    abstractStreamRef.current = "";
+    setIsGeneratingAbstract(true);
+    onGenerateAbstract();
+  };
 
   const readiness = computeProposalReadiness(sections);
   const integrityBlocked = integrity.overall !== "pass";
@@ -158,7 +205,7 @@ export function ReviewProposalV2({
           : regeneratingKey === "methodology"
             ? ["proposal-methodology"]
             : regeneratingKey === "expected_results"
-              ? ["proposal-expected-results"]
+              ? ["proposal-expert-review"]
               : regeneratingKey === "conclusion"
                 ? ["proposal-conclusion"]
                 : ["proposal-benefits-practical", "proposal-benefits-research"];
@@ -193,7 +240,7 @@ export function ReviewProposalV2({
           : key === "methodology"
             ? "proposal-methodology"
             : key === "expected_results"
-              ? "proposal-expected-results"
+              ? "proposal-expert-review"
               : key === "conclusion"
                 ? "proposal-conclusion"
                 : `proposal-${key}`;
@@ -207,7 +254,7 @@ export function ReviewProposalV2({
           <div>
             <div className={classes.pageTitle}>Review proposal</div>
             <div className={classes.pageSub}>
-              Assemble the six-part proposal, verify APA references, and export.
+              Assemble the nine-section proposal, verify APA references, and export.
             </div>
           </div>
         </div>
@@ -244,8 +291,12 @@ export function ReviewProposalV2({
                 <div>
                   <div className={classes.docTitle}>{paperTitle}</div>
                   {abstractBody ? (
-                    <div className={classes.pageSub}>Executive summary included</div>
-                  ) : null}
+                    <div className={classes.pageSub}>Abstract included</div>
+                  ) : (
+                    <div className={classes.pageSub} style={{ color: "var(--mantine-color-orange-6)" }}>
+                      Abstract missing — generate before export
+                    </div>
+                  )}
                 </div>
                 <span className={classes.progressBadge}>
                   {readiness.percent}% assembled
@@ -255,8 +306,12 @@ export function ReviewProposalV2({
               <ProposalAccordion
                 paperId={paperId}
                 sections={sections}
+                abstractBody={abstractBody}
+                isGeneratingAbstract={isGeneratingAbstract}
                 onSave={onSaveSection}
                 onRegenerate={startRegenerate}
+                onGenerateAbstract={startGenerateAbstract}
+                onSaveAbstract={onSaveAbstract}
                 savingKey={savingKey}
                 regeneratingKey={regeneratingKey}
               />
