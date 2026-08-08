@@ -23,6 +23,8 @@ interface Subscription {
   };
   original_export_monthly_limit: number;
   isFree?: boolean;
+  subscribable?: boolean;
+  subscription_unavailable_message?: string;
 }
 
 interface SubscriptionResponse {
@@ -136,6 +138,11 @@ export interface PlanFeatures {
   unlimited_proposals?: boolean;
   unlimited_ai?: boolean;
   document_version_limit?: number | null;
+  rag_monthly_limit?: number | null;
+  framework_generator?: boolean;
+  collaboration?: boolean;
+  trez_access?: boolean;
+  tam_access?: boolean;
 }
 
 const getCurrentUserSubscription = async ({
