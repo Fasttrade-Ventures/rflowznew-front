@@ -16,9 +16,11 @@ import { FormSaveFooter } from "./FormSaveFooter";
 import { PlanLimitAlert } from "./PlanLimitAlert";
 import classes from "./methodology-v2.module.css";
 import { AskProfZButton } from "./AskProfZButton";
+import type { LanguageCode } from "#app/utils/languages";
 
 export function MethodologyV2Screen({
   paperId,
+  paperLanguage = "en",
   philosophyParadigm,
   initial,
   saving,
@@ -32,6 +34,7 @@ export function MethodologyV2Screen({
   recommendationError,
 }: {
   paperId: string;
+  paperLanguage?: LanguageCode;
   philosophyParadigm?: string | null;
   initial: MethodologyV2FormValues;
   saving?: boolean;
@@ -58,7 +61,13 @@ export function MethodologyV2Screen({
 
   useEffect(() => {
     if (isGenerating) return;
-    setValues(initial);
+    setValues((current) => ({
+      ...initial,
+      methodology_paragraph:
+        current.methodology_paragraph.trim() && !initial.methodology_paragraph?.trim()
+          ? current.methodology_paragraph
+          : initial.methodology_paragraph,
+    }));
   }, [
     initial.methodology_paragraph,
     initial.meta?.sampling,
@@ -104,7 +113,7 @@ export function MethodologyV2Screen({
       return {
         ...nextValues,
         methodology_paragraph: shouldDraft
-          ? buildMethodologyParagraph(nextValues)
+          ? buildMethodologyParagraph(nextValues, paperLanguage)
           : current.methodology_paragraph,
       };
     });
@@ -122,6 +131,13 @@ export function MethodologyV2Screen({
 
   const handleMessage = useCallback((message: Ably.Message) => {
     if (message.data === "[DONE]") {
+      const finalParagraph = streamRef.current;
+      if (finalParagraph) {
+        setValues((current) => ({
+          ...current,
+          methodology_paragraph: finalParagraph,
+        }));
+      }
       setIsGenerating(false);
       streamRef.current = "";
       return;

@@ -1,3 +1,5 @@
+import type { LanguageCode } from "#app/utils/languages";
+
 /** Legacy shortlist keys — kept only so older saved meta still loads. */
 export type MethodologyDesignKey =
   | "yin_case_study"
@@ -88,7 +90,8 @@ export function analysisDraftText(meta: MethodologyMeta): string {
 
 export function applyMethodologyRecommendation(
   current: MethodologyV2FormValues,
-  recommendation: MethodologyRecommendation
+  recommendation: MethodologyRecommendation,
+  language: LanguageCode = "en"
 ): MethodologyV2FormValues {
   const next: MethodologyV2FormValues = {
     ...current,
@@ -109,8 +112,8 @@ export function applyMethodologyRecommendation(
       coherence_overridden: false,
     },
   };
-  // Always refresh the starter paragraph from the new drafts when recommending.
-  next.methodology_paragraph = buildMethodologyParagraph(next);
+  // Refresh starter paragraph only when short draft labels fit the glue template.
+  next.methodology_paragraph = buildMethodologyParagraph(next, language);
   return next;
 }
 
@@ -183,30 +186,140 @@ export function toMethodologyPayload(values: MethodologyV2FormValues) {
   };
 }
 
-export function buildMethodologyParagraph(
-  values: MethodologyV2FormValues
+export function isStarterGlueCompatible(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return true;
+  }
+  if (trimmed.length > 100) {
+    return false;
+  }
+  return (trimmed.match(/\./g) ?? []).length <= 1;
+}
+
+function lowerFirst(text: string): string {
+  if (!text) return text;
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+function stripSoftwareNote(software: string): string {
+  return software
+    .replace(/\s*\(external tool recommendation[^)]*\)\s*/gi, "")
+    .replace(/\s*\(rekomendasi alat eksternal\)\s*/gi, "")
+    .replace(/\s*\(cadangan alat luaran\)\s*/gi, "")
+    .trim();
+}
+
+function ensureSentence(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return "";
+  }
+  return trimmed.endsWith(".") ? trimmed : `${trimmed}.`;
+}
+
+function buildStitchedMethodologyParagraph(
+  values: MethodologyV2FormValues,
+  language: LanguageCode
 ): string {
   const design = designDraftText(values.meta);
   const collection = collectionDraftText(values.meta);
   const analysis = analysisDraftText(values.meta);
   const sampling = values.meta.sampling?.trim() ?? "";
-  const software = values.meta.recommended_software?.trim() ?? "";
+  const software = stripSoftwareNote(
+    values.meta.recommended_software?.trim() ?? ""
+  );
+
+  const parts: string[] = [];
+
+  if (language === "id") {
+    parts.push(ensureSentence(`Penelitian ini mengadopsi ${design}`));
+  } else if (language === "ms") {
+    parts.push(ensureSentence(`Kajian ini mengguna pakai ${design}`));
+  } else {
+    parts.push(ensureSentence(`This study adopts ${design}`));
+  }
+
+  for (const block of [collection, sampling, analysis]) {
+    const sentence = ensureSentence(block);
+    if (sentence) {
+      parts.push(sentence);
+    }
+  }
+
+  if (software) {
+    if (language === "id") {
+      parts.push(ensureSentence(`Analisis dapat didukung dengan ${software}`));
+    } else if (language === "ms") {
+      parts.push(ensureSentence(`Analisis boleh disokong dengan ${software}`));
+    } else {
+      parts.push(ensureSentence(`Analysis may be supported with ${software}`));
+    }
+  }
+
+  return parts.join(" ");
+}
+
+function buildShortGlueMethodologyParagraph(
+  values: MethodologyV2FormValues,
+  language: LanguageCode
+): string {
+  const design = designDraftText(values.meta);
+  const collection = lowerFirst(collectionDraftText(values.meta));
+  const analysis = lowerFirst(analysisDraftText(values.meta));
+  const sampling = values.meta.sampling?.trim() ?? "";
+  const softwareLabel = stripSoftwareNote(
+    values.meta.recommended_software?.trim() ?? ""
+  );
+  const samplingBit = sampling
+    ? ` ${sampling.replace(/^Sampling:\s*/i, "").replace(/\.$/, "")}.`
+    : "";
+
+  if (language === "id") {
+    const softwareBit = softwareLabel
+      ? ` Analisis dapat didukung dengan ${softwareLabel}.`
+      : "";
+    return `Penelitian ini mengadopsi ${design}, dengan pengumpulan data melalui ${collection}.${samplingBit} Data akan dianalisis menggunakan ${analysis}.${softwareBit}`;
+  }
+
+  if (language === "ms") {
+    const softwareBit = softwareLabel
+      ? ` Analisis boleh disokong dengan ${softwareLabel}.`
+      : "";
+    return `Kajian ini mengguna pakai ${design}, dengan pengumpulan data melalui ${collection}.${samplingBit} Data akan dianalisis menggunakan ${analysis}.${softwareBit}`;
+  }
+
+  const softwareBit = softwareLabel
+    ? ` Analysis may be supported with ${softwareLabel}.`
+    : "";
+
+  return `This study adopts ${design}, with data collected through ${collection}.${samplingBit} Data will be analysed using ${analysis}.${softwareBit}`;
+}
+
+export function buildMethodologyParagraph(
+  values: MethodologyV2FormValues,
+  language: LanguageCode = "en"
+): string {
+  const design = designDraftText(values.meta);
+  const collection = collectionDraftText(values.meta);
+  const analysis = analysisDraftText(values.meta);
+  const sampling = values.meta.sampling?.trim() ?? "";
 
   if (!design || !collection || !analysis) {
     return "";
   }
 
-  const samplingBit = sampling
-    ? ` ${sampling.replace(/^Sampling:\s*/i, "").replace(/\.$/, "")}.`
-    : "";
-  const softwareLabel = software
-    .replace(/\s*\(external tool recommendation[^)]*\)\s*/i, "")
-    .trim();
-  const softwareBit = softwareLabel
-    ? ` Analysis may be supported with ${softwareLabel}.`
-    : "";
+  if (language === "ar") {
+    return buildStitchedMethodologyParagraph(values, language);
+  }
 
-  return `This study adopts ${design}, with data collected through ${collection.charAt(0).toLowerCase()}${collection.slice(1)}.${samplingBit} Data will be analysed using ${analysis.charAt(0).toLowerCase()}${analysis.slice(1)}.${softwareBit}`;
+  if (
+    ![design, collection, analysis, sampling].every(isStarterGlueCompatible)
+  ) {
+    return buildStitchedMethodologyParagraph(values, language);
+  }
+
+  return buildShortGlueMethodologyParagraph(values, language);
 }
 
 export function evaluateCoherenceClient({

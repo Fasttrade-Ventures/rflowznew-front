@@ -61,31 +61,56 @@ export function PhilosophyV2Screen({
   const paradigmInfo = useMemo(() => mapParadigm(data), [data]);
 
   useEffect(() => {
+    if (isGenerating) return;
+
     const noAnswers =
       !initial.ontology_answers &&
       !initial.epistemology_answers &&
       !initial.axiology_answers;
-    setData(
-      noAnswers
-        ? buildQualitativePreset(initial.draft_philosophy ?? "")
+
+    setData((current) => {
+      const next = noAnswers
+        ? buildQualitativePreset(current.draft_philosophy ?? "")
         : {
             ontology_answers: initial.ontology_answers ?? null,
             epistemology_answers: initial.epistemology_answers ?? null,
             axiology_answers: initial.axiology_answers ?? null,
             paradigm: initial.paradigm ?? "",
-            draft_philosophy: initial.draft_philosophy ?? "",
-          }
-    );
+          };
+
+      return {
+        ...next,
+        // Keep streamed / unsaved draft text — loader revalidation after Ask Prof Z
+        // would otherwise reset this to empty before the user clicks Save.
+        draft_philosophy: current.draft_philosophy,
+      };
+    });
   }, [
     initial.ontology_answers,
     initial.epistemology_answers,
     initial.axiology_answers,
     initial.paradigm,
-    initial.draft_philosophy,
+    isGenerating,
   ]);
+
+  // Apply server draft only after an explicit save (or initial load with saved content).
+  useEffect(() => {
+    if (!savedDraft || !initial.draft_philosophy?.trim()) return;
+    setData((current) => ({
+      ...current,
+      draft_philosophy: initial.draft_philosophy ?? "",
+    }));
+  }, [savedDraft, initial.draft_philosophy]);
 
   const handleMessage = useCallback((message: Ably.Message) => {
     if (message.data === "[DONE]") {
+      const finalDraft = streamRef.current;
+      if (finalDraft) {
+        setData((current) => ({
+          ...current,
+          draft_philosophy: finalDraft,
+        }));
+      }
       setIsGenerating(false);
       streamRef.current = "";
       return;
@@ -108,6 +133,7 @@ export function PhilosophyV2Screen({
   const askProfZ = () => {
     if (!onAskProfZ) return;
     streamRef.current = "";
+    setData((current) => ({ ...current, draft_philosophy: "" }));
     setIsGenerating(true);
     onAskProfZ("draft", ablyEventName);
   };
